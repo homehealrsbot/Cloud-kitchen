@@ -41,8 +41,14 @@ export default function AdminPage() {
       });
   }, []);
 
+  const [error, setError] = useState("");
+
   async function addMeal() {
-    if (!name || !price || !kcal) return;
+    if (!name || !price || !kcal) {
+      setError("عبّي الحقول الثلاثة كلها (الاسم، السعر، السعرات) قبل الحفظ");
+      return;
+    }
+    setError("");
     const newMeal: Meal = {
       id: crypto.randomUUID(),
       name,
@@ -114,6 +120,11 @@ export default function AdminPage() {
         >
           حفظ ونشر
         </button>
+        {error && (
+          <div className="text-xs font-bold mt-2" style={{ color: "#C0392B" }}>
+            {error}
+          </div>
+        )}
       </div>
 
       <div className="space-y-2">

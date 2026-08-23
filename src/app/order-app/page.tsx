@@ -19,6 +19,7 @@ const DEMO_MEALS: Meal[] = [
 
 export default function OrderApp() {
   const [meals, setMeals] = useState<Meal[]>(DEMO_MEALS);
+  const [cart, setCart] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -34,9 +35,21 @@ export default function OrderApp() {
       });
   }, []);
 
+  const cartCount = Object.values(cart).filter(Boolean).length;
+
   return (
     <main className="max-w-md mx-auto px-5 py-8">
-      <h1 className="text-lg font-extrabold mb-1">اختر وجبتك</h1>
+      <div className="flex items-center justify-between mb-1">
+        <h1 className="text-lg font-extrabold">اختر وجبتك</h1>
+        {cartCount > 0 && (
+          <span
+            className="text-xs font-bold rounded-full px-3 py-1 text-white"
+            style={{ background: "#D67A4F" }}
+          >
+            السلة: {cartCount}
+          </span>
+        )}
+      </div>
       <p className="text-xs mb-5" style={{ color: "#7A6153" }}>
         مطابقة لهدفك: تنزيل وزن
       </p>
@@ -59,10 +72,11 @@ export default function OrderApp() {
               </div>
             </div>
             <button
-              className="rounded-full w-8 h-8 flex items-center justify-center text-white text-lg font-bold"
-              style={{ background: "#D67A4F" }}
+              onClick={() => setCart((c) => ({ ...c, [m.id]: !c[m.id] }))}
+              className="rounded-full w-8 h-8 flex items-center justify-center text-white text-lg font-bold transition-colors"
+              style={{ background: cart[m.id] ? "#2E9E6D" : "#D67A4F" }}
             >
-              +
+              {cart[m.id] ? "✓" : "+"}
             </button>
           </div>
         ))}
