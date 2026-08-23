@@ -19,6 +19,9 @@ import {
   Radio,
   Users,
   TrendingUp,
+  Package,
+  ShoppingBag,
+  Wallet,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase";
 
@@ -41,10 +44,20 @@ const T = {
 const ZONES = ["الروضة", "الشاطئ", "النزهة", "الصفا"];
 
 const SIM_MEALS = [
-  { name: "صدر دجاج مشوي + أرز بني", kcal: 420, protein: 42 },
-  { name: "سلمون مشوي + كينوا", kcal: 460, protein: 38 },
-  { name: "شوفان بروتين + فواكه", kcal: 380, protein: 28 },
-  { name: "سلطة دجاج + حمص وطحينة", kcal: 400, protein: 35 },
+  { name: "صدر دجاج مشوي + أرز بني", kcal: 420, protein: 42, price: 32, uses: { "صدر دجاج": 1, "أرز": 1 } },
+  { name: "سلمون مشوي + كينوا", kcal: 460, protein: 38, price: 42, uses: { "سلمون": 1, "كينوا": 1 } },
+  { name: "شوفان بروتين + فواكه", kcal: 380, protein: 28, price: 22, uses: { "شوفان": 1, "فواكه": 1 } },
+  { name: "سلطة دجاج + حمص وطحينة", kcal: 400, protein: 35, price: 28, uses: { "صدر دجاج": 1, "حمص": 1 } },
+];
+
+const INVENTORY_INIT = [
+  { name: "صدر دجاج", unit: "قطعة", stock: 42, cap: 60, low: 15 },
+  { name: "أرز", unit: "حصة", stock: 55, cap: 70, low: 15 },
+  { name: "سلمون", unit: "قطعة", stock: 20, cap: 40, low: 10 },
+  { name: "كينوا", unit: "حصة", stock: 25, cap: 40, low: 10 },
+  { name: "شوفان", unit: "حصة", stock: 18, cap: 50, low: 15 },
+  { name: "فواكه", unit: "حصة", stock: 30, cap: 60, low: 15 },
+  { name: "حمص", unit: "حصة", stock: 22, cap: 50, low: 15 },
 ];
 
 const NAMES = ["فهد", "نورة", "سارة", "عبدالله", "منيرة", "خالد", "لمى", "تركي", "هند", "بندر"];
@@ -56,6 +69,8 @@ function timeNow() {
 type FeedEvent = { id: number; text: string; type: "new" | "renew" | "pause"; meal: string; time: string };
 type ProductionRow = { name: string; kcal: number; protein: number; count: number };
 type DeliveryRow = { zone: string; count: number };
+type InventoryRow = { name: string; unit: string; stock: number; cap: number; low: number };
+type OrderRow = { id: number; customer: string; meal: string; amount: number; zone: string; time: string };
 type Meal = { id: string; name: string; price: number; kcal: number; available: boolean };
 
 const DEMO_MEALS: Meal[] = [
@@ -71,6 +86,9 @@ export default function AdminPage() {
     SIM_MEALS.map((m) => ({ ...m, count: 0 }))
   );
   const [deliveries, setDeliveries] = useState<DeliveryRow[]>(ZONES.map((z) => ({ zone: z, count: 0 })));
+  const [inventory, setInventory] = useState<InventoryRow[]>(INVENTORY_INIT);
+  const [todaysOrders, setTodaysOrders] = useState<OrderRow[]>([]);
+  const [revenueToday, setRevenueToday] = useState(0);
   const [activeSubs, setActiveSubs] = useState(184);
   const [renewedToday, setRenewedToday] = useState(21);
   const [paused, setPaused] = useState(6);
@@ -124,6 +142,17 @@ export default function AdminPage() {
       setTimeout(() => {
         setProduction((prev) => prev.map((m) => (m.name === meal.name ? { ...m, count: m.count + 1 } : m)));
         setDeliveries((prev) => prev.map((d) => (d.zone === zone ? { ...d, count: d.count + 1 } : d)));
+        setInventory((prev) =>
+          prev.map((row) => {
+            const used = (meal.uses as unknown as Record<string, number>)[row.name];
+            if (!used) return row;
+            return { ...row, stock: Math.max(row.stock - used, 0) };
+          })
+        );
+        setTodaysOrders((prev) =>
+          [{ id, customer: name, meal: meal.name, amount: meal.price, zone, time: timeNow() }, ...prev].slice(0, 8)
+        );
+        setRevenueToday((r) => r + meal.price);
       }, 500);
     }
 
@@ -143,6 +172,11 @@ export default function AdminPage() {
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
   const [kcal, setKcal] = useState("");
+  const [protein, setProtein] = useState("");
+  const [carb, setCarb] = useState("");
+  const [fat, setFat] = useState("");
+  const [goalTag, setGoalTag] = useState("تنزيل وزن");
+  const [ingredientsInput, setIngredientsInput] = useState("");
   const [formError, setFormError] = useState("");
 
   useEffect(() => {
@@ -162,7 +196,7 @@ export default function AdminPage() {
 
   async function addMeal() {
     if (!name || !price || !kcal) {
-      setFormError("عبّي الحقول الثلاثة كلها (الاسم، السعر، السعرات) قبل الحفظ");
+      setFormError("عبّي الحقول الثلاثة الأساسية (الاسم، السعر، السعرات) قبل الحفظ");
       return;
     }
     setFormError("");
@@ -175,10 +209,11 @@ export default function AdminPage() {
         name,
         price: Number(price),
         kcal: Number(kcal),
-        protein_g: 0,
-        carb_g: 0,
-        fat_g: 0,
-        goal_tag: "تنزيل وزن",
+        protein_g: Number(protein) || 0,
+        carb_g: Number(carb) || 0,
+        fat_g: Number(fat) || 0,
+        goal_tag: goalTag,
+        ingredients: ingredientsInput.split("،").map((s) => s.trim()).filter(Boolean),
       });
     }
 
@@ -186,6 +221,10 @@ export default function AdminPage() {
     setName("");
     setPrice("");
     setKcal("");
+    setProtein("");
+    setCarb("");
+    setFat("");
+    setIngredientsInput("");
   }
 
   return (
@@ -362,6 +401,81 @@ export default function AdminPage() {
           </div>
         </div>
 
+        {/* الملخص المالي اليومي */}
+        <div className="grid grid-cols-3 gap-4 mb-6">
+          <div className="rounded-2xl p-5" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
+            <div className="flex items-center gap-1.5 text-xs mb-1" style={{ color: T.inkSoft }}>
+              <Wallet size={13} /> الإيراد اليومي
+            </div>
+            <div className="text-2xl font-extrabold" style={{ color: T.good }}>{revenueToday.toLocaleString("ar-SA")} ﷼</div>
+          </div>
+          <div className="rounded-2xl p-5" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
+            <div className="flex items-center gap-1.5 text-xs mb-1" style={{ color: T.inkSoft }}>
+              <ShoppingBag size={13} /> عدد طلبات اليوم
+            </div>
+            <div className="text-2xl font-extrabold">{todaysOrders.length}</div>
+          </div>
+          <div className="rounded-2xl p-5" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
+            <div className="flex items-center gap-1.5 text-xs mb-1" style={{ color: T.inkSoft }}>
+              <TrendingUp size={13} /> متوسط قيمة الطلب
+            </div>
+            <div className="text-2xl font-extrabold">
+              {todaysOrders.length > 0 ? Math.round(revenueToday / todaysOrders.length) : 0} ﷼
+            </div>
+          </div>
+        </div>
+
+        {/* المخزون + طلبات اليوم */}
+        <div className="grid grid-cols-2 gap-6 mb-6">
+          <div className="rounded-2xl p-5" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
+            <div className="flex items-center gap-2 mb-4">
+              <Package size={17} style={{ color: T.brand }} />
+              <div className="font-semibold text-sm">المخزون اللحظي</div>
+            </div>
+            <div className="space-y-3">
+              {inventory.map((row) => {
+                const pct = Math.max(0, Math.min(100, (row.stock / row.cap) * 100));
+                const isLow = row.stock <= row.low;
+                return (
+                  <div key={row.name}>
+                    <div className="flex items-center justify-between text-xs mb-1">
+                      <span style={{ color: isLow ? T.warn : T.inkSoft }}>{row.stock} {row.unit}</span>
+                      <span className="font-medium">{row.name}</span>
+                    </div>
+                    <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: T.bg }}>
+                      <div
+                        className="h-full rounded-full transition-all duration-500"
+                        style={{ width: `${pct}%`, background: isLow ? T.warn : T.brandBright }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="rounded-2xl p-5" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
+            <div className="flex items-center gap-2 mb-4">
+              <ShoppingBag size={17} style={{ color: T.brand }} />
+              <div className="font-semibold text-sm">طلبات اليوم</div>
+            </div>
+            <div className="space-y-2 min-h-[200px]">
+              {todaysOrders.length === 0 && (
+                <div className="text-xs py-10 text-center" style={{ color: T.inkSoft }}>بانتظار أول طلب…</div>
+              )}
+              {todaysOrders.map((o) => (
+                <div key={o.id} className="flex items-center justify-between rounded-xl px-3 py-2.5" style={{ background: T.bg }}>
+                  <div>
+                    <div className="text-sm font-medium">{o.customer} — {o.meal}</div>
+                    <div className="text-[11px] mt-0.5" style={{ color: T.inkSoft }}>{o.zone} · {o.time}</div>
+                  </div>
+                  <span className="text-sm font-bold" style={{ color: T.brand }}>{o.amount} ﷼</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
         <div className="rounded-2xl p-5 mb-6" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
           <div className="flex items-center justify-between mb-1">
             <h2 className="text-sm font-bold">إضافة وجبة جديدة</h2>
@@ -371,7 +485,7 @@ export default function AdminPage() {
               ? "تعرض حالياً بيانات تجريبية — اربط Supabase (شوف .env.example) عشان تتصل بقاعدة بيانات حقيقية"
               : "متصل بقاعدة البيانات الفعلية"}
           </p>
-          <div className="grid grid-cols-3 gap-2 mb-3">
+          <div className="grid grid-cols-3 gap-2 mb-2">
             <input
               placeholder="اسم الوجبة"
               value={name}
@@ -394,6 +508,52 @@ export default function AdminPage() {
               style={{ borderColor: T.border }}
             />
           </div>
+
+          <div className="text-xs font-bold mb-1.5 mt-3" style={{ color: T.inkSoft }}>القيم الغذائية</div>
+          <div className="grid grid-cols-3 gap-2 mb-2">
+            <input
+              placeholder="بروتين (غ)"
+              value={protein}
+              onChange={(e) => setProtein(e.target.value)}
+              className="rounded-lg border px-3 py-2 text-sm"
+              style={{ borderColor: T.border }}
+            />
+            <input
+              placeholder="كارب (غ)"
+              value={carb}
+              onChange={(e) => setCarb(e.target.value)}
+              className="rounded-lg border px-3 py-2 text-sm"
+              style={{ borderColor: T.border }}
+            />
+            <input
+              placeholder="دهون (غ)"
+              value={fat}
+              onChange={(e) => setFat(e.target.value)}
+              className="rounded-lg border px-3 py-2 text-sm"
+              style={{ borderColor: T.border }}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 mb-3">
+            <select
+              value={goalTag}
+              onChange={(e) => setGoalTag(e.target.value)}
+              className="rounded-lg border px-3 py-2 text-sm"
+              style={{ borderColor: T.border }}
+            >
+              <option value="تنزيل وزن">تنزيل وزن</option>
+              <option value="ثبات الوزن">ثبات الوزن</option>
+              <option value="زيادة عضل">زيادة عضل</option>
+            </select>
+            <input
+              placeholder="المكونات (افصل بفاصلة ،)"
+              value={ingredientsInput}
+              onChange={(e) => setIngredientsInput(e.target.value)}
+              className="rounded-lg border px-3 py-2 text-sm"
+              style={{ borderColor: T.border }}
+            />
+          </div>
+
           <button onClick={addMeal} className="rounded-lg px-4 py-2 text-sm font-bold text-white" style={{ background: T.brandBright }}>
             حفظ ونشر
           </button>
