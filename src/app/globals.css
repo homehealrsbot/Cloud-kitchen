@@ -1,0 +1,28 @@
+@import "tailwindcss";
+
+:root {
+  --background: #F4F9F8;
+  --foreground: #12211F;
+  --teal: #0C6463;
+  --teal-bright: #149694;
+  --teal-tint: #E7F4F3;
+  --border: #E1ECEB;
+  --ink-soft: #5C716E;
+  --warn: #DE7A3E;
+  --good: #2E9E6D;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-teal: var(--teal);
+  --color-teal-bright: var(--teal-bright);
+  --color-teal-tint: var(--teal-tint);
+  --color-border: var(--border);
+  --font-sans: var(--font-cairo);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
