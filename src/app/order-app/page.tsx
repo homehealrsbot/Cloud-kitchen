@@ -37,7 +37,7 @@ export default function OrderApp() {
   return (
     <main className="max-w-md mx-auto px-5 py-8">
       <h1 className="text-lg font-extrabold mb-1">اختر وجبتك</h1>
-      <p className="text-xs mb-5" style={{ color: "#5C716E" }}>
+      <p className="text-xs mb-5" style={{ color: "#7A6153" }}>
         مطابقة لهدفك: تنزيل وزن
       </p>
 
@@ -46,21 +46,21 @@ export default function OrderApp() {
           <div
             key={m.id}
             className="flex items-center gap-3 rounded-2xl p-3 border"
-            style={{ borderColor: "#E1ECEB", background: "white" }}
+            style={{ borderColor: "#F0DFD3", background: "white" }}
           >
             <div
               className="w-12 h-12 rounded-xl shrink-0"
-              style={{ background: "#E7F4F3" }}
+              style={{ background: "#FBEEE6" }}
             />
             <div className="flex-1">
               <div className="text-sm font-bold">{m.name}</div>
-              <div className="text-xs" style={{ color: "#5C716E" }}>
+              <div className="text-xs" style={{ color: "#7A6153" }}>
                 {m.kcal} سعرة · {m.price} ﷼
               </div>
             </div>
             <button
               className="rounded-full w-8 h-8 flex items-center justify-center text-white text-lg font-bold"
-              style={{ background: "#149694" }}
+              style={{ background: "#D67A4F" }}
             >
               +
             </button>

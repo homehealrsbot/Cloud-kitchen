@@ -15,8 +15,8 @@ const cairo = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "سَلِس حلول — نظام اشتراك وجبات صحية",
-  description: "Salis Solutions — Cloud Kitchen Subscription System",
+  title: "Food Style — نظام اشتراك وجبات صحية",
+  description: "Food Style — Cloud Kitchen Subscription System",
 };
 
 export default function RootLayout({
@@ -26,7 +26,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ar" dir="rtl">
-      <body className={`${cairo.variable} font-sans antialiased bg-[#F4F9F8] text-[#12211F]`}>
+      <body className={`${cairo.variable} font-sans antialiased bg-[#FCF6F2] text-[#2B1B14]`}>
         {children}
       </body>
     </html>

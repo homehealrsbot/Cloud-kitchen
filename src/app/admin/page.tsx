@@ -73,16 +73,16 @@ export default function AdminPage() {
 
   return (
     <main className="max-w-3xl mx-auto px-6 py-10">
-      <h1 className="text-xl font-extrabold mb-1" style={{ color: "#0C6463" }}>
+      <h1 className="text-xl font-extrabold mb-1" style={{ color: "#A84F2E" }}>
         لوحة تحكم المطعم
       </h1>
-      <p className="text-xs mb-6" style={{ color: "#5C716E" }}>
+      <p className="text-xs mb-6" style={{ color: "#7A6153" }}>
         {usingDemo
           ? "تعرض حالياً بيانات تجريبية — اربط Supabase (شوف .env.example) عشان تتصل بقاعدة بيانات حقيقية"
           : "متصل بقاعدة البيانات الفعلية"}
       </p>
 
-      <div className="rounded-2xl p-5 mb-6 border" style={{ borderColor: "#E1ECEB", background: "white" }}>
+      <div className="rounded-2xl p-5 mb-6 border" style={{ borderColor: "#F0DFD3", background: "white" }}>
         <h2 className="text-sm font-bold mb-3">إضافة وجبة جديدة</h2>
         <div className="grid grid-cols-3 gap-2 mb-3">
           <input
@@ -90,27 +90,27 @@ export default function AdminPage() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             className="col-span-3 rounded-lg border px-3 py-2 text-sm"
-            style={{ borderColor: "#E1ECEB" }}
+            style={{ borderColor: "#F0DFD3" }}
           />
           <input
             placeholder="السعر"
             value={price}
             onChange={(e) => setPrice(e.target.value)}
             className="rounded-lg border px-3 py-2 text-sm"
-            style={{ borderColor: "#E1ECEB" }}
+            style={{ borderColor: "#F0DFD3" }}
           />
           <input
             placeholder="السعرات"
             value={kcal}
             onChange={(e) => setKcal(e.target.value)}
             className="col-span-2 rounded-lg border px-3 py-2 text-sm"
-            style={{ borderColor: "#E1ECEB" }}
+            style={{ borderColor: "#F0DFD3" }}
           />
         </div>
         <button
           onClick={addMeal}
           className="rounded-lg px-4 py-2 text-sm font-bold text-white"
-          style={{ background: "#149694" }}
+          style={{ background: "#D67A4F" }}
         >
           حفظ ونشر
         </button>
@@ -121,11 +121,11 @@ export default function AdminPage() {
           <div
             key={m.id}
             className="flex items-center justify-between rounded-xl px-4 py-3 border"
-            style={{ borderColor: "#E1ECEB", background: "white" }}
+            style={{ borderColor: "#F0DFD3", background: "white" }}
           >
             <div>
               <div className="text-sm font-bold">{m.name}</div>
-              <div className="text-xs" style={{ color: "#5C716E" }}>
+              <div className="text-xs" style={{ color: "#7A6153" }}>
                 {m.kcal} سعرة · {m.price} ﷼
               </div>
             </div>
