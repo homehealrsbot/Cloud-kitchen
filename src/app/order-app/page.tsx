@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase";
 
 type Meal = {
@@ -50,9 +51,16 @@ export default function OrderApp() {
           </span>
         )}
       </div>
-      <p className="text-xs mb-5" style={{ color: "#7A6153" }}>
+      <p className="text-xs mb-3" style={{ color: "#7A6153" }}>
         مطابقة لهدفك: تنزيل وزن
       </p>
+      <Link
+        href="/order-app/health-profile"
+        className="inline-block text-xs font-bold rounded-full px-3 py-1.5 mb-5"
+        style={{ background: "#FBEEE6", color: "#A84F2E" }}
+      >
+        عبّي ملفك الصحي عشان نطابق وجباتك تلقائياً ←
+      </Link>
 
       <div className="space-y-2.5">
         {meals.map((m) => (
