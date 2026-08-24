@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import {
   BarChart,
   Bar,
@@ -238,10 +239,20 @@ export default function AdminPage() {
               <div className="text-xs mt-1" style={{ color: T.inkSoft }}>لوحة تحكم المطعم</div>
             </div>
           </div>
-          <div className="text-left">
-            <div className="font-semibold text-sm">نظام اشتراك وجبات صحية</div>
-            <div className="text-xs flex items-center gap-1.5 justify-end mt-1" style={{ color: T.good }}>
-              <Radio size={13} /> يعمل الآن — بيانات تجريبية حية
+          <div className="flex items-center gap-4">
+            <Link
+              href="/admin/process"
+              className="flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-bold text-white"
+              style={{ background: T.brand }}
+            >
+              <ChefHat size={14} />
+              خريطة تحضير الوجبات
+            </Link>
+            <div className="text-left">
+              <div className="font-semibold text-sm">نظام اشتراك وجبات صحية</div>
+              <div className="text-xs flex items-center gap-1.5 justify-end mt-1" style={{ color: T.good }}>
+                <Radio size={13} /> يعمل الآن — بيانات تجريبية حية
+              </div>
             </div>
           </div>
         </div>
