@@ -56,11 +56,49 @@ export default function OrderApp() {
       </p>
       <Link
         href="/order-app/health-profile"
-        className="inline-block text-xs font-bold rounded-full px-3 py-1.5 mb-5"
+        className="inline-block text-xs font-bold rounded-full px-3 py-1.5 mb-3"
         style={{ background: "#FBEEE6", color: "#A84F2E" }}
       >
         عبّي ملفك الصحي عشان نطابق وجباتك تلقائياً ←
       </Link>
+
+      <div className="flex gap-2 flex-wrap mb-5">
+        <Link
+          href="/order-app/onboarding"
+          className="text-[11px] font-bold rounded-full px-3 py-1.5"
+          style={{ background: "white", color: "#A84F2E", border: "1px solid #F0DFD3" }}
+        >
+          اختر خطتك
+        </Link>
+        <Link
+          href="/order-app/progress"
+          className="text-[11px] font-bold rounded-full px-3 py-1.5"
+          style={{ background: "white", color: "#A84F2E", border: "1px solid #F0DFD3" }}
+        >
+          تتبع تقدمي
+        </Link>
+        <Link
+          href="/order-app/subscription"
+          className="text-[11px] font-bold rounded-full px-3 py-1.5"
+          style={{ background: "white", color: "#A84F2E", border: "1px solid #F0DFD3" }}
+        >
+          إدارة اشتراكي
+        </Link>
+        <Link
+          href="/order-app/consultation"
+          className="text-[11px] font-bold rounded-full px-3 py-1.5"
+          style={{ background: "white", color: "#A84F2E", border: "1px solid #F0DFD3" }}
+        >
+          احجز استشارة تغذية
+        </Link>
+        <Link
+          href="/order-app/delivery-proof"
+          className="text-[11px] font-bold rounded-full px-3 py-1.5"
+          style={{ background: "white", color: "#A84F2E", border: "1px solid #F0DFD3" }}
+        >
+          تأكيد تسليم (تجربة)
+        </Link>
+      </div>
 
       <div className="space-y-2.5">
         {meals.map((m) => (

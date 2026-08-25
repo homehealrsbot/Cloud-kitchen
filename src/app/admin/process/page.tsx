@@ -10,6 +10,7 @@ import {
   ChefHat,
   CheckCircle2,
   PackageCheck,
+  ShieldCheck,
 } from "lucide-react";
 
 const T = {
@@ -28,11 +29,14 @@ const T = {
 };
 
 type Step = { title: string; minutes: number; warning?: string };
-type MealProcess = { name: string; steps: Step[] };
+type MealProcess = { name: string; steps: Step[]; listedProtein: number; listedCarb: number; listedFat: number };
 
 const PROCESSES: MealProcess[] = [
   {
     name: "صدر دجاج مشوي + أرز بني",
+    listedProtein: 42,
+    listedCarb: 38,
+    listedFat: 9,
     steps: [
       { title: "تجهيز الأرز البني (غسل وطبخ)", minutes: 8 },
       { title: "شوي صدر الدجاج", minutes: 12, warning: "تأكد من درجة الحرارة الداخلية 74°م قبل الإخراج" },
@@ -42,6 +46,9 @@ const PROCESSES: MealProcess[] = [
   },
   {
     name: "سلمون مشوي + كينوا",
+    listedProtein: 38,
+    listedCarb: 34,
+    listedFat: 14,
     steps: [
       { title: "طبخ الكينوا", minutes: 10 },
       { title: "شوي السلمون", minutes: 9, warning: "لا تتجاوز وقت الطهي — السلمون يجف بسرعة" },
@@ -51,6 +58,9 @@ const PROCESSES: MealProcess[] = [
   },
   {
     name: "شوفان بروتين + فواكه",
+    listedProtein: 28,
+    listedCarb: 52,
+    listedFat: 10,
     steps: [
       { title: "تحضير الشوفان بالحليب", minutes: 5 },
       { title: "إضافة البروتين والفواكه والمكسرات", minutes: 2, warning: "يحتوي مكسرات — تأكد من ملصق تحذير الحساسية" },
@@ -59,6 +69,9 @@ const PROCESSES: MealProcess[] = [
   },
   {
     name: "سلطة دجاج + حمص وطحينة",
+    listedProtein: 35,
+    listedCarb: 22,
+    listedFat: 16,
     steps: [
       { title: "شوي صدر الدجاج وتقطيعه", minutes: 12, warning: "تأكد من درجة الحرارة الداخلية 74°م" },
       { title: "تجهيز الحمص وصلصة الطحينة", minutes: 4, warning: "يحتوي سمسم (طحينة) — ملصق حساسية إجباري" },
@@ -73,6 +86,51 @@ export default function ProcessMapPage() {
   const process = PROCESSES[selected];
   const totalMinutes = process.steps.reduce((a, s) => a + s.minutes, 0);
   const warningsCount = process.steps.filter((s) => s.warning).length;
+
+  // توثيق الدفعة — مطابقة القيم الغذائية الفعلية المزنة مقابل المعلنة للعميل
+  const [actualProtein, setActualProtein] = useState("");
+  const [actualCarb, setActualCarb] = useState("");
+  const [actualFat, setActualFat] = useState("");
+  const [verified, setVerified] = useState(false);
+  const [batchLog, setBatchLog] = useState<
+    { meal: string; time: string; protein: number; carb: number; fat: number; deviation: number; flagged: boolean }[]
+  >([]);
+
+  function deviationPct(actual: number, listed: number) {
+    if (!listed) return 0;
+    return Math.abs((actual - listed) / listed) * 100;
+  }
+
+  function checkBatch() {
+    if (!actualProtein || !actualCarb || !actualFat) return;
+    const ap = Number(actualProtein);
+    const ac = Number(actualCarb);
+    const af = Number(actualFat);
+    const devP = deviationPct(ap, process.listedProtein);
+    const devC = deviationPct(ac, process.listedCarb);
+    const devF = deviationPct(af, process.listedFat);
+    const maxDev = Math.max(devP, devC, devF);
+    const flagged = maxDev > 15; // انحراف فوق 15% يعتبر غير مقبول — يوقف الدفعة قبل التوصيل
+
+    setBatchLog((prev) =>
+      [
+        {
+          meal: process.name,
+          time: new Date().toLocaleTimeString("ar-SA", { hour: "2-digit", minute: "2-digit" }),
+          protein: ap,
+          carb: ac,
+          fat: af,
+          deviation: Math.round(maxDev),
+          flagged,
+        },
+        ...prev,
+      ].slice(0, 6)
+    );
+    setVerified(!flagged);
+    setActualProtein("");
+    setActualCarb("");
+    setActualFat("");
+  }
 
   return (
     <div style={{ background: T.bg, color: T.ink }} className="min-h-screen w-full">
@@ -104,7 +162,7 @@ export default function ProcessMapPage() {
           {PROCESSES.map((p, i) => (
             <button
               key={p.name}
-              onClick={() => setSelected(i)}
+              onClick={() => { setSelected(i); setVerified(false); }}
               className="rounded-full px-4 py-2 text-xs font-bold transition-colors"
               style={{
                 background: selected === i ? T.brandBright : T.surface,
@@ -197,10 +255,79 @@ export default function ProcessMapPage() {
           })}
 
           {/* نهاية المسار */}
-          <div className="flex items-center gap-2 text-sm font-bold" style={{ color: T.good }}>
-            <CheckCircle2 size={20} />
-            جاهز للتسليم للمندوب
+          <div className="flex items-center gap-2 text-sm font-bold" style={{ color: verified ? T.good : T.inkSoft }}>
+            {verified ? <CheckCircle2 size={20} /> : <ShieldCheck size={20} />}
+            {verified ? "جاهز للتسليم للمندوب" : "بانتظار توثيق الدفعة قبل التسليم"}
           </div>
+        </div>
+
+        {/* توثيق الدفعة — مطابقة القيم الغذائية الفعلية (رد مباشر على شكوى دقة القيم المعلنة) */}
+        <div className="rounded-2xl p-5 mt-8" style={{ background: T.surface, border: `2px solid ${T.brand}` }}>
+          <div className="flex items-center gap-2 mb-1">
+            <ShieldCheck size={18} style={{ color: T.brand }} />
+            <div className="text-sm font-extrabold">توثيق الدفعة — مطابقة القيم الغذائية الفعلية</div>
+          </div>
+          <p className="text-xs mb-4" style={{ color: T.inkSoft }}>
+            زِن الوجبة فعلياً وأدخل القيم — النظام يقارنها بالقيم المعلنة للعميل ({process.listedProtein}غ بروتين ·{" "}
+            {process.listedCarb}غ كارب · {process.listedFat}غ دهون). أي انحراف فوق 15% يوقف الدفعة قبل التسليم.
+          </p>
+          <div className="grid grid-cols-3 gap-2 mb-3">
+            <input
+              placeholder="بروتين فعلي (غ)"
+              value={actualProtein}
+              onChange={(e) => setActualProtein(e.target.value)}
+              className="rounded-lg border px-3 py-2 text-sm"
+              style={{ borderColor: T.border }}
+            />
+            <input
+              placeholder="كارب فعلي (غ)"
+              value={actualCarb}
+              onChange={(e) => setActualCarb(e.target.value)}
+              className="rounded-lg border px-3 py-2 text-sm"
+              style={{ borderColor: T.border }}
+            />
+            <input
+              placeholder="دهون فعلية (غ)"
+              value={actualFat}
+              onChange={(e) => setActualFat(e.target.value)}
+              className="rounded-lg border px-3 py-2 text-sm"
+              style={{ borderColor: T.border }}
+            />
+          </div>
+          <button
+            onClick={checkBatch}
+            className="rounded-lg px-4 py-2 text-xs font-bold text-white"
+            style={{ background: T.brand }}
+          >
+            توثيق ومطابقة
+          </button>
+
+          {batchLog.length > 0 && (
+            <div className="space-y-2 mt-4">
+              {batchLog.map((b, i) => (
+                <div
+                  key={i}
+                  className="flex items-center justify-between rounded-xl px-4 py-3"
+                  style={{ background: b.flagged ? T.warnTint : T.goodTint }}
+                >
+                  <div>
+                    <div className="text-sm font-bold" style={{ color: b.flagged ? T.warn : T.good }}>
+                      {b.meal}
+                    </div>
+                    <div className="text-[11px]" style={{ color: T.inkSoft }}>
+                      {b.protein}غ بروتين · {b.carb}غ كارب · {b.fat}غ دهون · {b.time}
+                    </div>
+                  </div>
+                  <span
+                    className="text-xs font-bold rounded-full px-2.5 py-1"
+                    style={{ background: b.flagged ? T.warn : T.good, color: "#fff" }}
+                  >
+                    {b.flagged ? `انحراف ${b.deviation}% — أُوقفت` : "مطابقة ✓"}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="text-center text-[11px] mt-10 pb-4" style={{ color: T.inkSoft }}>
