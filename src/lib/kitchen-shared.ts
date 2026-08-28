@@ -112,3 +112,50 @@ export function savePublishedLocalMeals(list: Meal[]) {
   if (typeof window === "undefined") return;
   localStorage.setItem(PUBLISHED_KEY, JSON.stringify(list));
 }
+
+// ---------------- برامج الاشتراك المخصصة (يديرها المطعم يدوياً) ----------------
+
+export type SubscriptionPlan = { id: string; name: string; desc: string; icon: string };
+
+export const DEFAULT_PLANS: SubscriptionPlan[] = [
+  { id: "keto", name: "خطة كيتو", desc: "كارب منخفض، دهون مرتفعة — لحرق دهون أسرع وطاقة أعلى", icon: "flame" },
+  { id: "champion", name: "خطة الأبطال", desc: "بروتين عالي مصمم لدعم التمرين وبناء العضل", icon: "dumbbell" },
+  { id: "lifestyle", name: "خطة نمط الحياة", desc: "وجبات متوازنة ومستدامة — بدون قيود متطرفة", icon: "leaf" },
+  { id: "diabetes", name: "خطة السكري", desc: "مصممة بعناية لدعم مستوى سكر الدم الصحي", icon: "heart" },
+  { id: "kids", name: "خطة الأطفال", desc: "وجبات مغذية وشهية تدعم نمو الأطفال وتركيزهم", icon: "baby" },
+];
+
+const PLANS_KEY = "foodstyle_subscription_plans";
+
+export function loadPlans(): SubscriptionPlan[] {
+  if (typeof window === "undefined") return DEFAULT_PLANS;
+  const saved = safeParse<SubscriptionPlan[] | null>(localStorage.getItem(PLANS_KEY), null);
+  return saved && saved.length > 0 ? saved : DEFAULT_PLANS;
+}
+
+export function savePlans(list: SubscriptionPlan[]) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(PLANS_KEY, JSON.stringify(list));
+}
+
+// ---------------- طلبات مجدولة بالتاريخ (اليوم / غداً / بعد غد) ----------------
+
+export type ScheduledOrder = {
+  id: string;
+  customerName: string;
+  orderNumber: string;
+  stage: string;
+  scheduledFor: "today" | "tomorrow" | "dayAfter";
+};
+
+const ORDERS_KEY = "foodstyle_scheduled_orders";
+
+export function loadScheduledOrders(): ScheduledOrder[] {
+  if (typeof window === "undefined") return [];
+  return safeParse<ScheduledOrder[]>(localStorage.getItem(ORDERS_KEY), []);
+}
+
+export function saveScheduledOrders(list: ScheduledOrder[]) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(ORDERS_KEY, JSON.stringify(list));
+}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -13,6 +13,7 @@ import {
   Check,
   ArrowLeft,
 } from "lucide-react";
+import { loadPlans, SubscriptionPlan } from "@/lib/kitchen-shared";
 
 const T = {
   bg: "#FCF6F2",
@@ -27,44 +28,24 @@ const T = {
   goodTint: "#E5F4ED",
 };
 
-const PLANS = [
-  {
-    id: "keto",
-    icon: Flame,
-    name: "خطة كيتو",
-    desc: "كارب منخفض، دهون مرتفعة — لحرق دهون أسرع وطاقة أعلى",
-  },
-  {
-    id: "champion",
-    icon: Dumbbell,
-    name: "خطة الأبطال",
-    desc: "بروتين عالي مصمم لدعم التمرين وبناء العضل",
-  },
-  {
-    id: "lifestyle",
-    icon: Leaf,
-    name: "خطة نمط الحياة",
-    desc: "وجبات متوازنة ومستدامة — بدون قيود متطرفة",
-  },
-  {
-    id: "diabetes",
-    icon: HeartPulse,
-    name: "خطة السكري",
-    desc: "مصممة بعناية لدعم مستوى سكر الدم الصحي",
-  },
-  {
-    id: "kids",
-    icon: Baby,
-    name: "خطة الأطفال",
-    desc: "وجبات مغذية وشهية تدعم نمو الأطفال وتركيزهم",
-  },
-];
+const ICONS: Record<string, typeof Flame> = {
+  flame: Flame,
+  dumbbell: Dumbbell,
+  leaf: Leaf,
+  heart: HeartPulse,
+  baby: Baby,
+};
 
 export default function OnboardingPage() {
   const router = useRouter();
   const [stage, setStage] = useState(0);
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [cuisines, setCuisines] = useState<string[]>([]);
+  const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
+
+  useEffect(() => {
+    setPlans(loadPlans());
+  }, []);
 
   const CUISINES = ["عربي", "آسيوي", "متوسطي", "أمريكي", "هندي"];
 
@@ -112,28 +93,31 @@ export default function OnboardingPage() {
             <h1 className="text-lg font-extrabold mb-1">شنو هدفك؟</h1>
             <p className="text-xs mb-5" style={{ color: T.inkSoft }}>اختر الخطة الأقرب لهدفك — نقدر نعدّلها لك لاحقاً بأي وقت</p>
             <div className="space-y-2.5 mb-6">
-              {PLANS.map((p) => (
-                <button
-                  key={p.id}
-                  onClick={() => setSelectedPlan(p.id)}
-                  className="w-full flex items-center gap-3 rounded-2xl p-3.5 text-right transition-colors"
-                  style={{
-                    background: selectedPlan === p.id ? T.brandTint : T.surface,
-                    border: `1.5px solid ${selectedPlan === p.id ? T.brandBright : T.border}`,
-                  }}
-                >
-                  <div
-                    className="rounded-full flex items-center justify-center shrink-0"
-                    style={{ width: 42, height: 42, background: selectedPlan === p.id ? T.brandBright : T.brandTint, color: selectedPlan === p.id ? "#fff" : T.brand }}
+              {plans.map((p) => {
+                const Icon = ICONS[p.icon] || Leaf;
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => setSelectedPlan(p.id)}
+                    className="w-full flex items-center gap-3 rounded-2xl p-3.5 text-right transition-colors"
+                    style={{
+                      background: selectedPlan === p.id ? T.brandTint : T.surface,
+                      border: `1.5px solid ${selectedPlan === p.id ? T.brandBright : T.border}`,
+                    }}
                   >
-                    <p.icon size={19} />
-                  </div>
-                  <div className="flex-1">
-                    <div className="text-sm font-bold">{p.name}</div>
-                    <div className="text-[11px] mt-0.5" style={{ color: T.inkSoft }}>{p.desc}</div>
-                  </div>
-                </button>
-              ))}
+                    <div
+                      className="rounded-full flex items-center justify-center shrink-0"
+                      style={{ width: 42, height: 42, background: selectedPlan === p.id ? T.brandBright : T.brandTint, color: selectedPlan === p.id ? "#fff" : T.brand }}
+                    >
+                      <Icon size={19} />
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-sm font-bold">{p.name}</div>
+                      <div className="text-[11px] mt-0.5" style={{ color: T.inkSoft }}>{p.desc}</div>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
             <button
               onClick={() => setStage(1)}
@@ -190,7 +174,7 @@ export default function OnboardingPage() {
             <h1 className="text-lg font-extrabold mb-5">تأكيد الإعداد</h1>
             <div className="rounded-2xl p-4 mb-3" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
               <div className="text-xs" style={{ color: T.inkSoft }}>الخطة</div>
-              <div className="text-sm font-bold mt-0.5">{PLANS.find((p) => p.id === selectedPlan)?.name}</div>
+              <div className="text-sm font-bold mt-0.5">{plans.find((p) => p.id === selectedPlan)?.name}</div>
             </div>
             <div className="rounded-2xl p-4 mb-6" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
               <div className="text-xs" style={{ color: T.inkSoft }}>المطابخ المفضلة</div>

@@ -12,6 +12,7 @@ import {
   ChevronRight,
   CalendarClock,
   Thermometer,
+  Layers,
 } from "lucide-react";
 import {
   T,
@@ -166,6 +167,9 @@ export default function KitchenDashboard() {
         <div className="max-w-6xl mx-auto px-6 pb-3 flex items-center gap-2 flex-wrap">
           <Link href="/admin/orders" className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold" style={{ background: T.brandTint, color: T.brand }}>
             <ShoppingBag size={13} /> لوحة حالة الطلبات
+          </Link>
+          <Link href="/admin/plans" className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold" style={{ background: T.brandTint, color: T.brand }}>
+            <Layers size={13} /> برامج الاشتراك
           </Link>
           <Link href="/admin/process" className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold" style={{ background: T.brandTint, color: T.brand }}>
             <ChefHat size={13} /> خريطة تحضير الوجبات
