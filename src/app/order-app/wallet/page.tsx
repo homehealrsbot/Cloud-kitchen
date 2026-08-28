@@ -18,33 +18,28 @@ const T = {
   goodTint: "#E5F4ED",
 };
 
-// الباقة: دفع مسبق شهري، يتحول لرصيد محفظة يُسحب منه يومياً بقيمة الوجبة
+// الباقة تُقاس بالأيام فقط — العميل ما يشوف أي مبلغ مالي أبداً.
+// القيمة المالية الفعلية (لو فيه) تُدار من الإدارة التنفيذية داخلياً بس.
 const PACKAGE_TOTAL_DAYS = 30;
-const DAILY_RATE = 30; // ريال — القيمة اليومية المخصومة من المحفظة مقابل وجبة اليوم
-const PACKAGE_VALUE = PACKAGE_TOTAL_DAYS * DAILY_RATE; // 900 ريال
 
-type Txn = { day: number; meal: string; amount: number; time: string };
+type Txn = { day: number; meal: string; time: string };
 
 export default function WalletPage() {
   const [daysUsed, setDaysUsed] = useState(6);
   const [transactions, setTransactions] = useState<Txn[]>([
-    { day: 6, meal: "سلطة دجاج + حمص وطحينة", amount: DAILY_RATE, time: "اليوم 1:10 م" },
-    { day: 5, meal: "سلمون مشوي + كينوا", amount: DAILY_RATE, time: "أمس 12:45 م" },
-    { day: 4, meal: "صدر دجاج مشوي + أرز بني", amount: DAILY_RATE, time: "قبل يومين 1:05 م" },
+    { day: 6, meal: "سلطة دجاج + حمص وطحينة", time: "اليوم 1:10 م" },
+    { day: 5, meal: "سلمون مشوي + كينوا", time: "أمس 12:45 م" },
+    { day: 4, meal: "صدر دجاج مشوي + أرز بني", time: "قبل يومين 1:05 م" },
   ]);
   const [claimedToday, setClaimedToday] = useState(false);
 
-  const balance = PACKAGE_VALUE - daysUsed * DAILY_RATE;
   const daysRemaining = PACKAGE_TOTAL_DAYS - daysUsed;
   const usedPct = (daysUsed / PACKAGE_TOTAL_DAYS) * 100;
 
   function claimTodayMeal() {
     if (claimedToday || daysRemaining <= 0) return;
     setDaysUsed((d) => d + 1);
-    setTransactions((prev) => [
-      { day: daysUsed + 1, meal: "شوفان بروتين + فواكه", amount: DAILY_RATE, time: "الآن" },
-      ...prev,
-    ]);
+    setTransactions((prev) => [{ day: daysUsed + 1, meal: "شوفان بروتين + فواكه", time: "الآن" }, ...prev]);
     setClaimedToday(true);
   }
 
@@ -54,7 +49,7 @@ export default function WalletPage() {
         <div className="max-w-md mx-auto px-5 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Wallet size={18} style={{ color: T.brand }} />
-            <span className="font-bold text-sm" style={{ color: T.brand }}>محفظتي</span>
+            <span className="font-bold text-sm" style={{ color: T.brand }}>باقتي</span>
           </div>
           <Link href="/order-app" className="flex items-center gap-1 text-xs font-bold" style={{ color: T.inkSoft }}>
             رجوع
@@ -64,13 +59,12 @@ export default function WalletPage() {
       </div>
 
       <div className="max-w-md mx-auto px-5 py-6">
-        {/* رصيد المحفظة */}
+        {/* رصيد الباقة بالأيام فقط */}
         <div className="rounded-2xl p-5 mb-4 text-white" style={{ background: `linear-gradient(135deg, ${T.brand}, ${T.brandBright})` }}>
-          <div className="text-xs opacity-90 mb-1">رصيد الباقة المتبقي</div>
-          <div className="text-3xl font-extrabold mb-3">{balance} ﷼</div>
+          <div className="text-xs opacity-90 mb-1">باقتك الشهرية</div>
+          <div className="text-3xl font-extrabold mb-3">{daysRemaining} يوم متبقي</div>
           <div className="flex items-center justify-between text-xs opacity-90 mb-1.5">
-            <span>{daysRemaining} يوم متبقي</span>
-            <span>الباقة الشهرية — {PACKAGE_VALUE} ﷼</span>
+            <span>استخدمت {daysUsed} من {PACKAGE_TOTAL_DAYS} يوم</span>
           </div>
           <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.3)" }}>
             <div className="h-full rounded-full bg-white" style={{ width: `${usedPct}%` }} />
@@ -79,7 +73,7 @@ export default function WalletPage() {
 
         <div className="rounded-2xl p-4 mb-6" style={{ background: T.brandTint }}>
           <p className="text-[11.5px] leading-relaxed" style={{ color: T.brand }}>
-            دفعت باقتك مرة وحدة مقدماً — كل يوم تستلم فيه وجبة، ينخصم {DAILY_RATE} ﷼ تلقائياً من رصيدك، بدون أي دفع إضافي طول مدة الباقة.
+            باقتك مدفوعة بالكامل مقدماً — كل يوم تستلم فيه وجبة يُخصم يوم واحد من رصيدك، بدون أي دفعات إضافية طول مدة الباقة.
           </p>
         </div>
 
@@ -90,12 +84,12 @@ export default function WalletPage() {
           style={{ background: claimedToday ? T.good : T.brandBright }}
         >
           {claimedToday ? <CheckCircle2 size={16} /> : <Utensils size={16} />}
-          {claimedToday ? "تم خصم وجبة اليوم من المحفظة" : "استلام وجبة اليوم"}
+          {claimedToday ? "تم استلام وجبة اليوم" : "استلام وجبة اليوم"}
         </button>
 
         <div className="flex items-center gap-1.5 text-xs font-bold mb-3" style={{ color: T.inkSoft }}>
           <CalendarDays size={14} />
-          سجل الخصومات اليومية
+          سجل الأيام المستخدمة
         </div>
         <div className="space-y-2">
           {transactions.map((t, i) => (
@@ -104,7 +98,7 @@ export default function WalletPage() {
                 <div className="text-sm font-medium">يوم {t.day} — {t.meal}</div>
                 <div className="text-[11px] mt-0.5" style={{ color: T.inkSoft }}>{t.time}</div>
               </div>
-              <span className="text-sm font-bold" style={{ color: T.warn }}>−{t.amount} ﷼</span>
+              <CheckCircle2 size={16} style={{ color: T.good }} />
             </div>
           ))}
         </div>

@@ -27,8 +27,13 @@ import {
   OrderRow,
   Meal,
   DEMO_MEALS,
+  PendingMeal,
+  loadPendingMeals,
+  savePendingMeals,
+  loadPublishedLocalMeals,
 } from "@/lib/kitchen-shared";
 import { createClient } from "@/lib/supabase";
+import { ClipboardList, Clock } from "lucide-react";
 
 export default function KitchenDashboard() {
   const [production, setProduction] = useState<ProductionRow[]>(SIM_MEALS.map((m) => ({ ...m, count: 0 })));
@@ -83,15 +88,22 @@ export default function KitchenDashboard() {
     }, 400);
   }, [tick]);
 
-  // نموذج إضافة وجبة حقيقي (متصل بقاعدة البيانات)
+  // نموذج إضافة وجبة — يدخل قائمة انتظار الموافقة، ما ينشر مباشرة
   const [meals, setMeals] = useState<Meal[]>(DEMO_MEALS);
   const [usingDemo, setUsingDemo] = useState(true);
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
   const [kcal, setKcal] = useState("");
   const [formError, setFormError] = useState("");
+  const [pendingMeals, setPendingMeals] = useState<PendingMeal[]>([]);
 
   useEffect(() => {
+    setPendingMeals(loadPendingMeals());
+    const localPublished = loadPublishedLocalMeals();
+    if (localPublished.length > 0) {
+      setMeals((prev) => [...localPublished, ...prev]);
+    }
+
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
     if (!url) return;
     const supabase = createClient();
@@ -106,19 +118,23 @@ export default function KitchenDashboard() {
       });
   }, []);
 
-  async function addMeal() {
+  function submitForReview() {
     if (!name || !price || !kcal) {
-      setFormError("عبّي الحقول الثلاثة كلها (الاسم، السعر، السعرات) قبل الحفظ");
+      setFormError("عبّي الحقول الثلاثة كلها (الاسم، السعر، السعرات) قبل الإرسال");
       return;
     }
     setFormError("");
-    const newMeal: Meal = { id: crypto.randomUUID(), name, price: Number(price), kcal: Number(kcal), available: true };
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    if (url) {
-      const supabase = createClient();
-      await supabase.from("meals").insert({ name, price: Number(price), kcal: Number(kcal), protein_g: 0, carb_g: 0, fat_g: 0, goal_tag: "تنزيل وزن" });
-    }
-    setMeals((prev) => [newMeal, ...prev]);
+    const pending: PendingMeal = {
+      id: crypto.randomUUID(),
+      name,
+      price: Number(price),
+      kcal: Number(kcal),
+      submittedAt: timeNow(),
+      submittedBy: "لوحة المطبخ",
+    };
+    const updated = [pending, ...loadPendingMeals()];
+    savePendingMeals(updated);
+    setPendingMeals(updated);
     setName("");
     setPrice("");
     setKcal("");
@@ -148,6 +164,9 @@ export default function KitchenDashboard() {
           </div>
         </div>
         <div className="max-w-6xl mx-auto px-6 pb-3 flex items-center gap-2 flex-wrap">
+          <Link href="/admin/orders" className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold" style={{ background: T.brandTint, color: T.brand }}>
+            <ShoppingBag size={13} /> لوحة حالة الطلبات
+          </Link>
           <Link href="/admin/process" className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold" style={{ background: T.brandTint, color: T.brand }}>
             <ChefHat size={13} /> خريطة تحضير الوجبات
           </Link>
@@ -269,19 +288,23 @@ export default function KitchenDashboard() {
         </div>
 
         {/* إدارة القائمة */}
-        <div className="rounded-2xl p-5 mb-6" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
+        <div className="rounded-2xl p-5 mb-4" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
           <div className="text-sm font-bold mb-1">إضافة وجبة جديدة</div>
           <p className="text-xs mb-4" style={{ color: T.inkSoft }}>
-            {usingDemo ? "تعرض حالياً بيانات تجريبية — اربط Supabase عشان تتصل بقاعدة بيانات حقيقية" : "متصل بقاعدة البيانات الفعلية"}
+            الوجبة ما تُنشر مباشرة — تدخل قائمة انتظار موافقة قسم الجودة/المتابعة أولاً
           </p>
           <div className="grid grid-cols-3 gap-2 mb-3">
             <input placeholder="اسم الوجبة" value={name} onChange={(e) => setName(e.target.value)} className="col-span-3 rounded-lg border px-3 py-2 text-sm" style={{ borderColor: T.border }} />
             <input placeholder="السعر" value={price} onChange={(e) => setPrice(e.target.value)} className="rounded-lg border px-3 py-2 text-sm" style={{ borderColor: T.border }} />
             <input placeholder="السعرات" value={kcal} onChange={(e) => setKcal(e.target.value)} className="col-span-2 rounded-lg border px-3 py-2 text-sm" style={{ borderColor: T.border }} />
           </div>
-          <button onClick={addMeal} className="rounded-lg px-4 py-2 text-sm font-bold text-white" style={{ background: T.brandBright }}>حفظ ونشر</button>
+          <button onClick={submitForReview} className="flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-bold text-white" style={{ background: T.brandBright }}>
+            <ClipboardList size={15} /> إرسال لمراجعة الجودة
+          </button>
           {formError && <div className="text-xs font-bold mt-2" style={{ color: T.warn }}>{formError}</div>}
-          <div className="space-y-2 mt-4">
+
+          <div className="text-xs font-bold mt-6 mb-2" style={{ color: T.inkSoft }}>الوجبات المنشورة حالياً</div>
+          <div className="space-y-2">
             {meals.map((m) => (
               <div key={m.id} className="flex items-center justify-between rounded-xl px-4 py-3 border" style={{ borderColor: T.border, background: T.surface }}>
                 <div>
@@ -291,6 +314,31 @@ export default function KitchenDashboard() {
                 <span className="text-[11px] rounded-full px-2.5 py-1" style={{ background: m.available ? T.goodTint : T.warnTint, color: m.available ? T.good : T.warn }}>
                   {m.available ? "متاح" : "غير متاح"}
                 </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* قائمة انتظار الموافقة */}
+        <div className="rounded-2xl p-5 mb-6" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Clock size={17} style={{ color: T.warn }} />
+              <div className="font-semibold text-sm">بانتظار موافقة الجودة/المتابعة ({pendingMeals.length})</div>
+            </div>
+            <Link href="/admin/approvals" className="text-xs font-bold" style={{ color: T.brand }}>
+              فتح لوحة الموافقة ←
+            </Link>
+          </div>
+          {pendingMeals.length === 0 && <div className="text-xs py-4 text-center" style={{ color: T.inkSoft }}>ما فيه وجبات بانتظار المراجعة حالياً</div>}
+          <div className="space-y-2">
+            {pendingMeals.map((p) => (
+              <div key={p.id} className="flex items-center justify-between rounded-xl px-4 py-3" style={{ background: T.warnTint }}>
+                <div>
+                  <div className="text-sm font-bold">{p.name}</div>
+                  <div className="text-[11px] mt-0.5" style={{ color: T.inkSoft }}>{p.kcal} سعرة · {p.price} ﷼ · أرسلت {p.submittedAt}</div>
+                </div>
+                <span className="text-[11px] font-bold rounded-full px-2.5 py-1" style={{ background: T.warn, color: "#fff" }}>قيد المراجعة</span>
               </div>
             ))}
           </div>

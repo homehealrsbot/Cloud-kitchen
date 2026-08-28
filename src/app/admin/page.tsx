@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { TrendingUp, ChefHat, ArrowLeft } from "lucide-react";
+import { TrendingUp, ChefHat, ShieldCheck, ArrowLeft } from "lucide-react";
 
 const T = {
   bg: "#FCF6F2",
@@ -52,6 +52,23 @@ export default function AdminLanding() {
             <div className="text-base font-bold">لوحة المطبخ</div>
             <div className="text-xs mt-1" style={{ color: T.inkSoft }}>
               خطة الإنتاج، المخزون، الطلبات اليومية، وإدارة القائمة
+            </div>
+          </div>
+          <ArrowLeft size={18} style={{ color: T.inkSoft }} />
+        </Link>
+
+        <Link
+          href="/admin/approvals"
+          className="flex items-center gap-4 rounded-2xl p-5 transition-transform hover:scale-[1.01]"
+          style={{ background: T.surface, border: `1.5px solid ${T.border}` }}
+        >
+          <div className="rounded-full flex items-center justify-center shrink-0" style={{ width: 52, height: 52, background: T.brandTint, color: T.brand }}>
+            <ShieldCheck size={24} />
+          </div>
+          <div className="flex-1">
+            <div className="text-base font-bold">قسم الجودة والمتابعة</div>
+            <div className="text-xs mt-1" style={{ color: T.inkSoft }}>
+              مراجعة والموافقة على أي إدخال جديد قبل ما ينشر للعميل
             </div>
           </div>
           <ArrowLeft size={18} style={{ color: T.inkSoft }} />

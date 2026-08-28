@@ -53,3 +53,62 @@ export const DEMO_MEALS: Meal[] = [
   { id: "2", name: "سلمون مشوي + كينوا", price: 42, kcal: 460, available: true },
   { id: "3", name: "شوفان بروتين + فواكه", price: 22, kcal: 380, available: false },
 ];
+
+// ---------------- قسم الموافقة (الجودة/المتابعة) ----------------
+// أي وجبة يدخلها المطبخ تدخل قائمة انتظار — ما تنشر للعميل إلا بعد موافقة قسم منفصل.
+// نستخدم localStorage مؤقتاً (بدل قاعدة بيانات حقيقية) عشان القائمة تكون مرئية بين لوحة
+// المطبخ ولوحة الموافقة بنفس المتصفح، لحد ما نربط Supabase فعلياً.
+
+export type PendingMeal = {
+  id: string;
+  name: string;
+  price: number;
+  kcal: number;
+  submittedAt: string;
+  submittedBy: string;
+};
+
+export type RejectedMeal = PendingMeal & { reason: string; rejectedAt: string };
+
+const PENDING_KEY = "foodstyle_pending_meals";
+const REJECTED_KEY = "foodstyle_rejected_meals";
+const PUBLISHED_KEY = "foodstyle_published_meals_local";
+
+function safeParse<T>(raw: string | null, fallback: T): T {
+  if (!raw) return fallback;
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    return fallback;
+  }
+}
+
+export function loadPendingMeals(): PendingMeal[] {
+  if (typeof window === "undefined") return [];
+  return safeParse<PendingMeal[]>(localStorage.getItem(PENDING_KEY), []);
+}
+
+export function savePendingMeals(list: PendingMeal[]) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(PENDING_KEY, JSON.stringify(list));
+}
+
+export function loadRejectedMeals(): RejectedMeal[] {
+  if (typeof window === "undefined") return [];
+  return safeParse<RejectedMeal[]>(localStorage.getItem(REJECTED_KEY), []);
+}
+
+export function saveRejectedMeals(list: RejectedMeal[]) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(REJECTED_KEY, JSON.stringify(list));
+}
+
+export function loadPublishedLocalMeals(): Meal[] {
+  if (typeof window === "undefined") return [];
+  return safeParse<Meal[]>(localStorage.getItem(PUBLISHED_KEY), []);
+}
+
+export function savePublishedLocalMeals(list: Meal[]) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(PUBLISHED_KEY, JSON.stringify(list));
+}
