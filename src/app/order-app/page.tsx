@@ -64,6 +64,20 @@ export default function OrderApp() {
 
       <div className="flex gap-2 flex-wrap mb-5">
         <Link
+          href="/order-app/build-meal"
+          className="text-[11px] font-bold rounded-full px-3 py-1.5"
+          style={{ background: "white", color: "#A84F2E", border: "1px solid #F0DFD3" }}
+        >
+          ابنِ وجبتك
+        </Link>
+        <Link
+          href="/order-app/delivery-days"
+          className="text-[11px] font-bold rounded-full px-3 py-1.5"
+          style={{ background: "white", color: "#A84F2E", border: "1px solid #F0DFD3" }}
+        >
+          أيام التوصيل
+        </Link>
+        <Link
           href="/order-app/wallet"
           className="text-[11px] font-bold rounded-full px-3 py-1.5"
           style={{ background: "white", color: "#A84F2E", border: "1px solid #F0DFD3" }}

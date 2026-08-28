@@ -28,7 +28,19 @@ const MEALS = [
 ];
 
 const CONDITIONS = ["سكري", "ضغط مرتفع", "كوليسترول مرتفع"];
-const ALLERGIES = ["مكسرات", "سمسم", "غلوتين", "ألبان"];
+const ALLERGIES = [
+  "مكسرات",
+  "سمسم",
+  "غلوتين",
+  "ألبان",
+  "بصل",
+  "ثوم",
+  "طماطم",
+  "فلفل حار",
+  "باذنجان",
+  "مأكولات بحرية",
+  "بيض",
+];
 
 function bmiCategory(bmi: number) {
   if (bmi < 18.5) return { label: "نقص وزن", goal: "زيادة عضل" };
@@ -85,6 +97,12 @@ export default function HealthProfilePage() {
     });
 
     setResult({ bmi, category: cat.label, goal: cat.goal, calorieTarget, recommended, excluded });
+
+    // نحفظ الحساسيات والهدف محلياً عشان صفحة "بناء وجبتك" تقدر تفلتر تلقائياً بدون ما نطلب منك تكررهم
+    if (typeof window !== "undefined") {
+      localStorage.setItem("foodstyle_customer_allergies", JSON.stringify(allergies));
+      localStorage.setItem("foodstyle_customer_goal", cat.goal);
+    }
   }
 
   return (
