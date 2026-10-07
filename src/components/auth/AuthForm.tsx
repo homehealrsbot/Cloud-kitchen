@@ -24,8 +24,8 @@ export default function AuthForm({
   return (
     <div style={{ background: T.bg, color: T.ink }} className="min-h-screen w-full flex flex-col items-center justify-center px-6 py-12">
       <Link href="/" className="flex flex-col items-center mb-7">
-        <Image src="/logo-mark.png" alt="Food Style" width={60} height={60} className="rounded-2xl mb-3" />
-        <span className="font-extrabold text-lg" style={{ color: T.brand }}>Food Style</span>
+        <Image src="/logo-mark.png" alt="Macro meals" width={60} height={60} className="rounded-2xl mb-3" />
+        <span className="font-extrabold text-lg" style={{ color: T.brand }}>Macro meals</span>
       </Link>
 
       <div className="w-full max-w-sm rounded-2xl p-6" style={{ background: T.surface, border: `1px solid ${T.border}` }}>

@@ -15,10 +15,10 @@ const cairo = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Food Style — نظام اشتراك وجبات صحية",
-  description: "Food Style — Cloud Kitchen Subscription System",
-  applicationName: "Food Style",
-  appleWebApp: { capable: true, title: "Food Style", statusBarStyle: "default" },
+  title: "Macro meals — نظام اشتراك وجبات صحية",
+  description: "Macro meals — Cloud Kitchen Subscription System",
+  applicationName: "Macro meals",
+  appleWebApp: { capable: true, title: "Macro meals", statusBarStyle: "default" },
 };
 
 // لون شريط المتصفح على الجوال + منع التكبير العشوائي في نماذج الإدخال

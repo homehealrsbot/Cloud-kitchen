@@ -19,8 +19,8 @@ export default function SiteNav() {
     <div className="w-full border-b sticky top-0 z-20" style={{ borderColor: "#F0DFD3", background: "#FFFFFFEE", backdropFilter: "blur(6px)" }}>
       <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2.5">
-          <Image src="/logo-mark.png" alt="Food Style" width={38} height={38} className="rounded-lg" />
-          <span className="font-extrabold text-base" style={{ color: "#A84F2E" }}>Food Style</span>
+          <Image src="/logo-mark.png" alt="Macro meals" width={38} height={38} className="rounded-lg" />
+          <span className="font-extrabold text-base" style={{ color: "#A84F2E" }}>Macro meals</span>
         </Link>
 
         <nav className="hidden md:flex items-center gap-6">

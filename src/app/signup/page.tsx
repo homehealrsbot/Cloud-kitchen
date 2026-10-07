@@ -3,7 +3,7 @@ import { signUp } from "../login/actions";
 import NotConfigured from "@/components/auth/NotConfigured";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
-export const metadata = { title: "إنشاء حساب — Food Style" };
+export const metadata = { title: "إنشاء حساب — Macro meals" };
 
 export default function SignupPage() {
   if (!isSupabaseConfigured) return <NotConfigured />;

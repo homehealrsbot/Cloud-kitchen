@@ -5,7 +5,7 @@ import NotConfigured from "@/components/auth/NotConfigured";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "إعداد اشتراكك — Food Style" };
+export const metadata = { title: "إعداد اشتراكك — Macro meals" };
 
 // قبل: خطط اشتراك من localStorage يديرها المطعم من صفحة محذوفة الآن.
 // صار الإعداد يحفظ الهدف الصحي والمطابخ المفضلة في حساب العميل فعلياً.

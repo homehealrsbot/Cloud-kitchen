@@ -1,6 +1,6 @@
 import ComingSoon from "@/components/order/ComingSoon";
 
-export const metadata = { title: "تتبع تقدمي — Food Style" };
+export const metadata = { title: "تتبع تقدمي — Macro meals" };
 
 // قبل: مسار وزن من 82 إلى 78.8 كجم على 6 أسابيع + مذكرة طعام — كلها مكتوبة في الكود.
 export default function ProgressPage() {

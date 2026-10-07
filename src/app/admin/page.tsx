@@ -8,7 +8,7 @@ import { getStaffSession } from "@/lib/supabase/auth";
 import NotConfigured from "@/components/auth/NotConfigured";
 import { signOut } from "../login/actions";
 
-export const metadata = { title: "لوحات التحكم — Food Style" };
+export const metadata = { title: "لوحات التحكم — Macro meals" };
 
 const ROLE_ICON = {
   executive: <TrendingUp size={22} />,
@@ -27,7 +27,7 @@ export default async function AdminHome() {
 
   return (
     <div style={{ background: T.bg, color: T.ink }} className="min-h-screen w-full flex flex-col items-center px-6 py-12">
-      <Image src="/logo-mark.png" alt="Food Style" width={60} height={60} className="rounded-2xl mb-4" />
+      <Image src="/logo-mark.png" alt="Macro meals" width={60} height={60} className="rounded-2xl mb-4" />
       <h1 className="text-xl font-extrabold mb-1" style={{ color: T.brand }}>لوحات التحكم</h1>
 
       <div className="w-full max-w-md rounded-2xl px-4 py-3 my-6 flex items-center justify-between gap-3" style={{ background: T.brandTint }}>

@@ -12,7 +12,7 @@ import { loadOpsSnapshot } from "@/lib/ops/server-data";
 import { computeMenu, computeProduction } from "@/lib/ops/engine";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "لوحة المطبخ — Food Style" };
+export const metadata = { title: "لوحة المطبخ — Macro meals" };
 
 const SHORTCUTS = [
   { href: "/admin/ops/production", label: "خطة الإنتاج والمشتريات", icon: ChefHat },
@@ -53,9 +53,9 @@ export default async function KitchenDashboard() {
       <div className="w-full border-b" style={{ borderColor: T.border, background: T.surface }}>
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Image src="/logo-mark.png" alt="Food Style" width={40} height={40} className="rounded-xl" />
+            <Image src="/logo-mark.png" alt="Macro meals" width={40} height={40} className="rounded-xl" />
             <div>
-              <div className="font-bold text-lg leading-none" style={{ color: T.brand }}>Food Style</div>
+              <div className="font-bold text-lg leading-none" style={{ color: T.brand }}>Macro meals</div>
               <div className="text-xs mt-1" style={{ color: T.inkSoft }}>لوحة المطبخ</div>
             </div>
           </div>

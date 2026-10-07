@@ -14,7 +14,7 @@ import { SAFE_RANGES } from "@/lib/safety";
 import TemperatureForm from "@/components/ops/TemperatureForm";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "سجل درجات الحرارة — Food Style" };
+export const metadata = { title: "سجل درجات الحرارة — Macro meals" };
 
 export default async function TemperatureLogPage() {
   if (!isSupabaseConfigured) return <NotConfigured />;
@@ -33,9 +33,9 @@ export default async function TemperatureLogPage() {
       <div className="w-full border-b" style={{ borderColor: T.border, background: T.surface }}>
         <div className="max-w-3xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Image src="/logo-mark.png" alt="Food Style" width={40} height={40} className="rounded-xl" />
+            <Image src="/logo-mark.png" alt="Macro meals" width={40} height={40} className="rounded-xl" />
             <div>
-              <div className="font-bold text-lg leading-none" style={{ color: T.brand }}>Food Style</div>
+              <div className="font-bold text-lg leading-none" style={{ color: T.brand }}>Macro meals</div>
               <div className="text-xs mt-1" style={{ color: T.inkSoft }}>سجل درجات حرارة التخزين</div>
             </div>
           </div>

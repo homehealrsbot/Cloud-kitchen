@@ -6,8 +6,8 @@ import type { MetadataRoute } from "next";
 // وهو خارج نطاق هذا التحديث — راجع README.
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Food Style — اشتراك وجبات صحية",
-    short_name: "Food Style",
+    name: "Macro meals — اشتراك وجبات صحية",
+    short_name: "Macro meals",
     description: "اشتراك وجبات يومي مبني على هدفك الصحي — تحضير طازج ومطابقة غذائية موثّقة",
     lang: "ar",
     dir: "rtl",

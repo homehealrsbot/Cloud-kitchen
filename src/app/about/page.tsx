@@ -16,10 +16,10 @@ export default function AboutPage() {
       <SiteNav />
 
       <div className="max-w-3xl mx-auto px-6 py-16 text-center">
-        <Image src="/logo-mark.png" alt="Food Style" width={64} height={64} className="rounded-2xl mx-auto mb-5" />
+        <Image src="/logo-mark.png" alt="Macro meals" width={64} height={64} className="rounded-2xl mx-auto mb-5" />
         <h1 className="text-2xl md:text-3xl font-extrabold mb-4" style={{ color: "#A84F2E" }}>من نحن</h1>
         <p className="text-sm leading-relaxed" style={{ color: "#7A6153" }}>
-          Food Style مطبخ سحابي متخصص باشتراكات الوجبات الصحية اليومية. ما نقدم قائمة عامة واحدة للجميع —
+          Macro meals مطبخ سحابي متخصص باشتراكات الوجبات الصحية اليومية. ما نقدم قائمة عامة واحدة للجميع —
           نبني خطتك من هدفك الصحي الفعلي، ونجهزها طازجة كل يوم، ونوثّق كل خطوة من التحضير للتوصيل بأنظمة مؤتمتة
           مبنية خصيصاً لعملياتنا.
         </p>

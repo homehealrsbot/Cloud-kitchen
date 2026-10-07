@@ -6,7 +6,7 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { ALLERGENS } from "@/lib/ops/engine";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "ملفك الصحي — Food Style" };
+export const metadata = { title: "ملفك الصحي — Macro meals" };
 
 export default async function HealthProfilePage() {
   if (!isSupabaseConfigured) return <NotConfigured />;

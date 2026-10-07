@@ -8,7 +8,7 @@ import ingredientsJson from "@/data/ops/ingredients.json";
 import type { Ingredient } from "@/lib/ops/engine";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "ابنِ وجبتك — Food Style" };
+export const metadata = { title: "ابنِ وجبتك — Macro meals" };
 
 // قبل: 12 مكوّناً مكتوبة في الكود بقيم غذائية منفصلة عن قاعدة المكوّنات الحقيقية.
 // الآن نفس الـ80 مكوّن اللي يستخدمها المطبخ، بنفس القيم والحساسيات.

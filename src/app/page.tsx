@@ -18,7 +18,7 @@ export default function Home() {
 
       {/* Hero */}
       <div className="max-w-5xl mx-auto px-6 py-20 text-center">
-        <Image src="/logo-mark.png" alt="Food Style" width={80} height={80} className="rounded-2xl mx-auto mb-6" />
+        <Image src="/logo-mark.png" alt="Macro meals" width={80} height={80} className="rounded-2xl mx-auto mb-6" />
         <h1 className="text-3xl md:text-4xl font-extrabold mb-4" style={{ color: "#A84F2E" }}>
           وجبات صحية تُطابق جسمك، لا تُفرض عليك
         </h1>
