@@ -28,7 +28,7 @@ export const ROLES: Record<Role, { label: string; short: string; desc: string; h
     label: "الجودة والمتابعة",
     short: "جودة",
     desc: "بوابات الاعتماد، الحساسية، الصلاحية، واعتماد الموردين",
-    home: "/admin/approvals",
+    home: "/admin/ops/quality",
   },
 };
 
@@ -58,9 +58,7 @@ export type Cap =
   | "data.reset"
   | "legacy.executive"
   | "legacy.kitchen"
-  | "legacy.plans"
-  | "legacy.safetyLogs"
-  | "legacy.approvals";
+  | "legacy.safetyLogs";
 
 const ALL: Role[] = ["executive", "kitchen", "quality"];
 
@@ -90,9 +88,7 @@ export const MATRIX: Record<Cap, Role[]> = {
   "data.reset": ["executive"],
   "legacy.executive": ["executive"],
   "legacy.kitchen": ["kitchen", "executive"],
-  "legacy.plans": ["kitchen", "executive"],
   "legacy.safetyLogs": ["kitchen", "executive", "quality"],
-  "legacy.approvals": ["quality"],
 };
 
 export function can(role: Role | null | undefined, cap: Cap): boolean {
@@ -130,12 +126,9 @@ export const ROUTE_CAPS: { prefix: string; cap: Cap }[] = [
   { prefix: "/admin/ops", cap: "ops.view" },
   { prefix: "/admin/executive", cap: "legacy.executive" },
   { prefix: "/admin/kitchen", cap: "legacy.kitchen" },
-  { prefix: "/admin/orders", cap: "legacy.kitchen" },
-  { prefix: "/admin/plans", cap: "legacy.plans" },
   { prefix: "/admin/process", cap: "legacy.safetyLogs" },
   { prefix: "/admin/expiry", cap: "legacy.safetyLogs" },
   { prefix: "/admin/temperature-log", cap: "legacy.safetyLogs" },
-  { prefix: "/admin/approvals", cap: "legacy.approvals" },
 ];
 
 export function capForPath(pathname: string): Cap | null {
