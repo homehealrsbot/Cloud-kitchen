@@ -7,7 +7,7 @@
 -- التطبيق فعلياً. مفتاح anon يُرسل للمتصفح بطبيعته، فـ RLS هو الحماية الوحيدة.
 --
 -- التسجيل: العميل يسجّل بنفسه بالإيميل. الموظف لا يسجّل نفسه أبداً — تُضاف
--- حسابات الموظفين يدوياً (القسم 10 فيه الطريقة).
+-- حسابات الموظفين يدوياً (القسم 12 فيه الطريقة، و supabase/staff.sql فيه أوامر جاهزة).
 -- ============================================================================
 
 -- ============================================================================
@@ -27,9 +27,15 @@ create table staff (
 comment on table staff is
   'من هو موظف وبأي دور. الصف هنا هو مصدر الصلاحية الوحيد — لا يُنشأ من التطبيق.';
 
+-- سكيما خاصة للدوال المساعدة. PostgREST يكشف public فقط، فأي دالة هنا
+-- غير قابلة للنداء من /rest/v1/rpc — والسياسات تناديها عادي لأن الصلاحية
+-- محفوظة بـ grant usage أدناه.
+create schema if not exists private;
+grant usage on schema private to anon, authenticated, service_role;
+
 -- دوال مساعدة: security definer عشان تقرأ staff بدون ما تدخل في حلقة RLS
 -- (سياسة على جدول تقرأ staff، وسياسة staff تقرأ staff... الخ)
-create or replace function current_staff_role()
+create or replace function private.current_staff_role()
 returns staff_role
 language sql
 stable
@@ -39,7 +45,7 @@ as $$
   select role from staff where user_id = auth.uid() and active
 $$;
 
-create or replace function is_staff()
+create or replace function private.is_staff()
 returns boolean
 language sql
 stable
@@ -50,14 +56,14 @@ as $$
 $$;
 
 -- هل دور المستخدم الحالي ضمن القائمة المسموحة؟
-create or replace function has_role(allowed staff_role[])
+create or replace function private.has_role(allowed staff_role[])
 returns boolean
 language sql
 stable
 security definer
 set search_path = public
 as $$
-  select coalesce(current_staff_role() = any(allowed), false)
+  select coalesce(private.current_staff_role() = any(allowed), false)
 $$;
 
 -- ============================================================================
@@ -87,7 +93,7 @@ create table customers (
 create index idx_customers_user on customers(user_id);
 
 -- صف العميل يُنشأ تلقائياً عند التسجيل — ما نعتمد على الواجهة تسويه
-create or replace function handle_new_user()
+create or replace function private.handle_new_user()
 returns trigger
 language plpgsql
 security definer
@@ -103,7 +109,7 @@ $$;
 
 create trigger on_auth_user_created
   after insert on auth.users
-  for each row execute function handle_new_user();
+  for each row execute function private.handle_new_user();
 
 -- ============================================================================
 -- 3) بيانات العمليات — المكوّنات والمنيو والوصفات
@@ -295,6 +301,7 @@ create index idx_expiry_date on safety_expiry_batches(expiry_date);
 create or replace function set_updated_at()
 returns trigger
 language plpgsql
+set search_path = public
 as $$
 begin
   new.updated_at = now();
@@ -347,26 +354,26 @@ alter table safety_expiry_batches  enable row level security;
 -- ما فيه أي سياسة INSERT/UPDATE/DELETE: إضافة الموظفين من لوحة Supabase فقط.
 create policy "staff reads own row" on staff
   for select to authenticated
-  using (user_id = auth.uid());
+  using (user_id = (select auth.uid()));
 
 create policy "executive reads all staff" on staff
   for select to authenticated
-  using (has_role(array['executive']::staff_role[]));
+  using (private.has_role(array['executive']::staff_role[]));
 
 -- ---------- customers ----------
 create policy "customer reads own row" on customers
   for select to authenticated
-  using (user_id = auth.uid());
+  using (user_id = (select auth.uid()));
 
 create policy "customer updates own row" on customers
   for update to authenticated
-  using (user_id = auth.uid())
-  with check (user_id = auth.uid());
+  using (user_id = (select auth.uid()))
+  with check (user_id = (select auth.uid()));
 
 -- الموظفون يشوفون العملاء (تشغيل الطلبات والتوصيل)
 create policy "staff reads customers" on customers
   for select to authenticated
-  using (is_staff());
+  using (private.is_staff());
 
 -- ---------- ops_menu_items ----------
 -- العميل والزائر: الأصناف الجاهزة للبيع فقط = كل البوابات الثمانية READY.
@@ -379,16 +386,16 @@ create policy "public reads sellable menu" on ops_menu_items
   );
 
 create policy "staff reads all menu" on ops_menu_items
-  for select to authenticated using (is_staff());
+  for select to authenticated using (private.is_staff());
 
 create policy "kitchen updates menu" on ops_menu_items
   for update to authenticated
-  using (has_role(array['kitchen']::staff_role[]))
-  with check (has_role(array['kitchen']::staff_role[]));
+  using (private.has_role(array['kitchen']::staff_role[]))
+  with check (private.has_role(array['kitchen']::staff_role[]));
 
 -- ---------- ops_ingredients ----------
 create policy "staff reads ingredients" on ops_ingredients
-  for select to authenticated using (is_staff());
+  for select to authenticated using (private.is_staff());
 
 -- الجودة تعدّل القيم الغذائية والحساسية؛ التنفيذي يعدّل السعر.
 -- مهم: RLS يعمل على مستوى الصف لا العمود، وكل مستخدمي التطبيق يشتركون في نفس دور
@@ -396,38 +403,38 @@ create policy "staff reads ingredients" on ops_ingredients
 -- الفصل الفعلي بين الأعمدة يفرضه trigger أسفل هذا القسم.
 create policy "quality or executive updates ingredients" on ops_ingredients
   for update to authenticated
-  using (has_role(array['quality','executive']::staff_role[]))
-  with check (has_role(array['quality','executive']::staff_role[]));
+  using (private.has_role(array['quality','executive']::staff_role[]))
+  with check (private.has_role(array['quality','executive']::staff_role[]));
 
 -- ---------- ops_recipe_lines ----------
 create policy "staff reads recipes" on ops_recipe_lines
-  for select to authenticated using (is_staff());
+  for select to authenticated using (private.is_staff());
 
 create policy "kitchen writes recipes" on ops_recipe_lines
   for all to authenticated
-  using (has_role(array['kitchen']::staff_role[]))
-  with check (has_role(array['kitchen']::staff_role[]));
+  using (private.has_role(array['kitchen']::staff_role[]))
+  with check (private.has_role(array['kitchen']::staff_role[]));
 
 -- ---------- ops_settings / rotation_meta ----------
 create policy "staff reads settings" on ops_settings
-  for select to authenticated using (is_staff());
+  for select to authenticated using (private.is_staff());
 
 create policy "executive writes settings" on ops_settings
   for all to authenticated
-  using (has_role(array['executive']::staff_role[]))
-  with check (has_role(array['executive']::staff_role[]));
+  using (private.has_role(array['executive']::staff_role[]))
+  with check (private.has_role(array['executive']::staff_role[]));
 
 create policy "staff reads rotation meta" on ops_rotation_meta
-  for select to authenticated using (is_staff());
+  for select to authenticated using (private.is_staff());
 
 -- ---------- ops_rotation ----------
 create policy "staff reads rotation" on ops_rotation
-  for select to authenticated using (is_staff());
+  for select to authenticated using (private.is_staff());
 
 create policy "kitchen writes rotation" on ops_rotation
   for all to authenticated
-  using (has_role(array['kitchen']::staff_role[]))
-  with check (has_role(array['kitchen']::staff_role[]));
+  using (private.has_role(array['kitchen']::staff_role[]))
+  with check (private.has_role(array['kitchen']::staff_role[]));
 
 -- ---------- ops_gates ----------
 -- القراءة مفتوحة للزائر لأن سياسة المنيو أعلاه تعتمد على عدّ البوابات،
@@ -438,30 +445,30 @@ create policy "anyone reads gates" on ops_gates
 -- الجودة تعدّل البوابات ما عدا بوابة السعر (7)
 create policy "quality writes gates" on ops_gates
   for all to authenticated
-  using (has_role(array['quality']::staff_role[]) and gate_index <> 7)
-  with check (has_role(array['quality']::staff_role[]) and gate_index <> 7);
+  using (private.has_role(array['quality']::staff_role[]) and gate_index <> 7)
+  with check (private.has_role(array['quality']::staff_role[]) and gate_index <> 7);
 
 -- بوابة السعر والهامش (7) للتنفيذي فقط
 create policy "executive writes price gate" on ops_gates
   for all to authenticated
-  using (has_role(array['executive']::staff_role[]) and gate_index = 7)
-  with check (has_role(array['executive']::staff_role[]) and gate_index = 7);
+  using (private.has_role(array['executive']::staff_role[]) and gate_index = 7)
+  with check (private.has_role(array['executive']::staff_role[]) and gate_index = 7);
 
 -- ---------- ops_ing_approvals ----------
 create policy "staff reads ing approvals" on ops_ing_approvals
-  for select to authenticated using (is_staff());
+  for select to authenticated using (private.is_staff());
 
 -- الجودة: اعتماد المورد (0) وإقرار الحساسية (1)
 create policy "quality writes ing approvals" on ops_ing_approvals
   for all to authenticated
-  using (has_role(array['quality']::staff_role[]) and approval_index <> 2)
-  with check (has_role(array['quality']::staff_role[]) and approval_index <> 2);
+  using (private.has_role(array['quality']::staff_role[]) and approval_index <> 2)
+  with check (private.has_role(array['quality']::staff_role[]) and approval_index <> 2);
 
 -- التنفيذي: السعر الموثّق (2)
 create policy "executive writes ing price approval" on ops_ing_approvals
   for all to authenticated
-  using (has_role(array['executive']::staff_role[]) and approval_index = 2)
-  with check (has_role(array['executive']::staff_role[]) and approval_index = 2);
+  using (private.has_role(array['executive']::staff_role[]) and approval_index = 2)
+  with check (private.has_role(array['executive']::staff_role[]) and approval_index = 2);
 
 -- ---------- ops_shelf_life ----------
 create policy "anyone reads shelf life" on ops_shelf_life
@@ -469,58 +476,58 @@ create policy "anyone reads shelf life" on ops_shelf_life
 
 create policy "quality writes shelf life" on ops_shelf_life
   for all to authenticated
-  using (has_role(array['quality']::staff_role[]))
-  with check (has_role(array['quality']::staff_role[]));
+  using (private.has_role(array['quality']::staff_role[]))
+  with check (private.has_role(array['quality']::staff_role[]));
 
 -- ---------- ops_production ----------
 create policy "staff reads production" on ops_production
-  for select to authenticated using (is_staff());
+  for select to authenticated using (private.is_staff());
 
 create policy "kitchen writes production" on ops_production
   for all to authenticated
-  using (has_role(array['kitchen']::staff_role[]))
-  with check (has_role(array['kitchen']::staff_role[]));
+  using (private.has_role(array['kitchen']::staff_role[]))
+  with check (private.has_role(array['kitchen']::staff_role[]));
 
 -- ---------- ops_units_sold ----------
 create policy "executive reads units sold" on ops_units_sold
   for select to authenticated
-  using (has_role(array['executive']::staff_role[]));
+  using (private.has_role(array['executive']::staff_role[]));
 
 create policy "executive writes units sold" on ops_units_sold
   for all to authenticated
-  using (has_role(array['executive']::staff_role[]))
-  with check (has_role(array['executive']::staff_role[]));
+  using (private.has_role(array['executive']::staff_role[]))
+  with check (private.has_role(array['executive']::staff_role[]));
 
 -- ---------- ops_audit ----------
 -- التنفيذي يقرأ السجل. أي موظف يكتب فيه (كل تعديل يسجّل نفسه).
 -- ما فيه UPDATE ولا DELETE لأي أحد — السجل للإضافة فقط.
 create policy "executive reads audit" on ops_audit
   for select to authenticated
-  using (has_role(array['executive']::staff_role[]));
+  using (private.has_role(array['executive']::staff_role[]));
 
 create policy "staff appends audit" on ops_audit
   for insert to authenticated
-  with check (is_staff() and user_id = auth.uid());
+  with check ((select private.is_staff()) and user_id = (select auth.uid()));
 
 -- ---------- سجلات السلامة ----------
 -- الأدوار الثلاثة تقرأ وتكتب (مطبخ وجودة وتنفيذي) — مطابق لـ legacy.safetyLogs
 create policy "staff reads temperature log" on safety_temperature_log
-  for select to authenticated using (is_staff());
+  for select to authenticated using (private.is_staff());
 
 create policy "staff appends temperature log" on safety_temperature_log
   for insert to authenticated
-  with check (is_staff() and recorded_by = auth.uid());
+  with check ((select private.is_staff()) and recorded_by = (select auth.uid()));
 
 create policy "staff reads expiry batches" on safety_expiry_batches
-  for select to authenticated using (is_staff());
+  for select to authenticated using (private.is_staff());
 
 create policy "staff writes expiry batches" on safety_expiry_batches
   for insert to authenticated
-  with check (is_staff() and recorded_by = auth.uid());
+  with check ((select private.is_staff()) and recorded_by = (select auth.uid()));
 
 create policy "staff updates expiry batches" on safety_expiry_batches
   for update to authenticated
-  using (is_staff()) with check (is_staff());
+  using (private.is_staff()) with check (private.is_staff());
 
 -- ملاحظة: ما فيه سياسة UPDATE ولا DELETE على سجل الحرارة — السجل للإضافة فقط
 -- عشان ما تُعدَّل قراءة بعد تسجيلها.
@@ -533,14 +540,14 @@ create policy "staff updates expiry batches" on safety_expiry_batches
 -- كلهم بالتساوي ولا يفرّق بينهم. الدور الفعلي معروف فقط وقت التنفيذ من جدول staff،
 -- فالمكان الصحيح للفحص هو trigger يقرأ الدور ويقارن القيم القديمة بالجديدة.
 
-create or replace function enforce_ingredient_column_roles()
+create or replace function private.enforce_ingredient_column_roles()
 returns trigger
 language plpgsql
 security definer
 set search_path = public
 as $$
 declare
-  r staff_role := current_staff_role();
+  r staff_role := private.current_staff_role();
 begin
   if new.price is distinct from old.price and r is distinct from 'executive' then
     raise exception 'تعديل سعر المكوّن من صلاحية الإدارة التنفيذية فقط';
@@ -561,7 +568,7 @@ $$;
 
 create trigger trg_ingredient_column_roles
   before update on ops_ingredients
-  for each row execute function enforce_ingredient_column_roles();
+  for each row execute function private.enforce_ingredient_column_roles();
 
 -- ============================================================================
 -- 11) صلاحيات الجداول (السياسات أعلاه هي الحاكم الفعلي)
