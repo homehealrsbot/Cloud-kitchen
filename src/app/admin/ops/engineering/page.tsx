@@ -3,7 +3,8 @@
 import { useMemo, useState } from "react";
 import { BarChart3 } from "lucide-react";
 import { ENG_CLASS, computeEngineering } from "@/lib/ops/engine";
-import { actions, useOps } from "@/lib/ops/store";
+import { useOps } from "@/lib/ops/store";
+import * as actions from "../actions";
 import { AccessNote, Card, CardTitle, ErrorNote, Loading, NumInput, OpsShell, T, TableWrap, Td, Th, pct, sar } from "@/components/ops/ui";
 
 export default function EngineeringPage() {
@@ -82,8 +83,8 @@ export default function EngineeringPage() {
                         ariaLabel={`وحدات ${r.sku.item.name}`}
                         value={r.units}
                         placeholder="—"
-                        onCommit={(v) => {
-                          const res = actions.setUnitsSold(r.sku.item.id, v);
+                        onCommit={async (v) => {
+                          const res = await actions.setUnitsSold(r.sku.item.id, v);
                           setError(res.ok ? "" : res.error);
                         }}
                       />

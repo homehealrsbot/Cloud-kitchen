@@ -5,7 +5,8 @@ import { useMemo, useState } from "react";
 import { ChefHat, ShoppingCart, Eraser, AlertTriangle } from "lucide-react";
 import { computeProduction, ING_APPROVAL_PRICE } from "@/lib/ops/engine";
 import { can, useSession } from "@/lib/ops/roles";
-import { actions, useOps } from "@/lib/ops/store";
+import { useOps } from "@/lib/ops/store";
+import * as actions from "../actions";
 import {
   AccessNote,
   Card,
@@ -135,8 +136,8 @@ export default function ProductionPage() {
           aside={
             canEdit && plan.totals.portions > 0 ? (
               <button
-                onClick={() => {
-                  const r = actions.clearDay(day);
+                onClick={async () => {
+                  const r = await actions.clearDay(day);
                   setError(r.ok ? "" : r.error);
                 }}
                 className="flex items-center gap-1 text-[11px] font-bold print:hidden"
@@ -190,8 +191,8 @@ export default function ProductionPage() {
                         value={r.portions || null}
                         disabled={isHold && r.portions === 0}
                         placeholder={isHold ? "موقوف" : "0"}
-                        onCommit={(v) => {
-                          const res = actions.setPortions(day, r.slot, v ?? 0, r.skuId);
+                        onCommit={async (v) => {
+                          const res = await actions.setPortions(day, r.slot, v ?? 0, r.skuId);
                           setError(res.ok ? "" : res.error);
                         }}
                       />

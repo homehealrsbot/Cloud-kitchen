@@ -5,7 +5,8 @@ import { useState } from "react";
 import { ArrowLeft, CheckCircle2, AlertTriangle, ClipboardCheck, Layers, ShieldCheck, History, RotateCcw, Users, Eye, Pencil } from "lucide-react";
 import { GATES, ING_APPROVALS, SECTIONS, integrityChecks } from "@/lib/ops/engine";
 import { PERMISSION_ROWS, ROLES, Role, can, useSession, MATRIX } from "@/lib/ops/roles";
-import { actions, useOps } from "@/lib/ops/store";
+import { useOps } from "@/lib/ops/store";
+import * as actions from "./actions";
 import { Card, CardTitle, Kpi, Loading, OPS_MODULES, OpsShell, PENDING_COLOR, T, pct, sar, StatusBadge } from "@/components/ops/ui";
 
 const ROLE_ORDER: Role[] = ["kitchen", "quality", "executive"];
@@ -268,8 +269,8 @@ export default function OpsHub() {
                 <span className="flex items-center gap-2">
                   <span className="text-[11px]" style={{ color: T.warn }}>متأكد؟ يرجع كل شي لقيم الملف الأصلي</span>
                   <button
-                    onClick={() => {
-                      const r = actions.resetAll();
+                    onClick={async () => {
+                      const r = await actions.resetAll();
                       setMsg(r.ok ? "تم الإرجاع لقيم الملف الأصلي" : r.error);
                       setConfirmReset(false);
                     }}

@@ -1,47 +1,32 @@
-"use client";
+// سجل درجات حرارة التخزين — سجل حقيقي في قاعدة البيانات.
+//
+// قبل: كانت الصفحة تعرض 3 قراءات مكتوبة في الكود (منها قراءتان "ناجحتان").
+// سجل سلامة غذائية وهمي أخطر من عدم وجوده، فانحذف بالكامل.
 
-import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { ChevronRight, Thermometer, CheckCircle2, XCircle, Plus } from "lucide-react";
+import { CheckCircle2, ChevronRight, Thermometer, XCircle } from "lucide-react";
 import { T } from "@/lib/kitchen-shared";
+import { createClient } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
+import NotConfigured from "@/components/auth/NotConfigured";
+import { SAFE_RANGES } from "@/lib/safety";
+import TemperatureForm from "@/components/ops/TemperatureForm";
 
+export const dynamic = "force-dynamic";
+export const metadata = { title: "سجل درجات الحرارة — Food Style" };
 
-// النطاقات الآمنة المعتمدة لسلامة الغذاء
-const SAFE_RANGES: Record<string, { min: number; max: number }> = {
-  "الثلاجة": { min: 1, max: 5 },
-  "الفريزر": { min: -22, max: -18 },
-};
+export default async function TemperatureLogPage() {
+  if (!isSupabaseConfigured) return <NotConfigured />;
+  const supabase = await createClient();
+  const { data: rows } = await supabase
+    .from("safety_temperature_log")
+    .select("*")
+    .order("recorded_at", { ascending: false })
+    .limit(100);
 
-type LogRow = { id: number; unit: string; reading: number; staff: string; time: string; pass: boolean };
-
-function timeNow() {
-  return new Date().toLocaleString("ar-SA", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" });
-}
-
-const INIT: LogRow[] = [
-  { id: 1, unit: "الثلاجة", reading: 3.5, staff: "فهد", time: "24/08 · 08:05 ص", pass: true },
-  { id: 2, unit: "الفريزر", reading: -19, staff: "فهد", time: "24/08 · 08:06 ص", pass: true },
-  { id: 3, unit: "الثلاجة", reading: 6.2, staff: "سارة", time: "23/08 · 04:15 م", pass: false },
-];
-
-export default function TemperatureLogPage() {
-  const [rows, setRows] = useState<LogRow[]>(INIT);
-  const [unit, setUnit] = useState("الثلاجة");
-  const [reading, setReading] = useState("");
-  const [staff, setStaff] = useState("");
-
-  function addRow() {
-    if (!reading || !staff) return;
-    const val = Number(reading);
-    const range = SAFE_RANGES[unit];
-    const pass = val >= range.min && val <= range.max;
-    setRows((prev) => [{ id: Date.now(), unit, reading: val, staff, time: timeNow(), pass }, ...prev]);
-    setReading("");
-    setStaff("");
-  }
-
-  const failCount = rows.filter((r) => !r.pass).length;
+  const log = rows ?? [];
+  const failCount = log.filter((r) => !r.passed).length;
 
   return (
     <div style={{ background: T.bg, color: T.ink }} className="min-h-screen w-full">
@@ -55,99 +40,80 @@ export default function TemperatureLogPage() {
             </div>
           </div>
           <Link href="/admin" className="flex items-center gap-1 text-xs font-bold" style={{ color: T.brand }}>
-            رجوع للوحة التحكم
-            <ChevronRight size={14} />
+            لوحات التحكم <ChevronRight size={14} />
           </Link>
         </div>
       </div>
 
       <div className="max-w-3xl mx-auto px-6 py-8">
         <div className="grid grid-cols-2 gap-4 mb-6">
-          <div className="rounded-2xl p-4" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
-            <div className="text-xs mb-1" style={{ color: T.inkSoft }}>النطاق الآمن — الثلاجة</div>
-            <div className="text-sm font-extrabold">1° إلى 5° مئوية</div>
-          </div>
-          <div className="rounded-2xl p-4" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
-            <div className="text-xs mb-1" style={{ color: T.inkSoft }}>النطاق الآمن — الفريزر</div>
-            <div className="text-sm font-extrabold">-22° إلى -18° مئوية</div>
-          </div>
-        </div>
-
-        {failCount > 0 && (
-          <div className="flex items-center gap-2 rounded-xl px-4 py-3 mb-6 text-sm font-bold" style={{ background: T.warnTint, color: T.warn }}>
-            <XCircle size={16} /> فيه {failCount} قراءة خارج النطاق الآمن — راجعها فوراً
-          </div>
-        )}
-
-        {/* إضافة قراءة */}
-        <div className="rounded-2xl p-4 mb-6" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
-          <div className="text-xs font-bold mb-3">تسجيل قراءة جديدة</div>
-          <div className="grid grid-cols-4 gap-2">
-            <select
-              value={unit}
-              onChange={(e) => setUnit(e.target.value)}
-              className="rounded-lg border px-3 py-2 text-sm"
-              style={{ borderColor: T.border }}
-            >
-              <option value="الثلاجة">الثلاجة</option>
-              <option value="الفريزر">الفريزر</option>
-            </select>
-            <input
-              placeholder="الحرارة (°م)"
-              value={reading}
-              onChange={(e) => setReading(e.target.value)}
-              className="rounded-lg border px-3 py-2 text-sm"
-              style={{ borderColor: T.border }}
-            />
-            <input
-              placeholder="اسم الموظف"
-              value={staff}
-              onChange={(e) => setStaff(e.target.value)}
-              className="col-span-2 rounded-lg border px-3 py-2 text-sm"
-              style={{ borderColor: T.border }}
-            />
-          </div>
-          <button
-            onClick={addRow}
-            className="mt-3 flex items-center gap-1.5 rounded-lg px-4 py-2 text-xs font-bold text-white"
-            style={{ background: T.brandBright }}
-          >
-            <Plus size={14} /> تسجيل
-          </button>
-        </div>
-
-        {/* السجل */}
-        <div className="space-y-2">
-          {rows.map((row) => (
-            <div
-              key={row.id}
-              className="flex items-center justify-between rounded-xl px-4 py-3"
-              style={{ background: row.pass ? T.surface : T.warnTint, border: `1px solid ${row.pass ? T.border : T.warn}` }}
-            >
-              <div className="flex items-center gap-2.5">
-                {row.pass ? (
-                  <CheckCircle2 size={16} style={{ color: T.good }} />
-                ) : (
-                  <XCircle size={16} style={{ color: T.warn }} />
-                )}
-                <div>
-                  <div className="text-sm font-bold">{row.unit} — {row.reading}° م</div>
-                  <div className="text-[11px]" style={{ color: T.inkSoft }}>{row.staff} · {row.time}</div>
-                </div>
-              </div>
-              <span
-                className="text-[11px] font-bold rounded-full px-2.5 py-1"
-                style={{ background: row.pass ? T.goodTint : T.warn, color: row.pass ? T.good : "#fff" }}
-              >
-                {row.pass ? "ضمن النطاق" : "خارج النطاق"}
-              </span>
+          {Object.entries(SAFE_RANGES).map(([unit, r]) => (
+            <div key={unit} className="rounded-2xl p-4" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
+              <div className="text-xs mb-1" style={{ color: T.inkSoft }}>النطاق الآمن — {unit}</div>
+              <div className="text-sm font-extrabold" dir="ltr">{r.min}° … {r.max}° م</div>
             </div>
           ))}
         </div>
 
+        {failCount > 0 && (
+          <div className="flex items-center gap-2 rounded-xl px-4 py-3 mb-6 text-sm font-bold" style={{ background: T.warnTint, color: T.warn }}>
+            <XCircle size={16} /> فيه {failCount} قراءة خارج النطاق الآمن في السجل
+          </div>
+        )}
+
+        <TemperatureForm units={Object.keys(SAFE_RANGES)} />
+
+        {log.length === 0 ? (
+          <div className="rounded-2xl p-10 text-center" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
+            <Thermometer size={30} style={{ color: T.inkSoft }} className="mx-auto mb-3" />
+            <div className="text-sm font-bold mb-1">السجل فاضي</div>
+            <p className="text-xs leading-relaxed max-w-sm mx-auto" style={{ color: T.inkSoft }}>
+              ما فيه أي قراءة مسجّلة. يُنصح بتسجيل قراءة صباحية ومسائية على الأقل لكل وحدة تخزين.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {log.map((row) => (
+              <div
+                key={row.id}
+                className="flex items-start justify-between gap-3 rounded-xl px-4 py-3"
+                style={{ background: row.passed ? T.surface : T.warnTint, border: `1px solid ${row.passed ? T.border : T.warn}` }}
+              >
+                <div className="flex items-start gap-2.5 min-w-0">
+                  {row.passed ? (
+                    <CheckCircle2 size={16} style={{ color: T.good }} className="mt-0.5 shrink-0" />
+                  ) : (
+                    <XCircle size={16} style={{ color: T.warn }} className="mt-0.5 shrink-0" />
+                  )}
+                  <div className="min-w-0">
+                    <div className="text-sm font-bold">{row.unit} — <span dir="ltr">{row.reading}° م</span></div>
+                    <div className="text-[11px] mt-0.5" style={{ color: T.inkSoft }}>
+                      {row.staff_name} ·{" "}
+                      {new Date(row.recorded_at).toLocaleString("ar-SA", {
+                        day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit",
+                      })}
+                    </div>
+                    {row.note && (
+                      <div className="text-[11px] mt-1 font-medium" style={{ color: row.passed ? T.inkSoft : T.warn }}>
+                        الإجراء: {row.note}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <span
+                  className="text-[11px] font-bold rounded-full px-2.5 py-1 shrink-0"
+                  style={{ background: row.passed ? T.goodTint : T.warn, color: row.passed ? T.good : "#fff" }}
+                >
+                  {row.passed ? "ضمن النطاق" : "خارج النطاق"}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+
         <div className="text-center text-[11px] mt-8 pb-4" style={{ color: T.inkSoft }}>
           <Thermometer size={11} className="inline ml-1" />
-          سجل يومي مطلوب فعلياً ضمن اشتراطات السلامة الغذائية — يُنصح بتسجيل قراءة صباحية ومسائية على الأقل
+          كل قراءة تُسجَّل باسم من أدخلها ووقتها، ولا يمكن تعديلها أو حذفها بعد الحفظ
         </div>
       </div>
     </div>

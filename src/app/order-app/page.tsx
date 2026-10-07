@@ -1,189 +1,126 @@
-"use client";
+// تطبيق العميل — المنيو يجي من قاعدة البيانات.
+//
+// ما يظهر هنا إلا الأصناف المعتمدة بالكامل (8 بوابات جودة). الفلترة تفرضها سياسة
+// RLS في قاعدة البيانات نفسها، مو كود الواجهة — يعني ما ينفع تجاوزها من المتصفح.
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase";
-import { useOps } from "@/lib/ops/store";
-import { DEMO_MEALS, Meal } from "@/lib/kitchen-shared";
+import { UtensilsCrossed } from "lucide-react";
+import { T } from "@/lib/kitchen-shared";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/supabase/auth";
+import { computeMenu, type Ingredient, type MenuItem, type RecipeLine, type Settings } from "@/lib/ops/engine";
+import baseSettings from "@/data/ops/settings.json";
+import MenuList, { type CustomerMeal } from "@/components/order/MenuList";
+import NotConfigured from "@/components/auth/NotConfigured";
 
-// العميل ما يشوف إلا المتاح — نفس قاعدة استعلام قاعدة البيانات (available = true) تُطبّق
-// على البيانات التجريبية. قبل كذا كان هذا الملف يعرّف نسخته الخاصة من DEMO_MEALS وكانت
-// تخالف النسخة المشتركة في حالة التوفر.
-const DEMO_AVAILABLE: Meal[] = DEMO_MEALS.filter((m) => m.available);
+export const dynamic = "force-dynamic";
 
-export default function OrderApp() {
-  const [meals, setMeals] = useState<Meal[]>(DEMO_AVAILABLE);
-  const [cart, setCart] = useState<Record<string, boolean>>({});
-  // قاعدة الإطلاق: ما يظهر للعميل من منيو العمليات إلا الصنف اللي اعتمدته كل بوابات الجودة
-  const ops = useOps();
-  const approved = ops.ready ? ops.skus.filter((v) => v.quality.status === "READY") : [];
+const LINKS = [
+  { href: "/order-app/health-profile", label: "ملفي الصحي" },
+  { href: "/order-app/build-meal", label: "ابنِ وجبتك" },
+  { href: "/order-app/delivery-days", label: "أيام التوصيل" },
+  { href: "/order-app/wallet", label: "باقتي" },
+  { href: "/order-app/progress", label: "تتبع تقدمي" },
+  { href: "/order-app/subscription", label: "إدارة اشتراكي" },
+  { href: "/order-app/consultation", label: "استشارة تغذية" },
+];
 
-  useEffect(() => {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    if (!url) return;
+async function loadApprovedMeals(): Promise<CustomerMeal[]> {
+  const supabase = await createClient();
 
-    const supabase = createClient();
-    supabase
-      .from("meals")
-      .select("id,name,price,kcal,available")
-      .eq("available", true)
-      .then(({ data, error }) => {
-        if (!error && data) setMeals(data as Meal[]);
-      });
-  }, []);
+  // RLS ترجّع الأصناف المعتمدة فقط. الوصفات والمكوّنات محجوبة عن العميل،
+  // فنحسب القيم الغذائية من نسخة المكوّنات العامة المرفقة مع التطبيق.
+  const { data: menu } = await supabase.from("ops_menu_items").select("*");
+  if (!menu || menu.length === 0) return [];
 
-  const cartCount = Object.values(cart).filter(Boolean).length;
+  const [{ default: ingredients }, { default: recipes }] = await Promise.all([
+    import("@/data/ops/ingredients.json"),
+    import("@/data/ops/recipes.json"),
+  ]);
+
+  const items: MenuItem[] = menu.map((m) => ({
+    id: String(m.id),
+    section: String(m.section ?? ""),
+    category: String(m.category ?? ""),
+    name: String(m.name ?? ""),
+    nameEn: String(m.name_en ?? ""),
+    cuisine: String(m.cuisine ?? ""),
+    identity: String(m.identity ?? ""),
+    shelfLifeH: Number(m.shelf_life_h ?? 0),
+    reheat: String(m.reheat ?? ""),
+    opsNote: String(m.ops_note ?? ""),
+    method: String(m.method ?? ""),
+    engGroup: String(m.eng_group ?? ""),
+  }));
+
+  const approvedIds = new Set(items.map((m) => m.id));
+  const computed = computeMenu({
+    ingredients: ingredients as Ingredient[],
+    recipes: (recipes as RecipeLine[]).filter((r) => approvedIds.has(r.sku)),
+    menu: items,
+    rotation: { slotLabels: [], slotRule: [], days: [], rules: "" },
+    settings: baseSettings as unknown as Settings,
+  });
+
+  return computed.map((c) => ({
+    id: c.item.id,
+    name: c.item.name,
+    section: c.item.section,
+    kcal: Math.round(c.kcal),
+    protein: Math.round(c.protein),
+    price: c.price,
+    allergens: c.allergens,
+  }));
+}
+
+export default async function OrderApp() {
+  if (!isSupabaseConfigured) return <NotConfigured />;
+
+  const [user, meals] = await Promise.all([getCurrentUser(), loadApprovedMeals()]);
 
   return (
     <main className="max-w-md mx-auto px-5 py-8">
       <div className="flex items-center justify-between mb-1">
         <h1 className="text-lg font-extrabold">اختر وجبتك</h1>
-        {cartCount > 0 && (
-          <span
-            className="text-xs font-bold rounded-full px-3 py-1 text-white"
-            style={{ background: "#D67A4F" }}
-          >
-            السلة: {cartCount}
-          </span>
+        {!user && (
+          <Link href="/login" className="text-xs font-bold rounded-full px-3 py-1.5" style={{ background: T.brandTint, color: T.brand }}>
+            تسجيل دخول
+          </Link>
         )}
       </div>
-      <p className="text-xs mb-3" style={{ color: "#7A6153" }}>
-        مطابقة لهدفك: تنزيل وزن
+      <p className="text-xs mb-4" style={{ color: T.inkSoft }}>
+        {meals.length > 0
+          ? `${meals.length} صنف معتمد للبيع`
+          : "ما فيه أصناف معتمدة للبيع حالياً"}
       </p>
-      <Link
-        href="/order-app/health-profile"
-        className="inline-block text-xs font-bold rounded-full px-3 py-1.5 mb-3"
-        style={{ background: "#FBEEE6", color: "#A84F2E" }}
-      >
-        عبّي ملفك الصحي عشان نطابق وجباتك تلقائياً ←
-      </Link>
 
-      <div className="flex gap-2 flex-wrap mb-5">
-        <Link
-          href="/order-app/build-meal"
-          className="text-[11px] font-bold rounded-full px-3 py-1.5"
-          style={{ background: "white", color: "#A84F2E", border: "1px solid #F0DFD3" }}
-        >
-          ابنِ وجبتك
-        </Link>
-        <Link
-          href="/order-app/delivery-days"
-          className="text-[11px] font-bold rounded-full px-3 py-1.5"
-          style={{ background: "white", color: "#A84F2E", border: "1px solid #F0DFD3" }}
-        >
-          أيام التوصيل
-        </Link>
-        <Link
-          href="/order-app/wallet"
-          className="text-[11px] font-bold rounded-full px-3 py-1.5"
-          style={{ background: "white", color: "#A84F2E", border: "1px solid #F0DFD3" }}
-        >
-          محفظتي
-        </Link>
-        <Link
-          href="/order-app/onboarding"
-          className="text-[11px] font-bold rounded-full px-3 py-1.5"
-          style={{ background: "white", color: "#A84F2E", border: "1px solid #F0DFD3" }}
-        >
-          اختر خطتك
-        </Link>
-        <Link
-          href="/order-app/progress"
-          className="text-[11px] font-bold rounded-full px-3 py-1.5"
-          style={{ background: "white", color: "#A84F2E", border: "1px solid #F0DFD3" }}
-        >
-          تتبع تقدمي
-        </Link>
-        <Link
-          href="/order-app/subscription"
-          className="text-[11px] font-bold rounded-full px-3 py-1.5"
-          style={{ background: "white", color: "#A84F2E", border: "1px solid #F0DFD3" }}
-        >
-          إدارة اشتراكي
-        </Link>
-        <Link
-          href="/order-app/consultation"
-          className="text-[11px] font-bold rounded-full px-3 py-1.5"
-          style={{ background: "white", color: "#A84F2E", border: "1px solid #F0DFD3" }}
-        >
-          احجز استشارة تغذية
-        </Link>
-        <Link
-          href="/order-app/delivery-proof"
-          className="text-[11px] font-bold rounded-full px-3 py-1.5"
-          style={{ background: "white", color: "#A84F2E", border: "1px solid #F0DFD3" }}
-        >
-          تأكيد تسليم (تجربة)
-        </Link>
-      </div>
-
-      {approved.length > 0 && (
-        <div className="mb-5">
-          <div className="text-xs font-bold mb-2" style={{ color: "#2E9E6D" }}>
-            المنيو المعتمد ({approved.length})
-          </div>
-          <div className="space-y-2.5">
-            {approved.map((v) => {
-              const id = `sku:${v.sku.item.id}`;
-              return (
-                <div
-                  key={id}
-                  className="flex items-center gap-3 rounded-2xl p-3 border"
-                  style={{ borderColor: "#F0DFD3", background: "white" }}
-                >
-                  <div className="w-12 h-12 rounded-xl shrink-0" style={{ background: "#E5F4ED" }} />
-                  <div className="flex-1">
-                    <div className="text-sm font-bold">{v.sku.item.name}</div>
-                    <div className="text-xs" style={{ color: "#7A6153" }}>
-                      {Math.round(v.sku.kcal)} سعرة · {Math.round(v.sku.protein)} جم بروتين
-                    </div>
-                    {v.sku.allergens !== "لا يوجد" && (
-                      <div className="text-[11px] mt-0.5" style={{ color: "#C0392B" }}>
-                        يحتوي: {v.sku.allergens}
-                      </div>
-                    )}
-                  </div>
-                  <button
-                    onClick={() => setCart((c) => ({ ...c, [id]: !c[id] }))}
-                    className="rounded-full w-8 h-8 flex items-center justify-center text-white text-lg font-bold transition-colors"
-                    style={{ background: cart[id] ? "#2E9E6D" : "#D67A4F" }}
-                  >
-                    {cart[id] ? "✓" : "+"}
-                  </button>
-                </div>
-              );
-            })}
-          </div>
+      {user && (
+        <div className="flex gap-2 flex-wrap mb-5">
+          {LINKS.map((l) => (
+            <Link
+              key={l.href}
+              href={l.href}
+              className="text-[11px] font-bold rounded-full px-3 py-1.5"
+              style={{ background: "white", color: T.brand, border: `1px solid ${T.border}` }}
+            >
+              {l.label}
+            </Link>
+          ))}
         </div>
       )}
 
-      <div className="space-y-2.5">
-        {meals.map((m) => (
-          <div
-            key={m.id}
-            className="flex items-center gap-3 rounded-2xl p-3 border"
-            style={{ borderColor: "#F0DFD3", background: "white" }}
-          >
-            <div
-              className="w-12 h-12 rounded-xl shrink-0"
-              style={{ background: "#FBEEE6" }}
-            />
-            <div className="flex-1">
-              <div className="text-sm font-bold">{m.name}</div>
-              <div className="text-xs" style={{ color: "#7A6153" }}>
-                {m.kcal} سعرة · {m.price} ﷼
-              </div>
-            </div>
-            <button
-              onClick={() => setCart((c) => ({ ...c, [m.id]: !c[m.id] }))}
-              className="rounded-full w-8 h-8 flex items-center justify-center text-white text-lg font-bold transition-colors"
-              style={{ background: cart[m.id] ? "#2E9E6D" : "#D67A4F" }}
-            >
-              {cart[m.id] ? "✓" : "+"}
-            </button>
-          </div>
-        ))}
-      </div>
+      {meals.length === 0 ? (
+        <div className="rounded-2xl p-8 text-center" style={{ background: "white", border: `1px solid ${T.border}` }}>
+          <UtensilsCrossed size={32} style={{ color: T.inkSoft }} className="mx-auto mb-3" />
+          <div className="text-sm font-bold mb-1">القائمة قيد التجهيز</div>
+          <p className="text-xs leading-relaxed" style={{ color: T.inkSoft }}>
+            ما ينشر أي صنف للعميل إلا بعد اعتماد بوابات الجودة الثمانية كاملة.
+          </p>
+        </div>
+      ) : (
+        <MenuList meals={meals} />
+      )}
     </main>
   );
 }

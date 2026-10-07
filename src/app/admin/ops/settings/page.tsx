@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { Save, Undo2, SlidersHorizontal } from "lucide-react";
 import { ING_TYPE_LABEL, IngType, LEVELS, SECTIONS, Settings } from "@/lib/ops/engine";
-import { BASE_DATA, actions, useOps } from "@/lib/ops/store";
+import { BASE_DATA, useOps } from "@/lib/ops/store";
+import * as actions from "../actions";
 import { AccessNote, Card, CardTitle, ErrorNote, Loading, OpsShell, T, TableWrap, Td, Th } from "@/components/ops/ui";
 
 const TYPES: IngType[] = ["P", "C", "V", "S"];
@@ -27,7 +28,7 @@ export default function SettingsPage() {
   const isDefault = JSON.stringify(ops.data.settings) === JSON.stringify(BASE_DATA.settings);
   const patch = (p: Partial<Settings>) => { setSaved(""); setDraft({ ...s, ...p }); };
 
-  function save() {
+  async function save() {
     if (!draft) return;
     for (const sec of SECTIONS) {
       const x = draft.sections[sec];
@@ -40,7 +41,7 @@ export default function SettingsPage() {
       setError("خطوة تقريب السعر لازم تكون أكبر من صفر");
       return;
     }
-    const r = actions.saveSettings(draft);
+    const r = await actions.saveSettings(draft);
     if (r.ok) {
       setDraft(null);
       setError("");
@@ -217,7 +218,7 @@ function Field({ label, value, onChange, percent, step }: { label: string; value
         value={Number.isNaN(shown) ? "" : shown}
         min={0}
         step={step ?? (percent ? 0.5 : 1)}
-        onChange={(e) => {
+        onChange={async (e) => {
           const v = e.target.value === "" ? 0 : Number(e.target.value);
           if (Number.isNaN(v) || v < 0) return;
           onChange(percent ? v / 100 : v);

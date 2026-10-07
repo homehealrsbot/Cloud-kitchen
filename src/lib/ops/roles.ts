@@ -1,10 +1,13 @@
 "use client";
 
 // الأدوار والصلاحيات — مصدر واحد يحدد مين يشوف إيش ومين يعدّل إيش.
-// ملاحظة مهمة: هذا فصل على مستوى الواجهة فقط (الدور محفوظ في المتصفح). الحماية الفعلية تحتاج
-// تسجيل دخول حقيقي (Supabase Auth) — وقتها نستبدل getSession() فقط وكل شي ثاني يبقى كما هو.
+//
+// الدور يجي من الخادم: جلسة Supabase مُوقَّعة + صف المستخدم في جدول staff.
+// الفحوصات هنا (can / capForPath) للواجهة فقط — تخفي اللي ما يخص الدور وتمنع
+// الأزرار. الحماية الفعلية في قاعدة البيانات: سياسات RLS في supabase/schema.sql
+// تمنع أي كتابة خارج صلاحية الدور، فتعديل الواجهة أو الكوكيز ما يفيد شي.
 
-import { useSyncExternalStore } from "react";
+import { createContext, useContext } from "react";
 
 export type Role = "executive" | "kitchen" | "quality";
 
@@ -140,73 +143,25 @@ export function capForPath(pathname: string): Cap | null {
   return hit ? hit.cap : null;
 }
 
-// ---------------- جلسة الدور (مؤقتاً في المتصفح) ----------------
+// ---------------- جلسة الدور (تُغذّى من الخادم) ----------------
 
 export interface Session {
+  userId: string;
+  email: string;
   role: Role;
   name: string;
 }
 
-const SESSION_KEY = "foodstyle_role_session";
-const listeners = new Set<() => void>();
-let cachedRaw: string | null | undefined;
-let cachedSession: Session | null = null;
+// القيمة تُحقن من src/app/admin/layout.tsx وهو Server Component يقرأ الجلسة
+// الحقيقية. ما فيه localStorage ولا تخزين في المتصفح.
+const SessionContext = createContext<Session | null>(null);
 
-function readSession(): Session | null {
-  let raw: string | null = null;
-  try {
-    raw = window.localStorage.getItem(SESSION_KEY);
-  } catch {
-    raw = null;
-  }
-  if (raw === cachedRaw) return cachedSession;
-  cachedRaw = raw;
-  cachedSession = null;
-  if (raw) {
-    try {
-      const parsed = JSON.parse(raw) as Session;
-      if (parsed && parsed.role in ROLES) cachedSession = { role: parsed.role, name: parsed.name || "" };
-    } catch {
-      cachedSession = null;
-    }
-  }
-  return cachedSession;
-}
-
-function subscribe(cb: () => void) {
-  listeners.add(cb);
-  const onStorage = (e: StorageEvent) => {
-    if (e.key === null || e.key === SESSION_KEY) cb();
-  };
-  window.addEventListener("storage", onStorage);
-  return () => {
-    listeners.delete(cb);
-    window.removeEventListener("storage", onStorage);
-  };
-}
-
-export function setSession(session: Session | null) {
-  try {
-    if (session) window.localStorage.setItem(SESSION_KEY, JSON.stringify(session));
-    else window.localStorage.removeItem(SESSION_KEY);
-  } catch {
-    // التخزين غير متاح — نتجاهل
-  }
-  listeners.forEach((l) => l());
-}
-
-export function getSession(): Session | null {
-  if (typeof window === "undefined") return null;
-  return readSession();
-}
-
-const noopSubscribe = () => () => {};
-
-// true بعد ما يجهز المتصفح (يمنع اختلاف العرض بين الخادم والمتصفح)
-export function useMounted(): boolean {
-  return useSyncExternalStore(noopSubscribe, () => true, () => false);
-}
+export const RoleProvider = SessionContext.Provider;
 
 export function useSession(): Session | null {
-  return useSyncExternalStore(subscribe, readSession, () => null);
+  return useContext(SessionContext);
+}
+
+export function useRole(): Role | null {
+  return useContext(SessionContext)?.role ?? null;
 }

@@ -4,7 +4,8 @@ import { Fragment, useState } from "react";
 import { Search, ChevronDown, ChevronUp, Save } from "lucide-react";
 import { ALLERGENS, AllergenKey, ING_APPROVALS, ING_APPROVAL_PRICE, Ingredient } from "@/lib/ops/engine";
 import { can, useSession } from "@/lib/ops/roles";
-import { IngredientSpecs, actions, useOps } from "@/lib/ops/store";
+import { IngredientSpecs, useOps } from "@/lib/ops/store";
+import * as actions from "../actions";
 import { AccessNote, Card, ErrorNote, Loading, NumInput, OpsShell, Pill, T, TableWrap, Td, Th, TriState, num, sar, statusColors } from "@/components/ops/ui";
 
 type Filter = "all" | "allergen" | "pending";
@@ -217,7 +218,7 @@ function Editor({
                   value={specs[f.k]}
                   step={0.1}
                   disabled={!canSpecs}
-                  onCommit={(v) => { setSavedMsg(""); setSpecs((s) => ({ ...s, [f.k]: v ?? 0 })); }}
+                  onCommit={async (v) => { setSavedMsg(""); setSpecs((s) => ({ ...s, [f.k]: v ?? 0 })); }}
                 />
               </label>
             ))}
@@ -231,7 +232,7 @@ function Editor({
                   key={a.key}
                   disabled={!canSpecs}
                   aria-pressed={on}
-                  onClick={() => { setSavedMsg(""); setSpecs((s) => ({ ...s, flags: { ...s.flags, [a.key]: !on } })); }}
+                  onClick={async () => { setSavedMsg(""); setSpecs((s) => ({ ...s, flags: { ...s.flags, [a.key]: !on } })); }}
                   className="text-[11px] font-bold rounded-full px-2.5 py-1"
                   style={on ? { background: T.warn, color: "#fff" } : { background: T.surface, color: T.inkSoft, border: `1px solid ${T.border}` }}
                 >
@@ -245,7 +246,7 @@ function Editor({
             <input
               value={specs.hidden}
               disabled={!canSpecs}
-              onChange={(e) => { setSavedMsg(""); setSpecs((s) => ({ ...s, hidden: e.target.value })); }}
+              onChange={async (e) => { setSavedMsg(""); setSpecs((s) => ({ ...s, hidden: e.target.value })); }}
               className="w-full rounded-lg border px-3 py-1.5 text-xs disabled:opacity-60"
               style={{ borderColor: T.border, background: canSpecs ? "#FFFDF5" : T.bg, color: T.ink }}
             />
@@ -253,8 +254,8 @@ function Editor({
           {ing.source && <div className="text-[10px] mt-2" style={{ color: T.inkSoft }}>المصدر: {ing.source}</div>}
           {canSpecs && (
             <button
-              onClick={() => {
-                const r = actions.setIngredientSpecs(ing.key, specs);
+              onClick={async () => {
+                const r = await actions.setIngredientSpecs(ing.key, specs);
                 onError(r.ok ? "" : r.error);
                 setSavedMsg(r.ok ? "تم الحفظ — ينعكس فوراً على كل الوصفات اللي تستخدم المكوّن" : "");
               }}
@@ -282,8 +283,8 @@ function Editor({
                     value={approvals[i]}
                     disabled={!editable}
                     allowHold={false}
-                    onChange={(v) => {
-                      const r = actions.setIngApproval(ing.key, i, v);
+                    onChange={async (v) => {
+                      const r = await actions.setIngApproval(ing.key, i, v);
                       onError(r.ok ? "" : r.error);
                     }}
                   />
@@ -300,8 +301,8 @@ function Editor({
                 step={0.5}
                 width={110}
                 disabled={!canPrice}
-                onCommit={(v) => {
-                  const r = actions.setIngredientPrice(ing.key, v ?? 0);
+                onCommit={async (v) => {
+                  const r = await actions.setIngredientPrice(ing.key, v ?? 0);
                   onError(r.ok ? "" : r.error);
                 }}
               />

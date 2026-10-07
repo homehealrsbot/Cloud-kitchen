@@ -4,7 +4,8 @@ import { useState } from "react";
 import { Search, ChevronDown, ChevronUp, ShieldCheck, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { GATES, GATE_PRICE, GATE_SHELF, GateStatus, SECTIONS, SkuStatus } from "@/lib/ops/engine";
 import { can, useSession } from "@/lib/ops/roles";
-import { SkuView, actions, useOps } from "@/lib/ops/store";
+import { SkuView, useOps } from "@/lib/ops/store";
+import * as actions from "../actions";
 import { AccessNote, ErrorNote, Kpi, Loading, NumInput, OpsShell, Pill, StatusBadge, T, TriState, num, pct, sar } from "@/components/ops/ui";
 
 type StatusFilter = "all" | SkuStatus;
@@ -40,12 +41,12 @@ export default function QualityPage() {
     return true;
   });
 
-  function setGate(v: SkuView, gi: number, next: GateStatus) {
+  async function setGate(v: SkuView, gi: number, next: GateStatus) {
     if (next === "HOLD") {
       setHold({ sku: v.sku.item.id, gate: gi, text: "" });
       return;
     }
-    const r = actions.setGate(v.sku.item.id, gi, next, "");
+    const r = await actions.setGate(v.sku.item.id, gi, next, "");
     setError(r.ok ? "" : r.error);
     setHold(null);
   }
@@ -97,7 +98,7 @@ export default function QualityPage() {
           return (
             <div key={sku.item.id} className="rounded-2xl" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
               <button
-                onClick={() => { setOpen(isOpen ? null : sku.item.id); setHold(null); setError(""); }}
+                onClick={async () => { setOpen(isOpen ? null : sku.item.id); setHold(null); setError(""); }}
                 className="w-full text-right flex items-center gap-3 px-4 py-3"
               >
                 <div className="flex-1 min-w-0">
@@ -174,8 +175,8 @@ export default function QualityPage() {
                                 />
                                 <button
                                   disabled={!hold.text.trim()}
-                                  onClick={() => {
-                                    const r = actions.setGate(sku.item.id, gi, "HOLD", hold.text);
+                                  onClick={async () => {
+                                    const r = await actions.setGate(sku.item.id, gi, "HOLD", hold.text);
                                     setError(r.ok ? "" : r.error);
                                     if (r.ok) setHold(null);
                                   }}
@@ -214,8 +215,8 @@ export default function QualityPage() {
                             ariaLabel="الصلاحية المعلنة"
                             value={sku.item.shelfLifeH}
                             min={1}
-                            onCommit={(val) => {
-                              const r = actions.setShelfLife(sku.item.id, val ?? 0);
+                            onCommit={async (val) => {
+                              const r = await actions.setShelfLife(sku.item.id, val ?? 0);
                               setError(r.ok ? "" : r.error);
                             }}
                           />

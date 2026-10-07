@@ -4,7 +4,8 @@ import { useMemo, useState } from "react";
 import { CalendarDays, CheckCircle2, XCircle, RotateCcw, BarChart3 } from "lucide-react";
 import { LUNCH_SLOTS, checkRotation, slotOptions } from "@/lib/ops/engine";
 import { can, useSession } from "@/lib/ops/roles";
-import { actions, useOps } from "@/lib/ops/store";
+import { useOps } from "@/lib/ops/store";
+import * as actions from "../actions";
 import { AccessNote, Card, CardTitle, ErrorNote, Loading, OpsShell, Pill, StatusBadge, T, TableWrap, Td, Th, num } from "@/components/ops/ui";
 
 const MEAL_GROUPS = ["فطور", "غداء", "عشاء", "سناك", "شوربة", "سلطة", "حلا"];
@@ -78,8 +79,8 @@ export default function RotationPage() {
             aside={
               canEdit && edited ? (
                 <button
-                  onClick={() => {
-                    const r = actions.resetRotation();
+                  onClick={async () => {
+                    const r = await actions.resetRotation();
                     setError(r.ok ? "" : r.error);
                   }}
                   className="flex items-center gap-1 text-[11px] font-bold"
@@ -112,8 +113,8 @@ export default function RotationPage() {
                             <select
                               aria-label={label}
                               value={id}
-                              onChange={(e) => {
-                                const r = actions.setRotationSlot(day, slot, e.target.value);
+                              onChange={async (e) => {
+                                const r = await actions.setRotationSlot(day, slot, e.target.value);
                                 setError(r.ok ? "" : r.error);
                               }}
                               className="w-full rounded-lg border px-2 py-1.5 text-xs font-bold"
