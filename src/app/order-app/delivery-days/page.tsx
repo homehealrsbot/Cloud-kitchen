@@ -3,19 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { ChevronRight, CalendarDays, Check } from "lucide-react";
+import { saveDeliveryDays, T } from "@/lib/kitchen-shared";
 
-const T = {
-  bg: "#FCF6F2",
-  surface: "#FFFFFF",
-  border: "#F0DFD3",
-  ink: "#2B1B14",
-  inkSoft: "#7A6153",
-  brand: "#A84F2E",
-  brandBright: "#D67A4F",
-  brandTint: "#FBEEE6",
-  good: "#2E9E6D",
-  goodTint: "#E5F4ED",
-};
 
 const DAYS = ["السبت", "الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة"];
 
@@ -30,9 +19,7 @@ export default function DeliveryDaysPage() {
 
   function save() {
     if (selected.length === 0) return;
-    if (typeof window !== "undefined") {
-      localStorage.setItem("foodstyle_delivery_days", JSON.stringify(selected));
-    }
+    saveDeliveryDays(selected);
     setSaved(true);
   }
 

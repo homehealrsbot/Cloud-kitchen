@@ -1,0 +1,212 @@
+"use client";
+
+// الأدوار والصلاحيات — مصدر واحد يحدد مين يشوف إيش ومين يعدّل إيش.
+// ملاحظة مهمة: هذا فصل على مستوى الواجهة فقط (الدور محفوظ في المتصفح). الحماية الفعلية تحتاج
+// تسجيل دخول حقيقي (Supabase Auth) — وقتها نستبدل getSession() فقط وكل شي ثاني يبقى كما هو.
+
+import { useSyncExternalStore } from "react";
+
+export type Role = "executive" | "kitchen" | "quality";
+
+export const ROLES: Record<Role, { label: string; short: string; desc: string; home: string }> = {
+  executive: {
+    label: "الإدارة التنفيذية",
+    short: "تنفيذي",
+    desc: "الأسعار، التكاليف، الهوامش، الإعدادات، واعتماد بوابة السعر",
+    home: "/admin/executive",
+  },
+  kitchen: {
+    label: "المطبخ",
+    short: "مطبخ",
+    desc: "خطة الإنتاج، المشتريات، بطاقة المطبخ، الوصفات، وجدول الدوران",
+    home: "/admin/kitchen",
+  },
+  quality: {
+    label: "الجودة والمتابعة",
+    short: "جودة",
+    desc: "بوابات الاعتماد، الحساسية، الصلاحية، واعتماد الموردين",
+    home: "/admin/approvals",
+  },
+};
+
+export type Cap =
+  | "ops.view"
+  | "production.view"
+  | "production.edit"
+  | "shopping.view"
+  | "card.view"
+  | "rotation.view"
+  | "rotation.edit"
+  | "recipes.view"
+  | "recipes.edit"
+  | "ingredients.view"
+  | "ingredients.editSpecs"
+  | "ingredients.editPrice"
+  | "quality.view"
+  | "quality.editGates"
+  | "quality.editPriceGate"
+  | "quality.editShelfLife"
+  | "ingApproval.edit"
+  | "ingApproval.editPrice"
+  | "finance.view"
+  | "settings.edit"
+  | "engineering.view"
+  | "audit.view"
+  | "data.reset"
+  | "legacy.executive"
+  | "legacy.kitchen"
+  | "legacy.plans"
+  | "legacy.safetyLogs"
+  | "legacy.approvals";
+
+const ALL: Role[] = ["executive", "kitchen", "quality"];
+
+export const MATRIX: Record<Cap, Role[]> = {
+  "ops.view": ALL,
+  "production.view": ALL,
+  "production.edit": ["kitchen"],
+  "shopping.view": ["kitchen", "executive"],
+  "card.view": ALL,
+  "rotation.view": ALL,
+  "rotation.edit": ["kitchen"],
+  "recipes.view": ALL,
+  "recipes.edit": ["kitchen"],
+  "ingredients.view": ALL,
+  "ingredients.editSpecs": ["quality"],
+  "ingredients.editPrice": ["executive"],
+  "quality.view": ALL,
+  "quality.editGates": ["quality"],
+  "quality.editPriceGate": ["executive"],
+  "quality.editShelfLife": ["quality"],
+  "ingApproval.edit": ["quality"],
+  "ingApproval.editPrice": ["executive"],
+  "finance.view": ["executive"],
+  "settings.edit": ["executive"],
+  "engineering.view": ["executive"],
+  "audit.view": ["executive"],
+  "data.reset": ["executive"],
+  "legacy.executive": ["executive"],
+  "legacy.kitchen": ["kitchen", "executive"],
+  "legacy.plans": ["kitchen", "executive"],
+  "legacy.safetyLogs": ["kitchen", "executive", "quality"],
+  "legacy.approvals": ["quality"],
+};
+
+export function can(role: Role | null | undefined, cap: Cap): boolean {
+  return !!role && MATRIX[cap].includes(role);
+}
+
+// جدول الصلاحيات المعروض للمستخدم (مين يسوي إيش)
+export const PERMISSION_ROWS: { label: string; view: Cap; edit?: Cap }[] = [
+  { label: "خطة الإنتاج (عدد الحصص)", view: "production.view", edit: "production.edit" },
+  { label: "قائمة المشتريات (كميات)", view: "shopping.view" },
+  { label: "بطاقة المطبخ", view: "card.view" },
+  { label: "جدول الدوران 14 يوم", view: "rotation.view", edit: "rotation.edit" },
+  { label: "الوصفات (الجرامات)", view: "recipes.view", edit: "recipes.edit" },
+  { label: "المكوّنات: القيم الغذائية والحساسية", view: "ingredients.view", edit: "ingredients.editSpecs" },
+  { label: "المكوّنات: الأسعار", view: "finance.view", edit: "ingredients.editPrice" },
+  { label: "بوابات الجودة (7 بوابات)", view: "quality.view", edit: "quality.editGates" },
+  { label: "بوابة السعر والهامش", view: "quality.view", edit: "quality.editPriceGate" },
+  { label: "اعتماد المورد وإقرار الحساسية", view: "ingredients.view", edit: "ingApproval.edit" },
+  { label: "الأسعار والتكاليف والهوامش", view: "finance.view" },
+  { label: "إعدادات الحصص والتكلفة", view: "settings.edit", edit: "settings.edit" },
+  { label: "هندسة المنيو (المبيعات)", view: "engineering.view", edit: "engineering.view" },
+  { label: "سجل التعديلات", view: "audit.view" },
+];
+
+// أي مسار يحتاج أي صلاحية — الأطول أولاً
+export const ROUTE_CAPS: { prefix: string; cap: Cap }[] = [
+  { prefix: "/admin/ops/settings", cap: "settings.edit" },
+  { prefix: "/admin/ops/engineering", cap: "engineering.view" },
+  { prefix: "/admin/ops/production", cap: "production.view" },
+  { prefix: "/admin/ops/kitchen-card", cap: "card.view" },
+  { prefix: "/admin/ops/rotation", cap: "rotation.view" },
+  { prefix: "/admin/ops/recipes", cap: "recipes.view" },
+  { prefix: "/admin/ops/ingredients", cap: "ingredients.view" },
+  { prefix: "/admin/ops/quality", cap: "quality.view" },
+  { prefix: "/admin/ops", cap: "ops.view" },
+  { prefix: "/admin/executive", cap: "legacy.executive" },
+  { prefix: "/admin/kitchen", cap: "legacy.kitchen" },
+  { prefix: "/admin/orders", cap: "legacy.kitchen" },
+  { prefix: "/admin/plans", cap: "legacy.plans" },
+  { prefix: "/admin/process", cap: "legacy.safetyLogs" },
+  { prefix: "/admin/expiry", cap: "legacy.safetyLogs" },
+  { prefix: "/admin/temperature-log", cap: "legacy.safetyLogs" },
+  { prefix: "/admin/approvals", cap: "legacy.approvals" },
+];
+
+export function capForPath(pathname: string): Cap | null {
+  const hit = ROUTE_CAPS.find((r) => pathname === r.prefix || pathname.startsWith(r.prefix + "/"));
+  return hit ? hit.cap : null;
+}
+
+// ---------------- جلسة الدور (مؤقتاً في المتصفح) ----------------
+
+export interface Session {
+  role: Role;
+  name: string;
+}
+
+const SESSION_KEY = "foodstyle_role_session";
+const listeners = new Set<() => void>();
+let cachedRaw: string | null | undefined;
+let cachedSession: Session | null = null;
+
+function readSession(): Session | null {
+  let raw: string | null = null;
+  try {
+    raw = window.localStorage.getItem(SESSION_KEY);
+  } catch {
+    raw = null;
+  }
+  if (raw === cachedRaw) return cachedSession;
+  cachedRaw = raw;
+  cachedSession = null;
+  if (raw) {
+    try {
+      const parsed = JSON.parse(raw) as Session;
+      if (parsed && parsed.role in ROLES) cachedSession = { role: parsed.role, name: parsed.name || "" };
+    } catch {
+      cachedSession = null;
+    }
+  }
+  return cachedSession;
+}
+
+function subscribe(cb: () => void) {
+  listeners.add(cb);
+  const onStorage = (e: StorageEvent) => {
+    if (e.key === null || e.key === SESSION_KEY) cb();
+  };
+  window.addEventListener("storage", onStorage);
+  return () => {
+    listeners.delete(cb);
+    window.removeEventListener("storage", onStorage);
+  };
+}
+
+export function setSession(session: Session | null) {
+  try {
+    if (session) window.localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    else window.localStorage.removeItem(SESSION_KEY);
+  } catch {
+    // التخزين غير متاح — نتجاهل
+  }
+  listeners.forEach((l) => l());
+}
+
+export function getSession(): Session | null {
+  if (typeof window === "undefined") return null;
+  return readSession();
+}
+
+const noopSubscribe = () => () => {};
+
+// true بعد ما يجهز المتصفح (يمنع اختلاف العرض بين الخادم والمتصفح)
+export function useMounted(): boolean {
+  return useSyncExternalStore(noopSubscribe, () => true, () => false);
+}
+
+export function useSession(): Session | null {
+  return useSyncExternalStore(subscribe, readSession, () => null);
+}

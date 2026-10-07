@@ -1,3 +1,7 @@
+"use client";
+
+import { useSyncExternalStore } from "react";
+
 // بيانات ومحاكاة مشتركة بين لوحة الإدارة التنفيذية ولوحة المطبخ
 
 export const T = {
@@ -59,11 +63,20 @@ export const DEMO_MEALS: Meal[] = [
 // نستخدم localStorage مؤقتاً (بدل قاعدة بيانات حقيقية) عشان القائمة تكون مرئية بين لوحة
 // المطبخ ولوحة الموافقة بنفس المتصفح، لحد ما نربط Supabase فعلياً.
 
+export const GOAL_TAGS = ["تنزيل وزن", "ثبات الوزن", "زيادة عضل"] as const;
+export type GoalTag = (typeof GOAL_TAGS)[number];
+
 export type PendingMeal = {
   id: string;
   name: string;
   price: number;
   kcal: number;
+  // القيم الغذائية والهدف إجبارية للإدخالات الجديدة. اختيارية في النوع فقط عشان
+  // الإدخالات القديمة المحفوظة في المتصفح قبل هذا التحديث ما تتعطل.
+  proteinG?: number;
+  carbG?: number;
+  fatG?: number;
+  goalTag?: GoalTag;
   submittedAt: string;
   submittedBy: string;
 };
@@ -83,34 +96,116 @@ function safeParse<T>(raw: string | null, fallback: T): T {
   }
 }
 
+// ---------------- طبقة قراءة localStorage بدون setState داخل useEffect ----------------
+// نقرأ التخزين كمصدر خارجي عبر useSyncExternalStore (نفس أسلوب مخزن العمليات في lib/ops/store).
+// الفايدة: ما نحتاج useEffect يسوي setState عند أول عرض (اللي كان يسبب renders متتالية)،
+// وأي تبويب ثاني يعدّل نفس المفتاح ينعكس هنا تلقائياً.
+
+const storeListeners = new Set<() => void>();
+const snapshotCache = new Map<string, { raw: string | null; value: unknown }>();
+
+function notifyStores() {
+  storeListeners.forEach((l) => l());
+}
+
+function subscribeStore(cb: () => void) {
+  storeListeners.add(cb);
+  const onStorage = (e: StorageEvent) => {
+    if (e.key === null || e.key.startsWith("foodstyle_")) cb();
+  };
+  window.addEventListener("storage", onStorage);
+  return () => {
+    storeListeners.delete(cb);
+    window.removeEventListener("storage", onStorage);
+  };
+}
+
+// التخزين المؤقت ضروري: useSyncExternalStore يطلب إن القيمة تبقى بنفس المرجع ما لم تتغير فعلياً
+function readCached<T>(key: string, fallback: T): T {
+  let raw: string | null = null;
+  try {
+    raw = window.localStorage.getItem(key);
+  } catch {
+    raw = null;
+  }
+  const hit = snapshotCache.get(key);
+  if (hit && hit.raw === raw) return hit.value as T;
+  const value = safeParse<T>(raw, fallback);
+  snapshotCache.set(key, { raw, value });
+  return value;
+}
+
+function writeStore(key: string, value: unknown) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    // التخزين ممتلئ أو غير متاح — نكمل بدون حفظ
+  }
+  snapshotCache.delete(key);
+  notifyStores();
+}
+
+/**
+ * يقرأ قيمة محفوظة في المتصفح. يرجّع `serverValue` أثناء العرض على الخادم وأول عرض في
+ * المتصفح (يمنع اختلاف الهيدريشن)، وبعدها القيمة الحقيقية.
+ */
+function useStored<T>(key: string, fallback: T, serverValue: T): T {
+  return useSyncExternalStore(
+    subscribeStore,
+    () => readCached<T>(key, fallback),
+    () => serverValue,
+  );
+}
+
+// true بعد ما يجهز المتصفح — يخلينا نفرّق بين "ما قرأنا بعد" و"فاضي فعلاً"
+const noopSubscribe = () => () => {};
+export function useStoreReady(): boolean {
+  return useSyncExternalStore(noopSubscribe, () => true, () => false);
+}
+
+const NO_PENDING: PendingMeal[] = [];
+const NO_REJECTED: RejectedMeal[] = [];
+const NO_MEALS: Meal[] = [];
+
 export function loadPendingMeals(): PendingMeal[] {
-  if (typeof window === "undefined") return [];
-  return safeParse<PendingMeal[]>(localStorage.getItem(PENDING_KEY), []);
+  if (typeof window === "undefined") return NO_PENDING;
+  return readCached<PendingMeal[]>(PENDING_KEY, NO_PENDING);
 }
 
 export function savePendingMeals(list: PendingMeal[]) {
   if (typeof window === "undefined") return;
-  localStorage.setItem(PENDING_KEY, JSON.stringify(list));
+  writeStore(PENDING_KEY, list);
 }
 
 export function loadRejectedMeals(): RejectedMeal[] {
-  if (typeof window === "undefined") return [];
-  return safeParse<RejectedMeal[]>(localStorage.getItem(REJECTED_KEY), []);
+  if (typeof window === "undefined") return NO_REJECTED;
+  return readCached<RejectedMeal[]>(REJECTED_KEY, NO_REJECTED);
 }
 
 export function saveRejectedMeals(list: RejectedMeal[]) {
   if (typeof window === "undefined") return;
-  localStorage.setItem(REJECTED_KEY, JSON.stringify(list));
+  writeStore(REJECTED_KEY, list);
 }
 
 export function loadPublishedLocalMeals(): Meal[] {
-  if (typeof window === "undefined") return [];
-  return safeParse<Meal[]>(localStorage.getItem(PUBLISHED_KEY), []);
+  if (typeof window === "undefined") return NO_MEALS;
+  return readCached<Meal[]>(PUBLISHED_KEY, NO_MEALS);
 }
 
 export function savePublishedLocalMeals(list: Meal[]) {
   if (typeof window === "undefined") return;
-  localStorage.setItem(PUBLISHED_KEY, JSON.stringify(list));
+  writeStore(PUBLISHED_KEY, list);
+}
+
+// Hooks: تقرأ وتتابع التغييرات بدون useEffect/setState
+export function usePendingMeals(): PendingMeal[] {
+  return useStored<PendingMeal[]>(PENDING_KEY, NO_PENDING, NO_PENDING);
+}
+export function useRejectedMeals(): RejectedMeal[] {
+  return useStored<RejectedMeal[]>(REJECTED_KEY, NO_REJECTED, NO_REJECTED);
+}
+export function usePublishedLocalMeals(): Meal[] {
+  return useStored<Meal[]>(PUBLISHED_KEY, NO_MEALS, NO_MEALS);
 }
 
 // ---------------- برامج الاشتراك المخصصة (يديرها المطعم يدوياً) ----------------
@@ -129,13 +224,18 @@ const PLANS_KEY = "foodstyle_subscription_plans";
 
 export function loadPlans(): SubscriptionPlan[] {
   if (typeof window === "undefined") return DEFAULT_PLANS;
-  const saved = safeParse<SubscriptionPlan[] | null>(localStorage.getItem(PLANS_KEY), null);
+  const saved = readCached<SubscriptionPlan[] | null>(PLANS_KEY, null);
   return saved && saved.length > 0 ? saved : DEFAULT_PLANS;
 }
 
 export function savePlans(list: SubscriptionPlan[]) {
   if (typeof window === "undefined") return;
-  localStorage.setItem(PLANS_KEY, JSON.stringify(list));
+  writeStore(PLANS_KEY, list);
+}
+
+export function usePlans(): SubscriptionPlan[] {
+  const saved = useStored<SubscriptionPlan[] | null>(PLANS_KEY, null, null);
+  return saved && saved.length > 0 ? saved : DEFAULT_PLANS;
 }
 
 // ---------------- طلبات مجدولة بالتاريخ (اليوم / غداً / بعد غد) ----------------
@@ -150,12 +250,48 @@ export type ScheduledOrder = {
 
 const ORDERS_KEY = "foodstyle_scheduled_orders";
 
+const NO_ORDERS: ScheduledOrder[] = [];
+
 export function loadScheduledOrders(): ScheduledOrder[] {
-  if (typeof window === "undefined") return [];
-  return safeParse<ScheduledOrder[]>(localStorage.getItem(ORDERS_KEY), []);
+  if (typeof window === "undefined") return NO_ORDERS;
+  return readCached<ScheduledOrder[]>(ORDERS_KEY, NO_ORDERS);
 }
 
 export function saveScheduledOrders(list: ScheduledOrder[]) {
   if (typeof window === "undefined") return;
-  localStorage.setItem(ORDERS_KEY, JSON.stringify(list));
+  writeStore(ORDERS_KEY, list);
+}
+
+export function useScheduledOrders(): ScheduledOrder[] {
+  return useStored<ScheduledOrder[]>(ORDERS_KEY, NO_ORDERS, NO_ORDERS);
+}
+
+// ---------------- الملف الصحي للعميل (الحساسيات والهدف) ----------------
+
+const ALLERGIES_KEY = "foodstyle_customer_allergies";
+const GOAL_KEY = "foodstyle_customer_goal";
+const NO_ALLERGIES: string[] = [];
+
+export function saveCustomerAllergies(list: string[]) {
+  if (typeof window === "undefined") return;
+  writeStore(ALLERGIES_KEY, list);
+}
+
+export function saveCustomerGoal(goal: string) {
+  if (typeof window === "undefined") return;
+  writeStore(GOAL_KEY, goal);
+}
+
+export function useCustomerAllergies(): string[] {
+  const saved = useStored<unknown>(ALLERGIES_KEY, NO_ALLERGIES, NO_ALLERGIES);
+  return Array.isArray(saved) ? (saved as string[]) : NO_ALLERGIES;
+}
+
+// ---------------- أيام التوصيل ----------------
+
+const DELIVERY_DAYS_KEY = "foodstyle_delivery_days";
+
+export function saveDeliveryDays(list: string[]) {
+  if (typeof window === "undefined") return;
+  writeStore(DELIVERY_DAYS_KEY, list);
 }

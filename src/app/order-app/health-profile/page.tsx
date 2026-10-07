@@ -3,21 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { ChevronRight, HeartPulse, AlertTriangle, CheckCircle2, XCircle } from "lucide-react";
+import { saveCustomerAllergies, saveCustomerGoal, T } from "@/lib/kitchen-shared";
 
-const T = {
-  bg: "#FCF6F2",
-  surface: "#FFFFFF",
-  border: "#F0DFD3",
-  ink: "#2B1B14",
-  inkSoft: "#7A6153",
-  brand: "#A84F2E",
-  brandBright: "#D67A4F",
-  brandTint: "#FBEEE6",
-  warn: "#C0392B",
-  warnTint: "#FBEBE0",
-  good: "#2E9E6D",
-  goodTint: "#E5F4ED",
-};
 
 // قائمة الوجبات مع بيانات الحساسية والسعرات لغرض المطابقة
 const MEALS = [
@@ -98,11 +85,9 @@ export default function HealthProfilePage() {
 
     setResult({ bmi, category: cat.label, goal: cat.goal, calorieTarget, recommended, excluded });
 
-    // نحفظ الحساسيات والهدف محلياً عشان صفحة "بناء وجبتك" تقدر تفلتر تلقائياً بدون ما نطلب منك تكررهم
-    if (typeof window !== "undefined") {
-      localStorage.setItem("foodstyle_customer_allergies", JSON.stringify(allergies));
-      localStorage.setItem("foodstyle_customer_goal", cat.goal);
-    }
+    // نحفظ الحساسيات والهدف محلياً عشان صفحة «ابنِ وجبتك» تفلتر تلقائياً بدون ما نطلب منك تكررهم
+    saveCustomerAllergies(allergies);
+    saveCustomerGoal(cat.goal);
   }
 
   return (

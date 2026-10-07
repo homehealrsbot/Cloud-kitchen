@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 
@@ -17,6 +17,15 @@ const cairo = localFont({
 export const metadata: Metadata = {
   title: "Food Style — نظام اشتراك وجبات صحية",
   description: "Food Style — Cloud Kitchen Subscription System",
+  applicationName: "Food Style",
+  appleWebApp: { capable: true, title: "Food Style", statusBarStyle: "default" },
+};
+
+// لون شريط المتصفح على الجوال + منع التكبير العشوائي في نماذج الإدخال
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#A84F2E",
 };
 
 export default function RootLayout({

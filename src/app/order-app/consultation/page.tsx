@@ -3,21 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { ChevronRight, Stethoscope, Calendar, Clock, CheckCircle2, Bell } from "lucide-react";
+import { T } from "@/lib/kitchen-shared";
 
-const T = {
-  bg: "#FCF6F2",
-  surface: "#FFFFFF",
-  border: "#F0DFD3",
-  ink: "#2B1B14",
-  inkSoft: "#7A6153",
-  brand: "#A84F2E",
-  brandBright: "#D67A4F",
-  brandTint: "#FBEEE6",
-  warn: "#C0392B",
-  warnTint: "#FBEBE0",
-  good: "#2E9E6D",
-  goodTint: "#E5F4ED",
-};
 
 const SLOTS = ["اليوم 5:00 م", "اليوم 7:30 م", "غداً 10:00 ص", "غداً 4:00 م", "بعد غد 11:00 ص"];
 

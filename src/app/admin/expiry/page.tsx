@@ -4,44 +4,55 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { ChevronRight, CalendarClock, AlertTriangle, CheckCircle2, Plus } from "lucide-react";
+import { T } from "@/lib/kitchen-shared";
 
-const T = {
-  bg: "#FCF6F2",
-  surface: "#FFFFFF",
-  border: "#F0DFD3",
-  ink: "#2B1B14",
-  inkSoft: "#7A6153",
-  brand: "#A84F2E",
-  brandBright: "#D67A4F",
-  warn: "#C0392B",
-  warnTint: "#FBEBE0",
-  good: "#2E9E6D",
-  goodTint: "#E5F4ED",
-};
 
-type ExpiryRow = { id: number; name: string; expiry: string; batch: string };
+type ExpiryRow = { id: string; name: string; expiry: string; batch: string };
 
-function daysUntil(dateStr: string) {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const target = new Date(dateStr);
-  return Math.round((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+// الحساب كله بالتوقيت المحلي. المشكلة قبل كذا: new Date("2026-10-08") يُفسَّر UTC بينما
+// setHours(0,0,0,0) محلي — فأي متصفح بفرق زمني سالب يطلع فرق يوم كامل (صنف ينتهي اليوم
+// يظهر "1 يوم"). و toISOString() كان يحوّل لـ UTC فيعطي تاريخ الأمس في بعض الساعات.
+
+function startOfLocalDay(d: Date): Date {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
 }
 
-function todayPlus(days: number) {
-  const d = new Date();
+// يحوّل "YYYY-MM-DD" إلى تاريخ محلي (مو UTC)
+function parseLocalDate(dateStr: string): Date | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr.trim());
+  if (!m) return null;
+  const [, y, mo, da] = m;
+  const d = new Date(Number(y), Number(mo) - 1, Number(da));
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function daysUntil(dateStr: string): number {
+  const target = parseLocalDate(dateStr);
+  if (!target) return 0;
+  const today = startOfLocalDay(new Date());
+  // نقسم على الفرق بالأيام مع تقريب — يتعامل صح مع التوقيت الصيفي
+  return Math.round((target.getTime() - today.getTime()) / 86400000);
+}
+
+function formatLocalDate(d: Date): string {
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
+function todayPlus(days: number): string {
+  const d = startOfLocalDay(new Date());
   d.setDate(d.getDate() + days);
-  return d.toISOString().split("T")[0];
+  return formatLocalDate(d);
 }
 
 const INIT: ExpiryRow[] = [
-  { id: 1, name: "صدر دجاج", expiry: todayPlus(1), batch: "B-114" },
-  { id: 2, name: "سلمون", expiry: todayPlus(2), batch: "B-108" },
-  { id: 3, name: "حليب قليل الدسم", expiry: todayPlus(4), batch: "B-119" },
-  { id: 4, name: "أرز", expiry: todayPlus(30), batch: "B-090" },
-  { id: 5, name: "كينوا", expiry: todayPlus(21), batch: "B-097" },
-  { id: 6, name: "فواكه طازجة", expiry: todayPlus(3), batch: "B-121" },
-  { id: 7, name: "حمص وطحينة", expiry: todayPlus(14), batch: "B-102" },
+  { id: "seed-1", name: "صدر دجاج", expiry: todayPlus(1), batch: "B-114" },
+  { id: "seed-2", name: "سلمون", expiry: todayPlus(2), batch: "B-108" },
+  { id: "seed-3", name: "حليب قليل الدسم", expiry: todayPlus(4), batch: "B-119" },
+  { id: "seed-4", name: "أرز", expiry: todayPlus(30), batch: "B-090" },
+  { id: "seed-5", name: "كينوا", expiry: todayPlus(21), batch: "B-097" },
+  { id: "seed-6", name: "فواكه طازجة", expiry: todayPlus(3), batch: "B-121" },
+  { id: "seed-7", name: "حمص وطحينة", expiry: todayPlus(14), batch: "B-102" },
 ];
 
 export default function ExpiryPage() {
@@ -51,12 +62,9 @@ export default function ExpiryPage() {
   const [batch, setBatch] = useState("");
 
   function addRow() {
-    if (!name || !expiry) return;
-    setRows((prev) =>
-      [...prev, { id: Date.now(), name, expiry, batch: batch || "—" }].sort(
-        (a, b) => daysUntil(a.expiry) - daysUntil(b.expiry)
-      )
-    );
+    if (!name.trim() || !expiry) return;
+    // الترتيب يتم عند العرض، فما نحتاج نرتب هنا. و id بـ uuid عشان ما يتكرر مع الإضافة السريعة
+    setRows((prev) => [...prev, { id: crypto.randomUUID(), name: name.trim(), expiry, batch: batch.trim() || "—" }]);
     setName("");
     setExpiry("");
     setBatch("");

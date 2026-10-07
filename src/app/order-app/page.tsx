@@ -3,24 +3,20 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase";
+import { useOps } from "@/lib/ops/store";
+import { DEMO_MEALS, Meal } from "@/lib/kitchen-shared";
 
-type Meal = {
-  id: string;
-  name: string;
-  price: number;
-  kcal: number;
-  available: boolean;
-};
-
-const DEMO_MEALS: Meal[] = [
-  { id: "1", name: "صدر دجاج مشوي + أرز بني", price: 32, kcal: 420, available: true },
-  { id: "2", name: "سلمون مشوي + كينوا", price: 42, kcal: 460, available: true },
-  { id: "3", name: "شوفان بروتين + فواكه", price: 22, kcal: 380, available: true },
-];
+// العميل ما يشوف إلا المتاح — نفس قاعدة استعلام قاعدة البيانات (available = true) تُطبّق
+// على البيانات التجريبية. قبل كذا كان هذا الملف يعرّف نسخته الخاصة من DEMO_MEALS وكانت
+// تخالف النسخة المشتركة في حالة التوفر.
+const DEMO_AVAILABLE: Meal[] = DEMO_MEALS.filter((m) => m.available);
 
 export default function OrderApp() {
-  const [meals, setMeals] = useState<Meal[]>(DEMO_MEALS);
+  const [meals, setMeals] = useState<Meal[]>(DEMO_AVAILABLE);
   const [cart, setCart] = useState<Record<string, boolean>>({});
+  // قاعدة الإطلاق: ما يظهر للعميل من منيو العمليات إلا الصنف اللي اعتمدته كل بوابات الجودة
+  const ops = useOps();
+  const approved = ops.ready ? ops.skus.filter((v) => v.quality.status === "READY") : [];
 
   useEffect(() => {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -120,6 +116,46 @@ export default function OrderApp() {
           تأكيد تسليم (تجربة)
         </Link>
       </div>
+
+      {approved.length > 0 && (
+        <div className="mb-5">
+          <div className="text-xs font-bold mb-2" style={{ color: "#2E9E6D" }}>
+            المنيو المعتمد ({approved.length})
+          </div>
+          <div className="space-y-2.5">
+            {approved.map((v) => {
+              const id = `sku:${v.sku.item.id}`;
+              return (
+                <div
+                  key={id}
+                  className="flex items-center gap-3 rounded-2xl p-3 border"
+                  style={{ borderColor: "#F0DFD3", background: "white" }}
+                >
+                  <div className="w-12 h-12 rounded-xl shrink-0" style={{ background: "#E5F4ED" }} />
+                  <div className="flex-1">
+                    <div className="text-sm font-bold">{v.sku.item.name}</div>
+                    <div className="text-xs" style={{ color: "#7A6153" }}>
+                      {Math.round(v.sku.kcal)} سعرة · {Math.round(v.sku.protein)} جم بروتين
+                    </div>
+                    {v.sku.allergens !== "لا يوجد" && (
+                      <div className="text-[11px] mt-0.5" style={{ color: "#C0392B" }}>
+                        يحتوي: {v.sku.allergens}
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => setCart((c) => ({ ...c, [id]: !c[id] }))}
+                    className="rounded-full w-8 h-8 flex items-center justify-center text-white text-lg font-bold transition-colors"
+                    style={{ background: cart[id] ? "#2E9E6D" : "#D67A4F" }}
+                  >
+                    {cart[id] ? "✓" : "+"}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <div className="space-y-2.5">
         {meals.map((m) => (

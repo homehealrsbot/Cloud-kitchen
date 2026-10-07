@@ -1,51 +1,32 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { ChevronRight, Plus, Trash2, Layers } from "lucide-react";
-import { SubscriptionPlan, loadPlans, savePlans, DEFAULT_PLANS } from "@/lib/kitchen-shared";
+import { SubscriptionPlan, usePlans, savePlans, T } from "@/lib/kitchen-shared";
 
-const T = {
-  bg: "#FCF6F2",
-  surface: "#FFFFFF",
-  border: "#F0DFD3",
-  ink: "#2B1B14",
-  inkSoft: "#7A6153",
-  brand: "#A84F2E",
-  brandBright: "#D67A4F",
-  brandTint: "#FBEEE6",
-  warn: "#C0392B",
-};
 
 export default function PlansPage() {
-  const [plans, setPlans] = useState<SubscriptionPlan[]>(DEFAULT_PLANS);
+  const plans = usePlans();
   const [name, setName] = useState("");
   const [desc, setDesc] = useState("");
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    setPlans(loadPlans());
-  }, []);
-
   function addPlan() {
-    if (!name || !desc) {
+    if (!name.trim() || !desc.trim()) {
       setError("عبّي اسم الخطة ووصفها قبل الإضافة");
       return;
     }
     setError("");
-    const newPlan: SubscriptionPlan = { id: crypto.randomUUID(), name, desc, icon: "leaf" };
-    const updated = [newPlan, ...plans];
-    savePlans(updated);
-    setPlans(updated);
+    const newPlan: SubscriptionPlan = { id: crypto.randomUUID(), name: name.trim(), desc: desc.trim(), icon: "leaf" };
+    savePlans([newPlan, ...plans]);
     setName("");
     setDesc("");
   }
 
   function removePlan(id: string) {
-    const updated = plans.filter((p) => p.id !== id);
-    savePlans(updated);
-    setPlans(updated);
+    savePlans(plans.filter((p) => p.id !== id));
   }
 
   return (
@@ -109,7 +90,7 @@ export default function PlansPage() {
         </div>
 
         <div className="text-center text-[11px] mt-8 pb-4" style={{ color: T.inkSoft }}>
-          أي تعديل هنا ينعكس فوراً على صفحة "اختر خطتك" اللي يشوفها العميل عند التسجيل
+          أي تعديل هنا ينعكس فوراً على صفحة «اختر خطتك» اللي يشوفها العميل عند التسجيل
         </div>
       </div>
     </div>

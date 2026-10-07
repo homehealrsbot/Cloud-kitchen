@@ -29,9 +29,12 @@ import {
   Meal,
   DEMO_MEALS,
   PendingMeal,
+  GOAL_TAGS,
+  GoalTag,
   loadPendingMeals,
   savePendingMeals,
-  loadPublishedLocalMeals,
+  usePendingMeals,
+  usePublishedLocalMeals,
 } from "@/lib/kitchen-shared";
 import { createClient } from "@/lib/supabase";
 import { ClipboardList, Clock } from "lucide-react";
@@ -43,102 +46,131 @@ export default function KitchenDashboard() {
   const [stockEvents, setStockEvents] = useState<StockEvent[]>([]);
   const [todaysOrders, setTodaysOrders] = useState<OrderRow[]>([]);
   const idRef = useRef(1);
-  const [tick, setTick] = useState(0);
 
+  // محاكاة البيانات التجريبية: كل الدورة داخل المؤقت نفسه، وكل المؤقتات تُلغى عند مغادرة الصفحة
+  // (قبل كذا كان setTimeout بلا تنظيف، فتستمر تحديثات الحالة بعد إغلاق الصفحة)
   useEffect(() => {
-    const interval = setInterval(() => setTick((t) => t + 1), 3600);
-    return () => clearInterval(interval);
+    const pendingTimers = new Set<ReturnType<typeof setTimeout>>();
+
+    const interval = setInterval(() => {
+      const roll = Math.random();
+      if (roll >= 0.75) return; // إيقاف مؤقت — ما يولّد طلب تحضير فعلي
+      const id = idRef.current++;
+      const customer = NAMES[Math.floor(Math.random() * NAMES.length)];
+      const zone = ZONES[Math.floor(Math.random() * ZONES.length)];
+      const meal = SIM_MEALS[Math.floor(Math.random() * SIM_MEALS.length)];
+
+      const timer = setTimeout(() => {
+        pendingTimers.delete(timer);
+        setProduction((prev) => prev.map((m) => (m.name === meal.name ? { ...m, count: m.count + 1 } : m)));
+        setDeliveries((prev) => prev.map((d) => (d.zone === zone ? { ...d, count: d.count + 1 } : d)));
+
+        const newStockEvents: StockEvent[] = [];
+        setInventory((prev) =>
+          prev.map((row) => {
+            const used = (meal.uses as unknown as Record<string, number>)[row.name];
+            if (!used) return row;
+            const before = row.stock;
+            const after = Math.max(row.stock - used, 0);
+            newStockEvents.push({
+              id: id * 100 + row.name.length,
+              meal: meal.name,
+              ingredient: row.name,
+              before,
+              after,
+              qty: used,
+              cost: Math.round(used * row.cost * 100) / 100,
+              time: timeNow(),
+            });
+            return { ...row, stock: after };
+          })
+        );
+        setStockEvents((prev) => [...newStockEvents, ...prev].slice(0, 8));
+        setTodaysOrders((prev) =>
+          [{ id, customer, meal: meal.name, amount: meal.price, zone, time: timeNow() }, ...prev].slice(0, 8)
+        );
+      }, 400);
+      pendingTimers.add(timer);
+    }, 3600);
+
+    return () => {
+      clearInterval(interval);
+      pendingTimers.forEach((t) => clearTimeout(t));
+    };
   }, []);
 
-  useEffect(() => {
-    if (tick === 0) return;
-    const id = idRef.current++;
-    const roll = Math.random();
-    if (roll >= 0.75) return; // إيقاف مؤقت — ما يولّد طلب تحضير فعلي
-    const name = NAMES[Math.floor(Math.random() * NAMES.length)];
-    const zone = ZONES[Math.floor(Math.random() * ZONES.length)];
-    const meal = SIM_MEALS[Math.floor(Math.random() * SIM_MEALS.length)];
-
-    setTimeout(() => {
-      setProduction((prev) => prev.map((m) => (m.name === meal.name ? { ...m, count: m.count + 1 } : m)));
-      setDeliveries((prev) => prev.map((d) => (d.zone === zone ? { ...d, count: d.count + 1 } : d)));
-
-      const newStockEvents: StockEvent[] = [];
-      setInventory((prev) =>
-        prev.map((row) => {
-          const used = (meal.uses as unknown as Record<string, number>)[row.name];
-          if (!used) return row;
-          const before = row.stock;
-          const after = Math.max(row.stock - used, 0);
-          newStockEvents.push({
-            id: id * 100 + row.name.length,
-            meal: meal.name,
-            ingredient: row.name,
-            before,
-            after,
-            qty: used,
-            cost: Math.round(used * row.cost * 100) / 100,
-            time: timeNow(),
-          });
-          return { ...row, stock: after };
-        })
-      );
-      setStockEvents((prev) => [...newStockEvents, ...prev].slice(0, 8));
-
-      setTodaysOrders((prev) => [{ id, customer: name, meal: meal.name, amount: meal.price, zone, time: timeNow() }, ...prev].slice(0, 8));
-    }, 400);
-  }, [tick]);
-
   // نموذج إضافة وجبة — يدخل قائمة انتظار الموافقة، ما ينشر مباشرة
-  const [meals, setMeals] = useState<Meal[]>(DEMO_MEALS);
-  const [usingDemo, setUsingDemo] = useState(true);
+  const [dbMeals, setDbMeals] = useState<Meal[] | null>(null);
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
   const [kcal, setKcal] = useState("");
+  const [proteinG, setProteinG] = useState("");
+  const [carbG, setCarbG] = useState("");
+  const [fatG, setFatG] = useState("");
+  const [goalTag, setGoalTag] = useState<GoalTag>(GOAL_TAGS[0]);
   const [formError, setFormError] = useState("");
-  const [pendingMeals, setPendingMeals] = useState<PendingMeal[]>([]);
+
+  // تُقرأ من التخزين مباشرة — تتحدث لحظياً لما قسم الجودة يعتمد أو يرفض
+  const pendingMeals = usePendingMeals();
+  const localPublished = usePublishedLocalMeals();
+  const meals: Meal[] = dbMeals ?? [...localPublished, ...DEMO_MEALS];
 
   useEffect(() => {
-    setPendingMeals(loadPendingMeals());
-    const localPublished = loadPublishedLocalMeals();
-    if (localPublished.length > 0) {
-      setMeals((prev) => [...localPublished, ...prev]);
-    }
-
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
     if (!url) return;
+    let cancelled = false;
     const supabase = createClient();
     supabase
       .from("meals")
       .select("id,name,price,kcal,available")
       .then(({ data, error }) => {
-        if (!error && data) {
-          setMeals(data as Meal[]);
-          setUsingDemo(false);
-        }
+        if (!cancelled && !error && data) setDbMeals(data as Meal[]);
       });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   function submitForReview() {
-    if (!name || !price || !kcal) {
-      setFormError("عبّي الحقول الثلاثة كلها (الاسم، السعر، السعرات) قبل الإرسال");
+    const numbers = { price, kcal, proteinG, carbG, fatG };
+    if (!name.trim()) {
+      setFormError("اكتب اسم الوجبة");
+      return;
+    }
+    for (const [field, raw] of Object.entries(numbers)) {
+      if (raw.trim() === "") {
+        setFormError("عبّي كل الحقول: السعر، السعرات، البروتين، الكارب، والدهون");
+        return;
+      }
+      if (!(Number(raw) >= 0)) {
+        setFormError(`القيمة المدخلة في «${field}» لازم تكون رقم غير سالب`);
+        return;
+      }
+    }
+    if (!(Number(price) > 0)) {
+      setFormError("السعر لازم يكون أكبر من صفر");
       return;
     }
     setFormError("");
     const pending: PendingMeal = {
       id: crypto.randomUUID(),
-      name,
+      name: name.trim(),
       price: Number(price),
       kcal: Number(kcal),
+      proteinG: Number(proteinG),
+      carbG: Number(carbG),
+      fatG: Number(fatG),
+      goalTag,
       submittedAt: timeNow(),
       submittedBy: "لوحة المطبخ",
     };
-    const updated = [pending, ...loadPendingMeals()];
-    savePendingMeals(updated);
-    setPendingMeals(updated);
+    savePendingMeals([pending, ...loadPendingMeals()]);
     setName("");
     setPrice("");
     setKcal("");
+    setProteinG("");
+    setCarbG("");
+    setFatG("");
   }
 
   const totalMeals = production.reduce((a, m) => a + m.count, 0);
@@ -165,6 +197,9 @@ export default function KitchenDashboard() {
           </div>
         </div>
         <div className="max-w-6xl mx-auto px-6 pb-3 flex items-center gap-2 flex-wrap">
+          <Link href="/admin/ops" className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold text-white" style={{ background: T.brand }}>
+            <ClipboardList size={13} /> عمليات المطبخ (الإنتاج، بطاقة المطبخ، الوصفات)
+          </Link>
           <Link href="/admin/orders" className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold" style={{ background: T.brandTint, color: T.brand }}>
             <ShoppingBag size={13} /> لوحة حالة الطلبات
           </Link>
@@ -222,7 +257,6 @@ export default function KitchenDashboard() {
                     <div className="text-sm font-medium">{o.customer} — {o.meal}</div>
                     <div className="text-[11px] mt-0.5" style={{ color: T.inkSoft }}>{o.zone} · {o.time}</div>
                   </div>
-                  <span className="text-sm font-bold" style={{ color: T.brand }}>{o.amount} ﷼</span>
                 </div>
               ))}
             </div>
@@ -285,7 +319,7 @@ export default function KitchenDashboard() {
                   <div className="text-sm font-medium">{e.ingredient} — {e.meal}</div>
                   <div className="text-[11px] mt-0.5" style={{ color: T.inkSoft }}>{e.before} ← {e.after} ({e.qty}−) · {e.time}</div>
                 </div>
-                <span className="text-sm font-bold" style={{ color: T.warn }}>{e.cost} ﷼</span>
+                <span className="text-sm font-bold" style={{ color: T.warn }}>{e.qty}−</span>
               </div>
             ))}
           </div>
@@ -295,12 +329,21 @@ export default function KitchenDashboard() {
         <div className="rounded-2xl p-5 mb-4" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
           <div className="text-sm font-bold mb-1">إضافة وجبة جديدة</div>
           <p className="text-xs mb-4" style={{ color: T.inkSoft }}>
-            الوجبة ما تُنشر مباشرة — تدخل قائمة انتظار موافقة قسم الجودة/المتابعة أولاً
+            الوجبة ما تُنشر مباشرة — تدخل قائمة انتظار موافقة قسم الجودة/المتابعة أولاً.
+            القيم الغذائية والهدف الصحي إجبارية لأنها تُحفظ في قاعدة البيانات وتُستخدم في مطابقة وجبات العميل.
           </p>
           <div className="grid grid-cols-3 gap-2 mb-3">
             <input placeholder="اسم الوجبة" value={name} onChange={(e) => setName(e.target.value)} className="col-span-3 rounded-lg border px-3 py-2 text-sm" style={{ borderColor: T.border }} />
-            <input placeholder="السعر" value={price} onChange={(e) => setPrice(e.target.value)} className="rounded-lg border px-3 py-2 text-sm" style={{ borderColor: T.border }} />
-            <input placeholder="السعرات" value={kcal} onChange={(e) => setKcal(e.target.value)} className="col-span-2 rounded-lg border px-3 py-2 text-sm" style={{ borderColor: T.border }} />
+            <input type="number" min={0} inputMode="decimal" placeholder="السعر (﷼)" value={price} onChange={(e) => setPrice(e.target.value)} className="rounded-lg border px-3 py-2 text-sm" style={{ borderColor: T.border }} />
+            <input type="number" min={0} inputMode="decimal" placeholder="السعرات" value={kcal} onChange={(e) => setKcal(e.target.value)} className="col-span-2 rounded-lg border px-3 py-2 text-sm" style={{ borderColor: T.border }} />
+            <input type="number" min={0} inputMode="decimal" placeholder="بروتين (غ)" value={proteinG} onChange={(e) => setProteinG(e.target.value)} className="rounded-lg border px-3 py-2 text-sm" style={{ borderColor: T.border }} />
+            <input type="number" min={0} inputMode="decimal" placeholder="كارب (غ)" value={carbG} onChange={(e) => setCarbG(e.target.value)} className="rounded-lg border px-3 py-2 text-sm" style={{ borderColor: T.border }} />
+            <input type="number" min={0} inputMode="decimal" placeholder="دهون (غ)" value={fatG} onChange={(e) => setFatG(e.target.value)} className="rounded-lg border px-3 py-2 text-sm" style={{ borderColor: T.border }} />
+            <select value={goalTag} onChange={(e) => setGoalTag(e.target.value as GoalTag)} className="col-span-3 rounded-lg border px-3 py-2 text-sm" style={{ borderColor: T.border }}>
+              {GOAL_TAGS.map((g) => (
+                <option key={g} value={g}>الهدف الصحي: {g}</option>
+              ))}
+            </select>
           </div>
           <button onClick={submitForReview} className="flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-bold text-white" style={{ background: T.brandBright }}>
             <ClipboardList size={15} /> إرسال لمراجعة الجودة
@@ -313,7 +356,7 @@ export default function KitchenDashboard() {
               <div key={m.id} className="flex items-center justify-between rounded-xl px-4 py-3 border" style={{ borderColor: T.border, background: T.surface }}>
                 <div>
                   <div className="text-sm font-bold">{m.name}</div>
-                  <div className="text-xs" style={{ color: T.inkSoft }}>{m.kcal} سعرة · {m.price} ﷼</div>
+                  <div className="text-xs" style={{ color: T.inkSoft }}>{m.kcal} سعرة</div>
                 </div>
                 <span className="text-[11px] rounded-full px-2.5 py-1" style={{ background: m.available ? T.goodTint : T.warnTint, color: m.available ? T.good : T.warn }}>
                   {m.available ? "متاح" : "غير متاح"}
@@ -340,7 +383,7 @@ export default function KitchenDashboard() {
               <div key={p.id} className="flex items-center justify-between rounded-xl px-4 py-3" style={{ background: T.warnTint }}>
                 <div>
                   <div className="text-sm font-bold">{p.name}</div>
-                  <div className="text-[11px] mt-0.5" style={{ color: T.inkSoft }}>{p.kcal} سعرة · {p.price} ﷼ · أرسلت {p.submittedAt}</div>
+                  <div className="text-[11px] mt-0.5" style={{ color: T.inkSoft }}>{p.kcal} سعرة · أرسلت {p.submittedAt}</div>
                 </div>
                 <span className="text-[11px] font-bold rounded-full px-2.5 py-1" style={{ background: T.warn, color: "#fff" }}>قيد المراجعة</span>
               </div>
@@ -348,8 +391,8 @@ export default function KitchenDashboard() {
           </div>
         </div>
 
-        <Link href="/admin/executive" className="block rounded-2xl py-3.5 text-center text-sm font-bold" style={{ background: T.brandTint, color: T.brand }}>
-          الانتقال للوحة الإدارة التنفيذية
+        <Link href="/admin/ops" className="block rounded-2xl py-3.5 text-center text-sm font-bold" style={{ background: T.brandTint, color: T.brand }}>
+          فتح مركز العمليات
         </Link>
 
         <div className="text-center text-[11px] mt-8 pb-4" style={{ color: T.inkSoft }}>

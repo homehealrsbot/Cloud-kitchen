@@ -4,20 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { ChevronRight, Thermometer, CheckCircle2, XCircle, Plus } from "lucide-react";
+import { T } from "@/lib/kitchen-shared";
 
-const T = {
-  bg: "#FCF6F2",
-  surface: "#FFFFFF",
-  border: "#F0DFD3",
-  ink: "#2B1B14",
-  inkSoft: "#7A6153",
-  brand: "#A84F2E",
-  brandBright: "#D67A4F",
-  warn: "#C0392B",
-  warnTint: "#FBEBE0",
-  good: "#2E9E6D",
-  goodTint: "#E5F4ED",
-};
 
 // النطاقات الآمنة المعتمدة لسلامة الغذاء
 const SAFE_RANGES: Record<string, { min: number; max: number }> = {

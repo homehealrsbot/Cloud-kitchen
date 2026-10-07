@@ -95,3 +95,105 @@ group by zone;
 -- alter table customers enable row level security;
 -- alter table orders enable row level security;
 -- ... إلخ
+
+
+-- ============================================================================
+-- 6) Row Level Security (RLS) — إجباري قبل أي إطلاق فعلي
+-- ============================================================================
+-- ليش هذا القسم هو الأهم في الملف:
+-- مفتاح NEXT_PUBLIC_SUPABASE_ANON_KEY يُرسل للمتصفح بطبيعته — أي زائر يقدر يقرأه من
+-- devtools. يعني RLS هو الحماية الوحيدة فعلياً، مو إخفاء المفتاح. وبدونه أي شخص يقدر:
+--   • يقرأ جدول customers كامل (الأسماء، الجوالات، الإيميلات، العناوين، الأهداف الصحية)
+--   • يكتب أو يحذف أي صف في أي جدول
+--
+-- القاعدة المتبعة هنا: المنع هو الأصل (default deny). ما نفتح إلا اللي يحتاجه التطبيق
+-- فعلياً، وهو استعلام واحد: قراءة الوجبات المتاحة لصفحة العميل.
+--
+-- على قاعدة بيانات موجودة مسبقاً: نفّذ هذا القسم وحده، الباقي تم تنفيذه سابقاً.
+
+alter table customers      enable row level security;
+alter table meals          enable row level security;
+alter table subscriptions  enable row level security;
+alter table orders         enable row level security;
+alter table order_events   enable row level security;
+
+-- تفعيل RLS بدون policies = منع كامل للجميع. نضيف الآن الاستثناء الوحيد المطلوب:
+
+-- (1) الزائر غير المسجّل يقرأ الوجبات المتاحة فقط — هذا اللي تستعمله /order-app
+create policy "public can read available meals"
+  on meals for select
+  to anon, authenticated
+  using (available = true);
+
+-- (2) الموظف المسجّل دخوله يقرأ كل الوجبات (بما فيها غير المتاحة) — لوحة المطبخ
+create policy "staff can read all meals"
+  on meals for select
+  to authenticated
+  using (true);
+
+-- (3) الموظف المسجّل دخوله يضيف ويعدّل الوجبات — لوحة الجودة والمطبخ
+create policy "staff can insert meals"
+  on meals for insert
+  to authenticated
+  with check (true);
+
+create policy "staff can update meals"
+  on meals for update
+  to authenticated
+  using (true)
+  with check (true);
+
+-- ملاحظة مهمة جداً عن لوحات الإدارة:
+-- السياسات أعلاه تعطي صلاحية الكتابة لـ authenticated فقط. بما إن المشروع حالياً ما فيه
+-- تسجيل دخول (بوابة الأدوار في /admin فصل على مستوى الشاشات فقط)، فإن إضافة وجبة من لوحة
+-- الجودة بترجع خطأ صلاحية بعد ربط قاعدة البيانات — وهذا السلوك الصحيح والمقصود.
+-- الكود يتعامل معها بشكل سليم: الوجبة تبقى في قائمة الانتظار ويظهر سبب الفشل للمستخدم.
+--
+-- لتشغيل كتابة الإدارة، فيه مسارين (اختر واحد):
+--   أ) Supabase Auth: أنشئ حسابات للموظفين، واستبدل getSession() في src/lib/ops/roles.ts
+--      بجلسة Supabase الحقيقية. يُفضّل إضافة جدول staff(user_id, role) وتشديد السياسات
+--      أعلاه لتتحقق منه بدل using (true) — عشان أي مستخدم مسجّل ما يصير له صلاحية مطبخ.
+--   ب) Route Handler على الخادم يستخدم service_role key (من متغير بيئة خاص بالخادم،
+--      بدون بادئة NEXT_PUBLIC_) وتستدعيه الواجهة. الـ service_role يتخطى RLS،
+--      فلا يُستخدم أبداً في كود يوصل للمتصفح.
+--
+-- جداول customers / subscriptions / orders / order_events تبقى بلا أي policy = ممنوعة
+-- تماماً على anon. أضف سياساتها لما تبني تسجيل دخول العميل، بحيث يشوف صفوفه هو فقط، مثال:
+--   create policy "customer reads own orders" on orders for select
+--     to authenticated using (customer_id = auth.uid());
+
+
+-- ============================================================================
+-- 7) تحديث updated_at تلقائياً
+-- ============================================================================
+-- عمود meals.updated_at كان ياخذ قيمة الإنشاء وما يتغير أبداً عند التعديل.
+
+create or replace function set_updated_at()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
+
+create trigger meals_set_updated_at
+  before update on meals
+  for each row
+  execute function set_updated_at();
+
+
+-- ============================================================================
+-- 8) بيانات الحساسية على مستوى الوجبة
+-- ============================================================================
+-- الواجهة توعد العميل بفلترة الحساسية (order-app/health-profile و build-meal)، لكن الفلترة
+-- الحالية تعمل على قوائم مكتوبة في الكود لأن الجدول ما فيه عمود حساسية إطلاقاً. هذا العمود
+-- يخلي الفلترة ممكنة على البيانات الحقيقية بدل ما تتوقف بصمت عند ربط قاعدة البيانات.
+
+alter table meals add column if not exists allergens text[] not null default '{}';
+
+create index if not exists idx_meals_allergens on meals using gin (allergens);
+
+-- الفلترة من جهة الخادم بعدها تصير:
+--   select * from meals where available = true and not (allergens && array['سمسم','مكسرات']);

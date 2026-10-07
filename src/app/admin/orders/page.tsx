@@ -1,22 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { ChevronRight, ChefHat, Package, ShieldCheck, Truck, CheckCircle2, Plus, X } from "lucide-react";
-import { loadScheduledOrders, saveScheduledOrders, ScheduledOrder } from "@/lib/kitchen-shared";
+import { useScheduledOrders, saveScheduledOrders, ScheduledOrder, T } from "@/lib/kitchen-shared";
 
-const T = {
-  bg: "#FCF6F2",
-  surface: "#FFFFFF",
-  border: "#F0DFD3",
-  ink: "#2B1B14",
-  inkSoft: "#7A6153",
-  brand: "#A84F2E",
-  brandBright: "#D67A4F",
-  brandTint: "#FBEEE6",
-  good: "#2E9E6D",
-  goodTint: "#E5F4ED",
-};
 
 // المراحل: قيد التحضير → تم التغليف → فحص الجودة → تم الاستلام (المندوب) → تم التسليم
 const STAGES = [
@@ -27,6 +15,13 @@ const STAGES = [
   { id: "delivered", label: "تم التسليم", icon: CheckCircle2 },
 ] as const;
 
+// stage المحفوظ في المتصفح قد يكون من نسخة أقدم أو غير معروف. لو رجّعنا -1 من findIndex
+// فإن STAGES[-1] هو undefined و .icon يرمي TypeError يطيّح الصفحة كاملة.
+function stageIndexOf(stage: string): number {
+  const i = STAGES.findIndex((s) => s.id === stage);
+  return i < 0 ? 0 : i;
+}
+
 const DATE_TABS: { id: ScheduledOrder["scheduledFor"]; label: string }[] = [
   { id: "today", label: "اليوم" },
   { id: "tomorrow", label: "غداً" },
@@ -34,20 +29,15 @@ const DATE_TABS: { id: ScheduledOrder["scheduledFor"]; label: string }[] = [
 ];
 
 export default function OrdersBoardPage() {
-  const [orders, setOrders] = useState<ScheduledOrder[]>([]);
+  const orders = useScheduledOrders();
   const [customerName, setCustomerName] = useState("");
   const [orderNumber, setOrderNumber] = useState("");
   const [scheduledFor, setScheduledFor] = useState<ScheduledOrder["scheduledFor"]>("today");
   const [activeTab, setActiveTab] = useState<ScheduledOrder["scheduledFor"]>("today");
   const [confirming, setConfirming] = useState<{ orderId: string; nextLabel: string } | null>(null);
 
-  useEffect(() => {
-    setOrders(loadScheduledOrders());
-  }, []);
-
   function persist(list: ScheduledOrder[]) {
     saveScheduledOrders(list);
-    setOrders(list);
   }
 
   function addOrder() {
@@ -65,7 +55,7 @@ export default function OrdersBoardPage() {
   }
 
   function requestAdvance(order: ScheduledOrder) {
-    const idx = STAGES.findIndex((s) => s.id === order.stage);
+    const idx = stageIndexOf(order.stage);
     const next = STAGES[Math.min(idx + 1, STAGES.length - 1)];
     setConfirming({ orderId: order.id, nextLabel: next.label });
   }
@@ -75,7 +65,7 @@ export default function OrdersBoardPage() {
     persist(
       orders.map((o) => {
         if (o.id !== confirming.orderId) return o;
-        const idx = STAGES.findIndex((s) => s.id === o.stage);
+        const idx = stageIndexOf(o.stage);
         const next = STAGES[Math.min(idx + 1, STAGES.length - 1)];
         return { ...o, stage: next.id };
       })
@@ -167,7 +157,7 @@ export default function OrdersBoardPage() {
 
         <div className="space-y-3">
           {filtered.map((o) => {
-            const stageIdx = STAGES.findIndex((s) => s.id === o.stage);
+            const stageIdx = stageIndexOf(o.stage);
             const StageIcon = STAGES[stageIdx].icon;
             const isLast = stageIdx === STAGES.length - 1;
             return (

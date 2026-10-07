@@ -46,61 +46,75 @@ export default function ExecutiveDashboard() {
     { d: "الخميس", n: 22 },
   ]);
   const idRef = useRef(1);
-  const [tick, setTick] = useState(0);
 
+  // محاكاة البيانات التجريبية: الدورة كلها داخل المؤقت، وكل المؤقتات الفرعية تُلغى عند مغادرة الصفحة
+  // (قبل كذا كانت setTimeout بلا تنظيف فتستمر تحديثات الحالة بعد إغلاق الصفحة)
   useEffect(() => {
-    const interval = setInterval(() => setTick((t) => t + 1), 3600);
-    return () => clearInterval(interval);
+    const COST_PER_UNIT: Record<string, number> = {
+      "صدر دجاج": 6, "أرز": 1.2, "سلمون": 12, "كينوا": 3, "شوفان": 1, "فواكه": 2.5, "حمص": 2,
+    };
+    const pendingTimers = new Set<ReturnType<typeof setTimeout>>();
+    const later = (fn: () => void, ms: number) => {
+      const t = setTimeout(() => {
+        pendingTimers.delete(t);
+        fn();
+      }, ms);
+      pendingTimers.add(t);
+    };
+
+    const interval = setInterval(() => {
+      const id = idRef.current++;
+      const roll = Math.random();
+      const name = NAMES[Math.floor(Math.random() * NAMES.length)];
+      const zone = ZONES[Math.floor(Math.random() * ZONES.length)];
+      const meal = SIM_MEALS[Math.floor(Math.random() * SIM_MEALS.length)];
+
+      [0, 1, 2, 3, 4].forEach((stage, i) => later(() => setPulseStage(stage), i * 220));
+      later(() => setPulseStage(-1), 5 * 220 + 500);
+
+      let eventText = "";
+      let eventType: FeedEvent["type"] = "new";
+      if (roll < 0.45) {
+        eventText = `اشتراك جديد: ${name} — ${zone}`;
+        eventType = "new";
+        setActiveSubs((s) => s + 1);
+      } else if (roll < 0.75) {
+        eventText = `تجديد اشتراك: ${name}`;
+        eventType = "renew";
+        setRenewedToday((r) => r + 1);
+      } else {
+        eventText = `إيقاف مؤقت: ${name}`;
+        eventType = "pause";
+        setPaused((p) => p + 1);
+        setActiveSubs((s) => Math.max(s - 1, 0));
+      }
+
+      setFeed((prev) => [{ id, text: eventText, type: eventType, meal: meal.name, time: timeNow() }, ...prev].slice(0, 6));
+
+      if (eventType !== "pause") {
+        later(() => {
+          setDeliveries((prev) => prev.map((d) => (d.zone === zone ? { ...d, count: d.count + 1 } : d)));
+          const mealCost = Object.entries(meal.uses).reduce(
+            (sum, [ing, qty]) => sum + (COST_PER_UNIT[ing] ?? 0) * (qty as number),
+            0,
+          );
+          setRevenueToday((r) => r + meal.price);
+          setCostToday((c) => Math.round((c + mealCost) * 100) / 100);
+          setOrderCount((o) => o + 1);
+          setWeekly((prev) => {
+            const next = [...prev];
+            next[next.length - 1] = { ...next[next.length - 1], n: next[next.length - 1].n + 1 };
+            return next;
+          });
+        }, 500);
+      }
+    }, 3600);
+
+    return () => {
+      clearInterval(interval);
+      pendingTimers.forEach((t) => clearTimeout(t));
+    };
   }, []);
-
-  useEffect(() => {
-    if (tick === 0) return;
-    const id = idRef.current++;
-    const roll = Math.random();
-    const name = NAMES[Math.floor(Math.random() * NAMES.length)];
-    const zone = ZONES[Math.floor(Math.random() * ZONES.length)];
-    const meal = SIM_MEALS[Math.floor(Math.random() * SIM_MEALS.length)];
-
-    [0, 1, 2, 3, 4].forEach((stage, i) => setTimeout(() => setPulseStage(stage), i * 220));
-    setTimeout(() => setPulseStage(-1), 5 * 220 + 500);
-
-    let eventText = "";
-    let eventType: FeedEvent["type"] = "new";
-    if (roll < 0.45) {
-      eventText = `اشتراك جديد: ${name} — ${zone}`;
-      eventType = "new";
-      setActiveSubs((s) => s + 1);
-    } else if (roll < 0.75) {
-      eventText = `تجديد اشتراك: ${name}`;
-      eventType = "renew";
-      setRenewedToday((r) => r + 1);
-    } else {
-      eventText = `إيقاف مؤقت: ${name}`;
-      eventType = "pause";
-      setPaused((p) => p + 1);
-      setActiveSubs((s) => Math.max(s - 1, 0));
-    }
-
-    setFeed((prev) => [{ id, text: eventText, type: eventType, meal: meal.name, time: timeNow() }, ...prev].slice(0, 6));
-
-    if (eventType !== "pause") {
-      setTimeout(() => {
-        setDeliveries((prev) => prev.map((d) => (d.zone === zone ? { ...d, count: d.count + 1 } : d)));
-        const mealCost = Object.entries(meal.uses).reduce((sum, [ing, qty]) => {
-          const costMap: Record<string, number> = { "صدر دجاج": 6, "أرز": 1.2, "سلمون": 12, "كينوا": 3, "شوفان": 1, "فواكه": 2.5, "حمص": 2 };
-          return sum + (costMap[ing] || 0) * (qty as number);
-        }, 0);
-        setRevenueToday((r) => r + meal.price);
-        setCostToday((c) => Math.round((c + mealCost) * 100) / 100);
-        setOrderCount((o) => o + 1);
-        setWeekly((prev) => {
-          const next = [...prev];
-          next[next.length - 1] = { ...next[next.length - 1], n: next[next.length - 1].n + 1 };
-          return next;
-        });
-      }, 500);
-    }
-  }, [tick]);
 
   const netProfit = Math.round((revenueToday - costToday) * 100) / 100;
 
@@ -116,6 +130,9 @@ export default function ExecutiveDashboard() {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <Link href="/admin/ops" className="rounded-lg px-3 py-1.5 text-xs font-bold text-white" style={{ background: T.brand }}>
+              مركز العمليات (المنيو، التسعير، الجودة)
+            </Link>
             <Link href="/admin" className="flex items-center gap-1 text-xs font-bold" style={{ color: T.inkSoft }}>
               رجوع لاختيار اللوحة
               <ChevronRight size={13} />

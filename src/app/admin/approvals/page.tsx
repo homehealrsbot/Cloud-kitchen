@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { ChevronRight, ShieldCheck, CheckCircle2, XCircle, Clock } from "lucide-react";
@@ -9,9 +9,9 @@ import {
   PendingMeal,
   RejectedMeal,
   Meal,
-  loadPendingMeals,
+  usePendingMeals,
   savePendingMeals,
-  loadRejectedMeals,
+  useRejectedMeals,
   saveRejectedMeals,
   loadPublishedLocalMeals,
   savePublishedLocalMeals,
@@ -19,50 +19,60 @@ import {
 import { createClient } from "@/lib/supabase";
 
 export default function ApprovalsPage() {
-  const [pending, setPending] = useState<PendingMeal[]>([]);
-  const [rejected, setRejected] = useState<RejectedMeal[]>([]);
+  // القائمتان تُقرآن من التخزين مباشرة (بدون useEffect) وتتحدثان تلقائياً بعد أي حفظ
+  const pending = usePendingMeals();
+  const rejected = useRejectedMeals();
   const [reasonDrafts, setReasonDrafts] = useState<Record<string, string>>({});
-
-  useEffect(() => {
-    setPending(loadPendingMeals());
-    setRejected(loadRejectedMeals());
-  }, []);
+  const [error, setError] = useState("");
 
   async function approve(item: PendingMeal) {
-    const remaining = pending.filter((p) => p.id !== item.id);
-    savePendingMeals(remaining);
-    setPending(remaining);
-
+    setError("");
+    const published: Meal = { id: item.id, name: item.name, price: item.price, kcal: item.kcal, available: true };
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+
     if (url) {
+      // مهم: نكتب في قاعدة البيانات أولاً ونتحقق من النتيجة. لو حذفنا من قائمة الانتظار
+      // قبل الكتابة وفشلت الكتابة، تضيع الوجبة نهائياً بلا أي أثر.
       const supabase = createClient();
-      await supabase.from("meals").insert({
+      const { error: insertError } = await supabase.from("meals").insert({
         name: item.name,
         price: item.price,
         kcal: item.kcal,
-        protein_g: 0,
-        carb_g: 0,
-        fat_g: 0,
-        goal_tag: "تنزيل وزن",
+        protein_g: item.proteinG ?? 0,
+        carb_g: item.carbG ?? 0,
+        fat_g: item.fatG ?? 0,
+        goal_tag: item.goalTag ?? "ثبات الوزن",
       });
+      if (insertError) {
+        // الوجبة تبقى في قائمة الانتظار — يقدر يحاول مرة ثانية
+        setError(`ما تم النشر: ${insertError.message} — الوجبة باقية في قائمة الانتظار، حاول مرة ثانية.`);
+        return;
+      }
     } else {
-      const published: Meal = { id: item.id, name: item.name, price: item.price, kcal: item.kcal, available: true };
-      const list = [published, ...loadPublishedLocalMeals()];
-      savePublishedLocalMeals(list);
+      savePublishedLocalMeals([published, ...loadPublishedLocalMeals()]);
     }
+
+    // النشر نجح — الآن نحذفها من قائمة الانتظار
+    savePendingMeals(pending.filter((p) => p.id !== item.id));
   }
 
   function reject(item: PendingMeal) {
     const reason = reasonDrafts[item.id]?.trim();
     if (!reason) return;
-    const remaining = pending.filter((p) => p.id !== item.id);
-    savePendingMeals(remaining);
-    setPending(remaining);
-
-    const rejectedItem: RejectedMeal = { ...item, reason, rejectedAt: new Date().toLocaleTimeString("ar-SA", { hour: "2-digit", minute: "2-digit" }) };
-    const updated = [rejectedItem, ...rejected];
-    saveRejectedMeals(updated);
-    setRejected(updated);
+    setError("");
+    const rejectedItem: RejectedMeal = {
+      ...item,
+      reason,
+      rejectedAt: new Date().toLocaleTimeString("ar-SA", { hour: "2-digit", minute: "2-digit" }),
+    };
+    // نسجّل الرفض أولاً، وبعدها نحذف من الانتظار — عشان ما يضيع السجل لو تعطّل التخزين
+    saveRejectedMeals([rejectedItem, ...rejected]);
+    savePendingMeals(pending.filter((p) => p.id !== item.id));
+    setReasonDrafts((prev) => {
+      const next = { ...prev };
+      delete next[item.id];
+      return next;
+    });
   }
 
   return (
@@ -76,10 +86,15 @@ export default function ApprovalsPage() {
               <div className="text-xs mt-1" style={{ color: T.inkSoft }}>مراجعة الإدخالات قبل النشر</div>
             </div>
           </div>
-          <Link href="/admin" className="flex items-center gap-1 text-xs font-bold" style={{ color: T.inkSoft }}>
-            رجوع لاختيار اللوحة
-            <ChevronRight size={13} />
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link href="/admin/ops/quality" className="rounded-lg px-3 py-1.5 text-xs font-bold text-white" style={{ background: T.brand }}>
+              بوابات الجودة (53 صنف)
+            </Link>
+            <Link href="/admin" className="flex items-center gap-1 text-xs font-bold" style={{ color: T.inkSoft }}>
+              رجوع لاختيار اللوحة
+              <ChevronRight size={13} />
+            </Link>
+          </div>
         </div>
       </div>
 
@@ -97,6 +112,12 @@ export default function ApprovalsPage() {
           <div className="text-sm font-bold">بانتظار المراجعة ({pending.length})</div>
         </div>
 
+        {error && (
+          <div className="text-xs font-bold rounded-xl px-4 py-3 mb-4" style={{ background: T.warnTint, color: T.warn }}>
+            {error}
+          </div>
+        )}
+
         {pending.length === 0 && (
           <div className="text-xs py-10 text-center mb-8" style={{ color: T.inkSoft }}>ما فيه شي بانتظار المراجعة حالياً</div>
         )}
@@ -108,9 +129,18 @@ export default function ApprovalsPage() {
                 <div className="text-sm font-bold">{item.name}</div>
                 <span className="text-[10px] font-bold rounded-full px-2 py-1" style={{ background: T.warnTint, color: T.warn }}>قيد المراجعة</span>
               </div>
-              <div className="text-[11px] mb-3" style={{ color: T.inkSoft }}>
+              <div className="text-[11px]" style={{ color: T.inkSoft }}>
                 {item.kcal} سعرة · {item.price} ﷼ · أرسلها {item.submittedBy} — {item.submittedAt}
               </div>
+              {item.goalTag ? (
+                <div className="text-[11px] mb-3" style={{ color: T.inkSoft }}>
+                  {item.proteinG}غ بروتين · {item.carbG}غ كارب · {item.fatG}غ دهون · الهدف: {item.goalTag}
+                </div>
+              ) : (
+                <div className="text-[11px] mb-3 font-bold" style={{ color: T.warn }}>
+                  إدخال قديم بدون قيم غذائية — راجعه مع المطبخ قبل النشر (بينشر بأصفار والهدف «ثبات الوزن»)
+                </div>
+              )}
 
               <div className="flex gap-2 mb-2">
                 <button

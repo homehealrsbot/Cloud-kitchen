@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
+import { T } from "@/lib/kitchen-shared";
 import {
   LineChart,
   Line,
@@ -11,20 +11,8 @@ import {
   Tooltip,
   CartesianGrid,
 } from "recharts";
-import { ChevronRight, TrendingDown, Flame, Beef, Plus } from "lucide-react";
+import { ChevronRight, TrendingDown, Flame, Beef } from "lucide-react";
 
-const T = {
-  bg: "#FCF6F2",
-  surface: "#FFFFFF",
-  border: "#F0DFD3",
-  ink: "#2B1B14",
-  inkSoft: "#7A6153",
-  brand: "#A84F2E",
-  brandBright: "#D67A4F",
-  brandTint: "#FBEEE6",
-  good: "#2E9E6D",
-  goodTint: "#E5F4ED",
-};
 
 const WEIGHT_HISTORY = [
   { d: "الأسبوع 1", kg: 82 },
@@ -41,7 +29,8 @@ const DIARY_INIT = [
 ];
 
 export default function ProgressPage() {
-  const [diary, setDiary] = useState(DIARY_INIT);
+  // مذكرة الطعام ثابتة حالياً (بيانات تجريبية) — تتعبى من الاشتراك لما نربط قاعدة البيانات
+  const diary = DIARY_INIT;
 
   const totalKcal = diary.reduce((a, d) => a + d.kcal, 0);
   const totalProtein = diary.reduce((a, d) => a + d.protein, 0);

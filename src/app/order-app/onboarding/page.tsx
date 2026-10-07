@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -13,20 +13,8 @@ import {
   Check,
   ArrowLeft,
 } from "lucide-react";
-import { loadPlans, SubscriptionPlan } from "@/lib/kitchen-shared";
+import { usePlans, T } from "@/lib/kitchen-shared";
 
-const T = {
-  bg: "#FCF6F2",
-  surface: "#FFFFFF",
-  border: "#F0DFD3",
-  ink: "#2B1B14",
-  inkSoft: "#7A6153",
-  brand: "#A84F2E",
-  brandBright: "#D67A4F",
-  brandTint: "#FBEEE6",
-  good: "#2E9E6D",
-  goodTint: "#E5F4ED",
-};
 
 const ICONS: Record<string, typeof Flame> = {
   flame: Flame,
@@ -41,11 +29,7 @@ export default function OnboardingPage() {
   const [stage, setStage] = useState(0);
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [cuisines, setCuisines] = useState<string[]>([]);
-  const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
-
-  useEffect(() => {
-    setPlans(loadPlans());
-  }, []);
+  const plans = usePlans();
 
   const CUISINES = ["عربي", "آسيوي", "متوسطي", "أمريكي", "هندي"];
 

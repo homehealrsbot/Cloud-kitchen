@@ -3,20 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { ChevronRight, Wallet, Utensils, CheckCircle2, CalendarDays } from "lucide-react";
+import { T } from "@/lib/kitchen-shared";
 
-const T = {
-  bg: "#FCF6F2",
-  surface: "#FFFFFF",
-  border: "#F0DFD3",
-  ink: "#2B1B14",
-  inkSoft: "#7A6153",
-  brand: "#A84F2E",
-  brandBright: "#D67A4F",
-  brandTint: "#FBEEE6",
-  warn: "#C0392B",
-  good: "#2E9E6D",
-  goodTint: "#E5F4ED",
-};
 
 // الباقة تُقاس بالأيام فقط — العميل ما يشوف أي مبلغ مالي أبداً.
 // القيمة المالية الفعلية (لو فيه) تُدار من الإدارة التنفيذية داخلياً بس.
