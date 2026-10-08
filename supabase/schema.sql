@@ -344,18 +344,9 @@ create index idx_audit_ts on ops_audit(ts desc);
 -- وهمية "ناجحة" مكتوبة في الكود — وهذا أخطر نوع بيانات وهمية لأنه يوحي بالتزام
 -- ما صار. الآن كل قراءة لها كاتب ووقت فعلي.
 
-create table safety_temperature_log (
-  id         bigserial primary key,
-  unit       text not null,                 -- الثلاجة / الفريزر
-  reading    numeric(5,1) not null,
-  passed     boolean not null,
-  staff_name text not null default '',
-  note       text not null default '',
-  recorded_by uuid references auth.users(id),
-  recorded_at timestamptz not null default now()
-);
-
-create index idx_temp_log_at on safety_temperature_log(recorded_at desc);
+-- قراءات حرارة التخزين كان لها جدول منفصل (safety_temperature_log) بحدود
+-- مكتوبة في كود التطبيق. انتقلت لسجل مراقبة النقاط الحرجة في القسم 7.6:
+-- الحدود صارت صفوفاً تحددها الجودة، والقراءة تُحكم بها في القاعدة.
 
 create table safety_expiry_batches (
   id          bigserial primary key,
@@ -368,6 +359,143 @@ create table safety_expiry_batches (
 );
 
 create index idx_expiry_date on safety_expiry_batches(expiry_date);
+
+-- ============================================================================
+-- 7.6) إدارة سلامة الغذاء: HACCP، الحدود الحرجة، PRP، ISO، عدم المطابقة
+-- ============================================================================
+--
+-- نفس مبدأ بوابات الاعتماد: ما فيه رقم في الكود. الحدود الحرجة (حرارة الثلاجة،
+-- حرارة قلب الطبخ، زمن التبريد) كانت مكتوبة في src/lib/safety.ts كـ SAFE_RANGES
+-- ثابتة — وهي أسوأ مكان لرقم ثابت: الجودة هي اللي تحددها حسب المنتج والجهة
+-- الرقابية، وتتغيّر.
+--
+-- التقسيم: تعريفات تكتبها الجودة، وإدخالات يسجّلها المطبخ، وتوقيع ثانٍ للاعتماد.
+
+create table safety_haccp_steps (
+  step_index      int primary key,
+  label           text not null,
+  stage           text not null default '',   -- استلام / تخزين / تحضير / طبخ / تبريد / تسليم
+  hazard          text not null default '',
+  hazard_type     text not null default 'biological'
+    check (hazard_type in ('biological', 'chemical', 'physical', 'allergen')),
+  control_measure text not null default '',
+  is_ccp          boolean not null default false,
+  ccp_code        text not null default '',
+  active          boolean not null default true,
+  note            text not null default ''
+);
+
+comment on table safety_haccp_steps is
+  'خطة HACCP: كل خطوة في المسار، خطرها، وإجراء ضبطها. تحددها الجودة.';
+
+-- حد واحد أو أكثر لكل خطوة حرجة. نوع الحد يحدد كيف يُقاس ويُحكم عليه:
+--   numeric  → قراءة رقمية بين min و max (أي طرف null = غير محدود)
+--   boolean  → فحص نعم/لا
+create table safety_critical_limits (
+  id                bigserial primary key,
+  step_index        int not null references safety_haccp_steps(step_index) on delete cascade,
+  parameter         text not null,
+  limit_kind        text not null default 'numeric' check (limit_kind in ('numeric', 'boolean')),
+  min_value         numeric,
+  max_value         numeric,
+  unit              text not null default '',
+  monitoring_method text not null default '',
+  frequency         text not null default '',
+  corrective_action text not null default '',
+  active            boolean not null default true,
+  sort_order        int not null default 0,
+  constraint numeric_limit_has_a_bound
+    check (limit_kind <> 'numeric' or min_value is not null or max_value is not null)
+);
+
+create index idx_critical_limits_step on safety_critical_limits(step_index);
+
+-- المطبخ يسجّل القراءة، والقاعدة تحكم عليها من الحد الحرج — لا من رأي المسجّل.
+-- والجودة تعتمد السجل لاحقاً بتوقيع ثانٍ لا ينفع يكون نفس الشخص.
+create table safety_ccp_log (
+  id                bigserial primary key,
+  limit_id          bigint not null references safety_critical_limits(id) on delete cascade,
+  log_date          date not null default current_date,
+  shift             text not null default '',
+  reading_value     numeric,
+  reading_bool      boolean,
+  passed            boolean not null default false,  -- يحسبها محفّز
+  out_of_limit_note text not null default '',
+  corrective_action text not null default '',
+  recorded_by       uuid references auth.users(id),
+  recorded_by_name  text not null default '',
+  recorded_at       timestamptz not null default now(),
+  verified_by       uuid references auth.users(id),
+  verified_by_name  text,
+  verified_at       timestamptz
+);
+
+create index idx_ccp_log_date on safety_ccp_log(log_date desc);
+create index idx_ccp_log_limit on safety_ccp_log(limit_id);
+
+create table safety_prp_programs (
+  code        text primary key,
+  label       text not null,
+  category    text not null default '',
+  owner_role  staff_role,
+  frequency   text not null default '',
+  description text not null default '',
+  active      boolean not null default true,
+  sort_order  int not null default 0
+);
+
+create table safety_prp_log (
+  id               bigserial primary key,
+  prp_code         text not null references safety_prp_programs(code) on delete cascade,
+  log_date         date not null default current_date,
+  done             boolean not null default false,
+  note             text not null default '',
+  recorded_by      uuid references auth.users(id),
+  recorded_by_name text not null default '',
+  recorded_at      timestamptz not null default now(),
+  unique (prp_code, log_date)
+);
+
+create index idx_prp_log_date on safety_prp_log(log_date desc);
+
+create table safety_iso_clauses (
+  clause      text primary key,
+  title       text not null,
+  requirement text not null default '',
+  status      text not null default 'not_started'
+    check (status in ('not_started', 'in_progress', 'implemented', 'verified', 'not_applicable')),
+  evidence    text not null default '',
+  owner_role  staff_role,
+  updated_by  uuid references auth.users(id),
+  updated_at  timestamptz not null default now(),
+  sort_order  int not null default 0
+);
+
+-- أي موظف يرفع، والجودة تحلل وتغلق. الحرجة يغلقها التنفيذي.
+create table safety_nonconformance (
+  id                 bigserial primary key,
+  raised_at          timestamptz not null default now(),
+  raised_by          uuid references auth.users(id),
+  raised_by_name     text not null default '',
+  source             text not null default '',
+  ccp_log_id         bigint references safety_ccp_log(id) on delete set null,
+  severity           text not null default 'minor'
+    check (severity in ('minor', 'major', 'critical')),
+  description        text not null,
+  immediate_action   text not null default '',
+  root_cause         text not null default '',
+  corrective_action  text not null default '',
+  preventive_action  text not null default '',
+  status             text not null default 'open'
+    check (status in ('open', 'investigating', 'action_taken', 'closed')),
+  due_date           date,
+  closed_by          uuid references auth.users(id),
+  closed_by_name     text,
+  closed_at          timestamptz,
+  updated_at         timestamptz not null default now()
+);
+
+create index idx_ncr_status on safety_nonconformance(status, raised_at desc);
 
 -- ============================================================================
 -- 8) تحديث updated_at تلقائياً
@@ -425,8 +553,14 @@ alter table ops_shelf_life    enable row level security;
 alter table ops_production    enable row level security;
 alter table ops_units_sold    enable row level security;
 alter table ops_audit         enable row level security;
-alter table safety_temperature_log enable row level security;
 alter table safety_expiry_batches  enable row level security;
+alter table safety_haccp_steps     enable row level security;
+alter table safety_critical_limits enable row level security;
+alter table safety_ccp_log         enable row level security;
+alter table safety_prp_programs    enable row level security;
+alter table safety_prp_log         enable row level security;
+alter table safety_iso_clauses     enable row level security;
+alter table safety_nonconformance  enable row level security;
 
 -- ---------- staff ----------
 -- الموظف يقرأ صفه (يعرف دوره). التنفيذي يقرأ الكل.
@@ -659,13 +793,6 @@ create policy "staff appends audit" on ops_audit
 
 -- ---------- سجلات السلامة ----------
 -- الأدوار الثلاثة تقرأ وتكتب (مطبخ وجودة وتنفيذي) — مطابق لـ legacy.safetyLogs
-create policy "staff reads temperature log" on safety_temperature_log
-  for select to authenticated using (private.is_staff());
-
-create policy "staff appends temperature log" on safety_temperature_log
-  for insert to authenticated
-  with check ((select private.is_staff()) and recorded_by = (select auth.uid()));
-
 create policy "staff reads expiry batches" on safety_expiry_batches
   for select to authenticated using (private.is_staff());
 
@@ -679,6 +806,64 @@ create policy "staff updates expiry batches" on safety_expiry_batches
 
 -- ملاحظة: ما فيه سياسة UPDATE ولا DELETE على سجل الحرارة — السجل للإضافة فقط
 -- عشان ما تُعدَّل قراءة بعد تسجيلها.
+
+-- ---------- إدارة سلامة الغذاء ----------
+-- الخطة والتعريفات: كل الموظفين يقرأون، والجودة وحدها تكتب.
+create policy "staff reads haccp steps" on safety_haccp_steps
+  for select to authenticated using ((select private.is_staff()));
+create policy "quality writes haccp steps" on safety_haccp_steps
+  for all to authenticated
+  using (private.has_role(array['quality']::staff_role[]))
+  with check (private.has_role(array['quality']::staff_role[]));
+
+create policy "staff reads critical limits" on safety_critical_limits
+  for select to authenticated using ((select private.is_staff()));
+create policy "quality writes critical limits" on safety_critical_limits
+  for all to authenticated
+  using (private.has_role(array['quality']::staff_role[]))
+  with check (private.has_role(array['quality']::staff_role[]));
+
+create policy "staff reads prp programs" on safety_prp_programs
+  for select to authenticated using ((select private.is_staff()));
+create policy "quality writes prp programs" on safety_prp_programs
+  for all to authenticated
+  using (private.has_role(array['quality']::staff_role[]))
+  with check (private.has_role(array['quality']::staff_role[]));
+
+create policy "staff reads iso clauses" on safety_iso_clauses
+  for select to authenticated using ((select private.is_staff()));
+create policy "quality writes iso clauses" on safety_iso_clauses
+  for all to authenticated
+  using (private.has_role(array['quality']::staff_role[]))
+  with check (private.has_role(array['quality']::staff_role[]));
+
+-- السجل اليومي: المطبخ يسجّل والجودة تعتمد. كلاهما يحتاج update على الصف،
+-- فالفصل بين «من يسجّل» و«من يعتمد» يفرضه محفّز على مستوى العمود (القسم 11)
+-- لا سياسة على مستوى الصف.
+create policy "staff reads ccp log" on safety_ccp_log
+  for select to authenticated using ((select private.is_staff()));
+create policy "kitchen and quality write ccp log" on safety_ccp_log
+  for all to authenticated
+  using (private.has_role(array['kitchen', 'quality']::staff_role[]))
+  with check (private.has_role(array['kitchen', 'quality']::staff_role[]));
+
+create policy "staff reads prp log" on safety_prp_log
+  for select to authenticated using ((select private.is_staff()));
+create policy "kitchen and quality write prp log" on safety_prp_log
+  for all to authenticated
+  using (private.has_role(array['kitchen', 'quality']::staff_role[]))
+  with check (private.has_role(array['kitchen', 'quality']::staff_role[]));
+
+-- عدم المطابقة: أي موظف يرفعها ويقرأها — لأن اللي يشوف المشكلة أول هو اللي
+-- يبلّغ، ومنع التبليغ أسوأ من بلاغ زائد. والمعالجة والإغلاق للجودة والتنفيذي.
+create policy "staff reads ncr" on safety_nonconformance
+  for select to authenticated using ((select private.is_staff()));
+create policy "staff raises ncr" on safety_nonconformance
+  for insert to authenticated with check ((select private.is_staff()));
+create policy "quality and executive update ncr" on safety_nonconformance
+  for update to authenticated
+  using (private.has_role(array['quality', 'executive']::staff_role[]))
+  with check (private.has_role(array['quality', 'executive']::staff_role[]));
 
 -- ============================================================================
 -- 10) فصل الأعمدة: السعر للتنفيذي، القيم الغذائية للجودة
@@ -910,6 +1095,146 @@ create trigger reset_gates_on_recipe_change
   after insert or update or delete on ops_recipe_lines
   for each row execute function private.tg_reset_gates_on_recipe_change();
 
+-- ---------- سلامة الغذاء: الحكم على القراءة وفصل التوقيعين ----------
+--
+-- لو خلّينا «ناجح/راسب» حقلاً يملأه الموظف، صار بإمكانه يكتب «ناجح» على قراءة
+-- خارج الحد. المحفّز يقرأ الحد من تعريفه ويحكم، ويرفض الحفظ بلا إجراء تصحيحي
+-- إذا رسبت القراءة — فالسجل ما يكتمل إلا بما يثبت المعالجة.
+
+create or replace function private.tg_judge_ccp_reading() returns trigger
+language plpgsql security definer set search_path = public as $fn$
+declare l record;
+begin
+  select * into l from safety_critical_limits where id = new.limit_id;
+  if l is null then raise exception 'حد حرج غير معرّف'; end if;
+  if not l.active then raise exception 'الحد الحرج «%» موقوف', l.parameter; end if;
+
+  if l.limit_kind = 'numeric' then
+    if new.reading_value is null then
+      raise exception 'القراءة مطلوبة لـ«%»', l.parameter;
+    end if;
+    new.passed :=
+      (l.min_value is null or new.reading_value >= l.min_value) and
+      (l.max_value is null or new.reading_value <= l.max_value);
+    new.reading_bool := null;
+  else
+    if new.reading_bool is null then
+      raise exception 'نتيجة الفحص مطلوبة لـ«%»', l.parameter;
+    end if;
+    new.passed := new.reading_bool;
+    new.reading_value := null;
+  end if;
+
+  if not new.passed and coalesce(trim(new.corrective_action), '') = '' then
+    raise exception 'القراءة خارج الحد المسموح — الإجراء التصحيحي إجباري';
+  end if;
+
+  return new;
+end;
+$fn$;
+
+create trigger judge_ccp_reading
+  before insert or update on safety_ccp_log
+  for each row execute function private.tg_judge_ccp_reading();
+
+-- توقيع ثانٍ: المسجّل ما يعتمد نفسه، والمعتمد يُقفل
+create or replace function private.tg_ccp_verification_rules() returns trigger
+language plpgsql security definer set search_path = public as $fn$
+declare r staff_role := private.current_staff_role();
+begin
+  if tg_op = 'INSERT' then
+    if new.verified_by is not null or new.verified_at is not null then
+      raise exception 'الاعتماد يتم بخطوة منفصلة بعد التسجيل';
+    end if;
+    new.recorded_by := coalesce(new.recorded_by, (select auth.uid()));
+    return new;
+  end if;
+
+  if (new.verified_by, new.verified_at) is distinct from (old.verified_by, old.verified_at) then
+    if r is distinct from 'quality' then
+      raise exception 'اعتماد سجل المراقبة من صلاحية الجودة والمتابعة فقط';
+    end if;
+    if new.verified_by is not null and new.verified_by = old.recorded_by then
+      raise exception 'ما ينفع يعتمد السجل نفس من سجّله — لازم توقيع ثانٍ';
+    end if;
+  end if;
+
+  if old.verified_at is not null
+     and (new.reading_value, new.reading_bool, new.limit_id, new.log_date)
+         is distinct from (old.reading_value, old.reading_bool, old.limit_id, old.log_date) then
+    raise exception 'السجل معتمد — ما تتعدّل قراءته. ارفع عدم مطابقة بدلاً من ذلك';
+  end if;
+
+  return new;
+end;
+$fn$;
+
+create trigger ccp_verification_rules
+  before insert or update on safety_ccp_log
+  for each row execute function private.tg_ccp_verification_rules();
+
+-- إغلاق عدم المطابقة: بسبب جذري وإجراء، والحرجة للتنفيذي وحده
+create or replace function private.tg_ncr_close_rules() returns trigger
+language plpgsql security definer set search_path = public as $fn$
+declare r staff_role := private.current_staff_role();
+begin
+  if new.status = 'closed' and coalesce(old.status, '') is distinct from 'closed' then
+    if coalesce(trim(new.root_cause), '') = '' or coalesce(trim(new.corrective_action), '') = '' then
+      raise exception 'ما ينفع الإغلاق بلا سبب جذري وإجراء تصحيحي';
+    end if;
+    if new.severity = 'critical' and r is distinct from 'executive' then
+      raise exception 'عدم المطابقة الحرجة يغلقها التنفيذي فقط';
+    end if;
+    if new.severity <> 'critical' and r not in ('quality', 'executive') then
+      raise exception 'إغلاق عدم المطابقة من صلاحية الجودة أو التنفيذي';
+    end if;
+    new.closed_at := coalesce(new.closed_at, now());
+  end if;
+  new.updated_at := now();
+  return new;
+end;
+$fn$;
+
+create trigger ncr_close_rules
+  before insert or update on safety_nonconformance
+  for each row execute function private.tg_ncr_close_rules();
+
+-- خروج عن الحد يفتح عدم مطابقة تلقائياً — ما نعتمد على أحد يفتحها
+create or replace function private.tg_ncr_from_failed_ccp() returns trigger
+language plpgsql security definer set search_path = public as $fn$
+declare l record;
+begin
+  if new.passed then return null; end if;
+  if exists (select 1 from safety_nonconformance where ccp_log_id = new.id) then return null; end if;
+
+  select cl.parameter, cl.unit, cl.min_value, cl.max_value, s.label as step_label
+    into l
+    from safety_critical_limits cl
+    join safety_haccp_steps s on s.step_index = cl.step_index
+   where cl.id = new.limit_id;
+
+  insert into safety_nonconformance
+    (raised_by, raised_by_name, source, ccp_log_id, severity, description, immediate_action)
+  values (
+    new.recorded_by,
+    coalesce(nullif(new.recorded_by_name, ''), 'النظام'),
+    'سجل CCP',
+    new.id,
+    'major',
+    'خروج عن الحد الحرج: ' || coalesce(l.step_label, '') || ' · ' || coalesce(l.parameter, '') ||
+      ' — القراءة ' || coalesce(new.reading_value::text, case when new.reading_bool then 'نعم' else 'لا' end) ||
+      ' ' || coalesce(l.unit, '') ||
+      ' (المسموح ' || coalesce(l.min_value::text, '—') || ' إلى ' || coalesce(l.max_value::text, '—') || ')',
+    new.corrective_action
+  );
+  return null;
+end;
+$fn$;
+
+create trigger ncr_from_failed_ccp
+  after insert on safety_ccp_log
+  for each row execute function private.tg_ncr_from_failed_ccp();
+
 -- ============================================================================
 -- 12) صلاحيات الجداول (السياسات أعلاه هي الحاكم الفعلي)
 -- ============================================================================
@@ -937,9 +1262,15 @@ grant select, insert, update, delete on
   ops_gate_defs, ops_ing_approval_defs, ops_pilot_trials, ops_kitchen_gate
   to authenticated;
 grant select, insert on ops_audit to authenticated;
-grant select, insert on safety_temperature_log to authenticated;
+grant select, insert, update, delete on
+  safety_haccp_steps, safety_critical_limits, safety_ccp_log,
+  safety_prp_programs, safety_prp_log, safety_iso_clauses, safety_nonconformance
+  to authenticated;
+grant usage, select on sequence safety_critical_limits_id_seq to authenticated;
+grant usage, select on sequence safety_ccp_log_id_seq to authenticated;
+grant usage, select on sequence safety_prp_log_id_seq to authenticated;
+grant usage, select on sequence safety_nonconformance_id_seq to authenticated;
 grant select, insert, update on safety_expiry_batches to authenticated;
-grant usage, select on sequence safety_temperature_log_id_seq to authenticated;
 grant usage, select on sequence safety_expiry_batches_id_seq to authenticated;
 grant usage, select on sequence ops_audit_id_seq to authenticated;
 grant usage, select on sequence ops_recipe_lines_id_seq to authenticated;

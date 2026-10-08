@@ -47,6 +47,7 @@ def main() -> int:
     rot = json.loads((DATA / "rotation.json").read_text(encoding="utf-8"))
     settings = json.loads((DATA / "settings.json").read_text(encoding="utf-8"))
     defs = json.loads((DATA / "gate-defs.json").read_text(encoding="utf-8"))
+    fs = json.loads((DATA / "food-safety.json").read_text(encoding="utf-8"))
 
     # --- فحص سلامة قبل التوليد: نفس فحوصات integrityChecks في المحرك ---
     ing_keys = {i["key"] for i in ing}
@@ -92,6 +93,27 @@ def main() -> int:
             errors.append(f"اعتماد مكوّن بلا مالك صحيح: {a['label']}")
     if settings.get("pilotPassesRequired") is None:
         errors.append("pilotPassesRequired ناقص من settings.json — بوابة المطبخ ما تُختم أبداً")
+
+    # سلامة الغذاء: كل حد يشير لخطوة موجودة، والعددي له طرف واحد على الأقل،
+    # وكل خطوة حرجة لها حد — خطوة CCP بلا حد يعني مراقبة بلا معيار.
+    step_idx = {st["index"] for st in fs["haccpSteps"]}
+    for cl in fs["criticalLimits"]:
+        if cl["step"] not in step_idx:
+            errors.append(f"حد حرج يشير لخطوة غير موجودة: {cl['parameter']} -> {cl['step']}")
+        if cl["kind"] == "numeric" and cl["min"] is None and cl["max"] is None:
+            errors.append(f"حد عددي بلا طرف أدنى ولا أعلى: {cl['parameter']}")
+    limited = {cl["step"] for cl in fs["criticalLimits"]}
+    for st in fs["haccpSteps"]:
+        if st["isCcp"] and st["index"] not in limited:
+            errors.append(f"خطوة حرجة بلا حد حرج: {st['label']}")
+        if not st["isCcp"] and st["index"] in limited:
+            errors.append(f"حد حرج على خطوة غير حرجة: {st['label']}")
+    for pr in fs["prpPrograms"]:
+        if pr["ownerRole"] not in roles:
+            errors.append(f"برنامج PRP بلا مالك صحيح: {pr['code']}")
+    for ic in fs["isoClauses"]:
+        if ic["ownerRole"] not in roles:
+            errors.append(f"بند ISO بلا مالك صحيح: {ic['clause']}")
     if errors:
         print("فحص السلامة فشل — ما تم توليد الملف:", file=sys.stderr)
         for e in errors:
@@ -196,6 +218,47 @@ def main() -> int:
     w("on conflict (approval_index) do nothing;")
     w("")
 
+    # --- سلامة الغذاء: الخطة والحدود والبرامج والبنود ---
+    # قيم بداية قياسية تملكها الجودة بعد التشغيل، فـ do nothing على الموجود.
+    w(f"-- خطة HACCP: {len(fs['haccpSteps'])} خطوة (قيم بداية — لا تُكتب فوق الموجود)")
+    w("insert into safety_haccp_steps (step_index, label, stage, hazard, hazard_type, control_measure, is_ccp, ccp_code) values")
+    w(",\n".join(
+        f"  ({int(st['index'])}, {q(st['label'])}, {q(st['stage'])}, {q(st['hazard'])}, "
+        f"{q(st['hazardType'])}, {q(st['controlMeasure'])}, {'true' if st['isCcp'] else 'false'}, {q(st['ccpCode'])})"
+        for st in fs["haccpSteps"]))
+    w("on conflict (step_index) do nothing;")
+    w("")
+
+    w(f"-- {len(fs['criticalLimits'])} حد حرج")
+    w("insert into safety_critical_limits (step_index, parameter, limit_kind, min_value, max_value, unit, monitoring_method, frequency, corrective_action, sort_order)")
+    w("select v.* from (values")
+    w(",\n".join(
+        f"  ({int(cl['step'])}, {q(cl['parameter'])}, {q(cl['kind'])}, "
+        f"{'null' if cl['min'] is None else num(cl['min'])}, {'null' if cl['max'] is None else num(cl['max'])}, "
+        f"{q(cl['unit'])}, {q(cl['method'])}, {q(cl['frequency'])}, {q(cl['corrective'])}, {i})"
+        for i, cl in enumerate(fs["criticalLimits"])))
+    w(") as v(step_index, parameter, limit_kind, min_value, max_value, unit, monitoring_method, frequency, corrective_action, sort_order)")
+    w("where not exists (select 1 from safety_critical_limits x")
+    w("  where x.step_index = v.step_index and x.parameter = v.parameter);")
+    w("")
+
+    w(f"-- {len(fs['prpPrograms'])} برنامج متطلبات أساسية")
+    w("insert into safety_prp_programs (code, label, category, owner_role, frequency, sort_order) values")
+    w(",\n".join(
+        f"  ({q(pr['code'])}, {q(pr['label'])}, {q(pr['category'])}, {q(pr['ownerRole'])}::staff_role, "
+        f"{q(pr['frequency'])}, {i})"
+        for i, pr in enumerate(fs["prpPrograms"])))
+    w("on conflict (code) do nothing;")
+    w("")
+
+    w(f"-- {len(fs['isoClauses'])} بند ISO 22000")
+    w("insert into safety_iso_clauses (clause, title, owner_role, sort_order) values")
+    w(",\n".join(
+        f"  ({q(ic['clause'])}, {q(ic['title'])}, {q(ic['ownerRole'])}::staff_role, {i})"
+        for i, ic in enumerate(fs["isoClauses"])))
+    w("on conflict (clause) do nothing;")
+    w("")
+
     # --- الإعدادات ---
     w("-- إعدادات الحصص والتكلفة والتسعير")
     w(f"insert into ops_settings (id, data) values (1, {jsonb(settings)})")
@@ -231,6 +294,7 @@ def main() -> int:
     w("--   select count(*) from ops_recipe_lines;  -- المتوقع " + str(len(rec)))
     w("--   select count(*) from ops_rotation;      -- المتوقع " + str(total_slots))
     w("--   select count(*) from ops_gate_defs;     -- المتوقع " + str(len(defs["gates"])))
+    w("--   select count(*) from safety_critical_limits; -- المتوقع " + str(len(fs["criticalLimits"])))
     w("")
 
     OUT.write_text("\n".join(L), encoding="utf-8")

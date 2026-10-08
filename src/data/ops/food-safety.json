@@ -1,0 +1,81 @@
+{
+  "_note": "خطة سلامة الغذاء الابتدائية. هذي قيم بداية قياسية (Codex HACCP و ISO 22000) تملكها الجودة وتعدّلها من شاشة سلامة الغذاء بعد التشغيل — ولهذا seed.sql يكتبها do nothing، فإعادة تنفيذه ما تمسح تعديلاتها.",
+  "_warning": "الحدود هنا قيم مرجعية شائعة. الجودة مسؤولة عن مطابقتها لاشتراطات الجهة الرقابية ولطبيعة كل منتج قبل الاعتماد.",
+
+  "haccpSteps": [
+    { "index": 1, "label": "استلام المواد", "stage": "استلام", "hazardType": "biological", "hazard": "وصول مواد خارج نطاق الحرارة الآمن أو من مورد غير معتمد", "controlMeasure": "فحص حرارة الشحنة والتاريخ والمورد عند الاستلام", "isCcp": true, "ccpCode": "CCP1" },
+    { "index": 2, "label": "التخزين البارد", "stage": "تخزين", "hazardType": "biological", "hazard": "نمو الممرضات عند ارتفاع حرارة الثلاجة", "controlMeasure": "مراقبة حرارة الثلاجة والفريزر كل وردية", "isCcp": true, "ccpCode": "CCP2" },
+    { "index": 3, "label": "التخزين الجاف", "stage": "تخزين", "hazardType": "physical", "hazard": "آفات ورطوبة وتلوث مواد كيميائية", "controlMeasure": "فصل المواد الكيميائية، رفع عن الأرض، ومكافحة آفات", "isCcp": false, "ccpCode": "" },
+    { "index": 4, "label": "التحضير والتقطيع", "stage": "تحضير", "hazardType": "allergen", "hazard": "تلوث متقاطع بين المواد النيئة والجاهزة ومسببات الحساسية", "controlMeasure": "ألواح وأدوات مفصولة بالألوان، وغسل أيدٍ بين المهام", "isCcp": false, "ccpCode": "" },
+    { "index": 5, "label": "الطبخ", "stage": "طبخ", "hazardType": "biological", "hazard": "بقاء ممرضات حية لعدم بلوغ حرارة القلب", "controlMeasure": "قياس حرارة قلب المنتج بميزان مسبار معاير", "isCcp": true, "ccpCode": "CCP3" },
+    { "index": 6, "label": "التبريد بعد الطبخ", "stage": "تبريد", "hazardType": "biological", "hazard": "تكاثر الممرضات في نطاق الخطر أثناء التبريد البطيء", "controlMeasure": "تبريد سريع ضمن زمن محدد وتسجيل الحرارة", "isCcp": true, "ccpCode": "CCP4" },
+    { "index": 7, "label": "التغليف والملصق", "stage": "تسليم", "hazardType": "allergen", "hazard": "ملصق لا يطابق المحتوى أو ناقص بيان مسببات الحساسية", "controlMeasure": "مطابقة الملصق مع الوصفة المعتمدة قبل الإغلاق", "isCcp": true, "ccpCode": "CCP5" },
+    { "index": 8, "label": "النقل والتسليم", "stage": "تسليم", "hazardType": "biological", "hazard": "انقطاع سلسلة التبريد أثناء التوصيل", "controlMeasure": "حافظات معزولة وقياس حرارة عند المغادرة", "isCcp": true, "ccpCode": "CCP6" }
+  ],
+
+  "criticalLimits": [
+    { "step": 1, "parameter": "حرارة الشحنة المبردة عند الاستلام", "kind": "numeric", "min": null, "max": 5, "unit": "°م", "method": "ميزان مسبار على عينة من الشحنة", "frequency": "كل شحنة", "corrective": "رفض الشحنة وتوثيق البلاغ للمورد" },
+    { "step": 1, "parameter": "حرارة الشحنة المجمدة عند الاستلام", "kind": "numeric", "min": null, "max": -15, "unit": "°م", "method": "ميزان مسبار على عينة من الشحنة", "frequency": "كل شحنة", "corrective": "رفض الشحنة وتوثيق البلاغ للمورد" },
+    { "step": 1, "parameter": "المورد معتمد والشحنة بتاريخ سارٍ", "kind": "boolean", "min": null, "max": null, "unit": "", "method": "مطابقة مع قائمة الموردين المعتمدين", "frequency": "كل شحنة", "corrective": "رفض الشحنة وعدم إدخالها المخزن" },
+    { "step": 2, "parameter": "حرارة الثلاجة", "kind": "numeric", "min": 1, "max": 5, "unit": "°م", "method": "ميزان الثلاجة المعاير", "frequency": "كل وردية", "corrective": "نقل المواد لثلاجة سليمة، تقييم صلاحية المواد، وإصلاح الوحدة" },
+    { "step": 2, "parameter": "حرارة الفريزر", "kind": "numeric", "min": -22, "max": -18, "unit": "°م", "method": "ميزان الفريزر المعاير", "frequency": "كل وردية", "corrective": "نقل المواد لفريزر سليم، تقييم المواد، وإصلاح الوحدة" },
+    { "step": 5, "parameter": "حرارة قلب المنتج بعد الطبخ", "kind": "numeric", "min": 74, "max": null, "unit": "°م", "method": "ميزان مسبار في أسمك جزء", "frequency": "كل دفعة", "corrective": "إعادة الطبخ حتى بلوغ الحد وإعادة القياس" },
+    { "step": 6, "parameter": "زمن التبريد من 60°م إلى 21°م", "kind": "numeric", "min": null, "max": 2, "unit": "ساعة", "method": "قياس بالساعة والميزان", "frequency": "كل دفعة", "corrective": "إتلاف الدفعة إذا تجاوز الزمن" },
+    { "step": 6, "parameter": "زمن التبريد من 21°م إلى 5°م", "kind": "numeric", "min": null, "max": 4, "unit": "ساعة", "method": "قياس بالساعة والميزان", "frequency": "كل دفعة", "corrective": "إتلاف الدفعة إذا تجاوز الزمن" },
+    { "step": 7, "parameter": "الملصق يطابق الوصفة ومسببات حساسيتها", "kind": "boolean", "min": null, "max": null, "unit": "", "method": "مطابقة بصرية مع بطاقة الصنف المعتمدة", "frequency": "كل دفعة", "corrective": "إيقاف التغليف وإعادة طباعة الملصق" },
+    { "step": 8, "parameter": "حرارة الوجبة عند مغادرة المطبخ", "kind": "numeric", "min": null, "max": 5, "unit": "°م", "method": "ميزان مسبار على عينة من الطلبية", "frequency": "كل رحلة توصيل", "corrective": "إرجاع الطلبية وتقييم صلاحيتها قبل أي تسليم" }
+  ],
+
+  "prpPrograms": [
+    { "code": "PRP-01", "label": "نظافة الأسطح وأدوات التحضير", "category": "نظافة", "ownerRole": "kitchen", "frequency": "يومي" },
+    { "code": "PRP-02", "label": "نظافة الأرضيات والمصارف", "category": "نظافة", "ownerRole": "kitchen", "frequency": "يومي" },
+    { "code": "PRP-03", "label": "نظافة الثلاجات والفريزرات من الداخل", "category": "نظافة", "ownerRole": "kitchen", "frequency": "أسبوعي" },
+    { "code": "PRP-04", "label": "غسل الأيدي والصحة الشخصية", "category": "نظافة", "ownerRole": "kitchen", "frequency": "كل وردية" },
+    { "code": "PRP-05", "label": "ملابس العمل وأغطية الرأس والقفازات", "category": "نظافة", "ownerRole": "kitchen", "frequency": "كل وردية" },
+    { "code": "PRP-06", "label": "مكافحة الآفات: فحص المصائد ونقاط الدخول", "category": "مكافحة آفات", "ownerRole": "quality", "frequency": "أسبوعي" },
+    { "code": "PRP-07", "label": "زيارة شركة مكافحة الآفات المتعاقدة", "category": "مكافحة آفات", "ownerRole": "quality", "frequency": "شهري" },
+    { "code": "PRP-08", "label": "معايرة موازين الحرارة", "category": "صيانة", "ownerRole": "quality", "frequency": "شهري" },
+    { "code": "PRP-09", "label": "صيانة وحدات التبريد الوقائية", "category": "صيانة", "ownerRole": "kitchen", "frequency": "ربع سنوي" },
+    { "code": "PRP-10", "label": "فحص صلاحية مياه الشرب والثلج", "category": "صيانة", "ownerRole": "quality", "frequency": "ربع سنوي" },
+    { "code": "PRP-11", "label": "فصل النفايات وإخراجها", "category": "نظافة", "ownerRole": "kitchen", "frequency": "يومي" },
+    { "code": "PRP-12", "label": "تخزين المواد الكيميائية بعيداً عن الغذاء", "category": "تخزين", "ownerRole": "kitchen", "frequency": "أسبوعي" },
+    { "code": "PRP-13", "label": "فحص صلاحية مواد المخزن ومبدأ FIFO", "category": "تخزين", "ownerRole": "kitchen", "frequency": "يومي" },
+    { "code": "PRP-14", "label": "تدريب سلامة الغذاء للموظفين الجدد", "category": "تدريب", "ownerRole": "quality", "frequency": "عند التعيين" },
+    { "code": "PRP-15", "label": "تجديد الشهادات الصحية للموظفين", "category": "تدريب", "ownerRole": "executive", "frequency": "سنوي" },
+    { "code": "PRP-16", "label": "تقييم الموردين وتجديد شهاداتهم", "category": "موردون", "ownerRole": "quality", "frequency": "سنوي" },
+    { "code": "PRP-17", "label": "تتبّع الدفعات واختبار الاستدعاء", "category": "تتبّع", "ownerRole": "quality", "frequency": "نصف سنوي" }
+  ],
+
+  "isoClauses": [
+    { "clause": "4.1", "title": "فهم المنشأة وسياقها", "ownerRole": "executive" },
+    { "clause": "4.2", "title": "فهم احتياجات الأطراف المعنية وتوقعاتها", "ownerRole": "executive" },
+    { "clause": "4.3", "title": "تحديد نطاق نظام إدارة سلامة الغذاء", "ownerRole": "executive" },
+    { "clause": "4.4", "title": "نظام إدارة سلامة الغذاء وعملياته", "ownerRole": "quality" },
+    { "clause": "5.1", "title": "القيادة والالتزام", "ownerRole": "executive" },
+    { "clause": "5.2", "title": "سياسة سلامة الغذاء", "ownerRole": "executive" },
+    { "clause": "5.3", "title": "الأدوار والمسؤوليات والصلاحيات", "ownerRole": "executive" },
+    { "clause": "6.1", "title": "إجراءات معالجة المخاطر والفرص", "ownerRole": "quality" },
+    { "clause": "6.2", "title": "أهداف سلامة الغذاء والتخطيط لبلوغها", "ownerRole": "executive" },
+    { "clause": "6.3", "title": "تخطيط التغييرات", "ownerRole": "quality" },
+    { "clause": "7.1", "title": "الموارد: الأفراد والبنية والبيئة", "ownerRole": "executive" },
+    { "clause": "7.2", "title": "الكفاءة", "ownerRole": "quality" },
+    { "clause": "7.3", "title": "التوعية", "ownerRole": "quality" },
+    { "clause": "7.4", "title": "التواصل الداخلي والخارجي", "ownerRole": "quality" },
+    { "clause": "7.5", "title": "المعلومات الموثّقة", "ownerRole": "quality" },
+    { "clause": "8.1", "title": "التخطيط والضبط التشغيلي", "ownerRole": "quality" },
+    { "clause": "8.2", "title": "برامج المتطلبات الأساسية PRP", "ownerRole": "quality" },
+    { "clause": "8.3", "title": "نظام التتبّع", "ownerRole": "quality" },
+    { "clause": "8.4", "title": "التأهب للطوارئ والاستجابة", "ownerRole": "executive" },
+    { "clause": "8.5", "title": "ضبط المخاطر: تحليل الأخطار وخطة HACCP", "ownerRole": "quality" },
+    { "clause": "8.6", "title": "تحديث معلومات PRP وخطة الضبط", "ownerRole": "quality" },
+    { "clause": "8.7", "title": "ضبط المراقبة والقياس (المعايرة)", "ownerRole": "quality" },
+    { "clause": "8.8", "title": "التحقق من PRP وخطة الضبط", "ownerRole": "quality" },
+    { "clause": "8.9", "title": "ضبط عدم المطابقة: التصحيح والسحب والاستدعاء", "ownerRole": "quality" },
+    { "clause": "9.1", "title": "المراقبة والقياس والتحليل والتقييم", "ownerRole": "quality" },
+    { "clause": "9.2", "title": "التدقيق الداخلي", "ownerRole": "quality" },
+    { "clause": "9.3", "title": "مراجعة الإدارة", "ownerRole": "executive" },
+    { "clause": "10.1", "title": "عدم المطابقة والإجراء التصحيحي", "ownerRole": "quality" },
+    { "clause": "10.2", "title": "التحسين المستمر", "ownerRole": "executive" },
+    { "clause": "10.3", "title": "تحديث نظام إدارة سلامة الغذاء", "ownerRole": "quality" }
+  ]
+}

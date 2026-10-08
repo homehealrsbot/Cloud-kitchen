@@ -19,7 +19,7 @@ const SHORTCUTS = [
   { href: "/admin/ops/kitchen-card", label: "بطاقة المطبخ", icon: Layers },
   { href: "/admin/ops/recipes", label: "الوصفات", icon: Package },
   { href: "/admin/ops/rotation", label: "جدول الدوران", icon: CalendarClock },
-  { href: "/admin/temperature-log", label: "سجل درجات الحرارة", icon: Thermometer },
+  { href: "/admin/safety/ccp", label: "سجل مراقبة النقاط الحرجة", icon: Thermometer },
   { href: "/admin/expiry", label: "صلاحية المكونات", icon: CalendarClock },
 ];
 

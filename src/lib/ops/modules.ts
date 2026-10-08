@@ -18,4 +18,7 @@ export const OPS_MODULES: { href: string; label: string; view: Cap; edit?: Cap; 
   { href: "/admin/ops/menu", label: "المنيو", view: "ops.view", desc: "53 صنف بحالتها وقيمها" },
   { href: "/admin/ops/engineering", label: "هندسة المنيو", view: "engineering.view", edit: "engineering.view", desc: "تصنيف الأصناف حسب المبيعات والهامش" },
   { href: "/admin/ops/settings", label: "الإعدادات", view: "settings.edit", edit: "settings.edit", desc: "مضاعفات الحصص ونسب التكلفة" },
+  { href: "/admin/safety", label: "سلامة الغذاء", view: "safety.view", edit: "safety.plan", desc: "خطة HACCP والحدود الحرجة وبرامج PRP" },
+  { href: "/admin/safety/ccp", label: "سجل المراقبة", view: "safety.view", edit: "safety.log", desc: "قراءات النقاط الحرجة اليومية" },
+  { href: "/admin/safety/ncr", label: "عدم المطابقة", view: "safety.view", edit: "ncr.manage", desc: "البلاغات وأسبابها الجذرية" },
 ];

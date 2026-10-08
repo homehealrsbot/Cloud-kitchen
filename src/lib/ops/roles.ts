@@ -52,6 +52,12 @@ export type Cap =
   | "gateDefs.manage"
   | "pilot.edit"
   | "kitchenGate.edit"
+  | "safety.view"
+  | "safety.plan"
+  | "safety.log"
+  | "safety.verify"
+  | "ncr.raise"
+  | "ncr.manage"
   | "ingApproval.edit"
   | "ingApproval.editPrice"
   | "finance.view"
@@ -86,6 +92,14 @@ export const MATRIX: Record<Cap, Role[]> = {
   "gateDefs.manage": ["executive"],
   "pilot.edit": ["quality"],
   "kitchenGate.edit": ["kitchen"],
+  // سلامة الغذاء: الجودة تضع الخطة والحدود، والمطبخ يسجّل المراقبة، والجودة
+  // تعتمد بتوقيع ثانٍ. وأي موظف يرفع عدم مطابقة — منع التبليغ أسوأ من بلاغ زائد.
+  "safety.view": ALL,
+  "safety.plan": ["quality"],
+  "safety.log": ["kitchen", "quality"],
+  "safety.verify": ["quality"],
+  "ncr.raise": ALL,
+  "ncr.manage": ["quality", "executive"],
   "ingApproval.edit": ["quality"],
   "ingApproval.editPrice": ["executive"],
   "finance.view": ["executive"],
@@ -147,6 +161,11 @@ export const PERMISSION_ROWS: { label: string; view: Cap; edit?: Cap }[] = [
   { label: "سجل التعديلات", view: "audit.view" },
   { label: "الفريق والصلاحيات", view: "team.manage", edit: "team.manage" },
   { label: "تعريف بوابات الاعتماد (إضافة/إيقاف/نقل ملكية)", view: "quality.view", edit: "gateDefs.manage" },
+  { label: "خطة HACCP والحدود الحرجة", view: "safety.view", edit: "safety.plan" },
+  { label: "سجل مراقبة النقاط الحرجة اليومي", view: "safety.view", edit: "safety.log" },
+  { label: "اعتماد سجل المراقبة (توقيع ثانٍ)", view: "safety.view", edit: "safety.verify" },
+  { label: "رفع عدم مطابقة", view: "safety.view", edit: "ncr.raise" },
+  { label: "معالجة عدم المطابقة وإغلاقها", view: "safety.view", edit: "ncr.manage" },
 ];
 
 /** صف صلاحية لبوابة اعتماد واحدة، مبني من تعريفها لا من الكود. */
@@ -187,11 +206,10 @@ export const ROUTE_CAPS: { prefix: string; cap: Cap }[] = [
   { prefix: "/admin/ops/pilot", cap: "quality.view" },
   { prefix: "/admin/ops", cap: "ops.view" },
   { prefix: "/admin/team", cap: "team.manage" },
+  { prefix: "/admin/safety", cap: "safety.view" },
   { prefix: "/admin/executive", cap: "legacy.executive" },
   { prefix: "/admin/kitchen", cap: "legacy.kitchen" },
-  { prefix: "/admin/process", cap: "legacy.safetyLogs" },
   { prefix: "/admin/expiry", cap: "legacy.safetyLogs" },
-  { prefix: "/admin/temperature-log", cap: "legacy.safetyLogs" },
 ];
 
 export function capForPath(pathname: string): Cap | null {

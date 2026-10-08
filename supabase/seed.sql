@@ -642,6 +642,90 @@ insert into ops_ing_approval_defs (approval_index, label, kind, owner_role, acti
   (2, 'سعر موثّق', 'price', 'executive'::staff_role, true, 'عرض سعر محدّث من المورد')
 on conflict (approval_index) do nothing;
 
+-- خطة HACCP: 8 خطوة (قيم بداية — لا تُكتب فوق الموجود)
+insert into safety_haccp_steps (step_index, label, stage, hazard, hazard_type, control_measure, is_ccp, ccp_code) values
+  (1, 'استلام المواد', 'استلام', 'وصول مواد خارج نطاق الحرارة الآمن أو من مورد غير معتمد', 'biological', 'فحص حرارة الشحنة والتاريخ والمورد عند الاستلام', true, 'CCP1'),
+  (2, 'التخزين البارد', 'تخزين', 'نمو الممرضات عند ارتفاع حرارة الثلاجة', 'biological', 'مراقبة حرارة الثلاجة والفريزر كل وردية', true, 'CCP2'),
+  (3, 'التخزين الجاف', 'تخزين', 'آفات ورطوبة وتلوث مواد كيميائية', 'physical', 'فصل المواد الكيميائية، رفع عن الأرض، ومكافحة آفات', false, ''),
+  (4, 'التحضير والتقطيع', 'تحضير', 'تلوث متقاطع بين المواد النيئة والجاهزة ومسببات الحساسية', 'allergen', 'ألواح وأدوات مفصولة بالألوان، وغسل أيدٍ بين المهام', false, ''),
+  (5, 'الطبخ', 'طبخ', 'بقاء ممرضات حية لعدم بلوغ حرارة القلب', 'biological', 'قياس حرارة قلب المنتج بميزان مسبار معاير', true, 'CCP3'),
+  (6, 'التبريد بعد الطبخ', 'تبريد', 'تكاثر الممرضات في نطاق الخطر أثناء التبريد البطيء', 'biological', 'تبريد سريع ضمن زمن محدد وتسجيل الحرارة', true, 'CCP4'),
+  (7, 'التغليف والملصق', 'تسليم', 'ملصق لا يطابق المحتوى أو ناقص بيان مسببات الحساسية', 'allergen', 'مطابقة الملصق مع الوصفة المعتمدة قبل الإغلاق', true, 'CCP5'),
+  (8, 'النقل والتسليم', 'تسليم', 'انقطاع سلسلة التبريد أثناء التوصيل', 'biological', 'حافظات معزولة وقياس حرارة عند المغادرة', true, 'CCP6')
+on conflict (step_index) do nothing;
+
+-- 10 حد حرج
+insert into safety_critical_limits (step_index, parameter, limit_kind, min_value, max_value, unit, monitoring_method, frequency, corrective_action, sort_order)
+select v.* from (values
+  (1, 'حرارة الشحنة المبردة عند الاستلام', 'numeric', null, 5, '°م', 'ميزان مسبار على عينة من الشحنة', 'كل شحنة', 'رفض الشحنة وتوثيق البلاغ للمورد', 0),
+  (1, 'حرارة الشحنة المجمدة عند الاستلام', 'numeric', null, -15, '°م', 'ميزان مسبار على عينة من الشحنة', 'كل شحنة', 'رفض الشحنة وتوثيق البلاغ للمورد', 1),
+  (1, 'المورد معتمد والشحنة بتاريخ سارٍ', 'boolean', null, null, '', 'مطابقة مع قائمة الموردين المعتمدين', 'كل شحنة', 'رفض الشحنة وعدم إدخالها المخزن', 2),
+  (2, 'حرارة الثلاجة', 'numeric', 1, 5, '°م', 'ميزان الثلاجة المعاير', 'كل وردية', 'نقل المواد لثلاجة سليمة، تقييم صلاحية المواد، وإصلاح الوحدة', 3),
+  (2, 'حرارة الفريزر', 'numeric', -22, -18, '°م', 'ميزان الفريزر المعاير', 'كل وردية', 'نقل المواد لفريزر سليم، تقييم المواد، وإصلاح الوحدة', 4),
+  (5, 'حرارة قلب المنتج بعد الطبخ', 'numeric', 74, null, '°م', 'ميزان مسبار في أسمك جزء', 'كل دفعة', 'إعادة الطبخ حتى بلوغ الحد وإعادة القياس', 5),
+  (6, 'زمن التبريد من 60°م إلى 21°م', 'numeric', null, 2, 'ساعة', 'قياس بالساعة والميزان', 'كل دفعة', 'إتلاف الدفعة إذا تجاوز الزمن', 6),
+  (6, 'زمن التبريد من 21°م إلى 5°م', 'numeric', null, 4, 'ساعة', 'قياس بالساعة والميزان', 'كل دفعة', 'إتلاف الدفعة إذا تجاوز الزمن', 7),
+  (7, 'الملصق يطابق الوصفة ومسببات حساسيتها', 'boolean', null, null, '', 'مطابقة بصرية مع بطاقة الصنف المعتمدة', 'كل دفعة', 'إيقاف التغليف وإعادة طباعة الملصق', 8),
+  (8, 'حرارة الوجبة عند مغادرة المطبخ', 'numeric', null, 5, '°م', 'ميزان مسبار على عينة من الطلبية', 'كل رحلة توصيل', 'إرجاع الطلبية وتقييم صلاحيتها قبل أي تسليم', 9)
+) as v(step_index, parameter, limit_kind, min_value, max_value, unit, monitoring_method, frequency, corrective_action, sort_order)
+where not exists (select 1 from safety_critical_limits x
+  where x.step_index = v.step_index and x.parameter = v.parameter);
+
+-- 17 برنامج متطلبات أساسية
+insert into safety_prp_programs (code, label, category, owner_role, frequency, sort_order) values
+  ('PRP-01', 'نظافة الأسطح وأدوات التحضير', 'نظافة', 'kitchen'::staff_role, 'يومي', 0),
+  ('PRP-02', 'نظافة الأرضيات والمصارف', 'نظافة', 'kitchen'::staff_role, 'يومي', 1),
+  ('PRP-03', 'نظافة الثلاجات والفريزرات من الداخل', 'نظافة', 'kitchen'::staff_role, 'أسبوعي', 2),
+  ('PRP-04', 'غسل الأيدي والصحة الشخصية', 'نظافة', 'kitchen'::staff_role, 'كل وردية', 3),
+  ('PRP-05', 'ملابس العمل وأغطية الرأس والقفازات', 'نظافة', 'kitchen'::staff_role, 'كل وردية', 4),
+  ('PRP-06', 'مكافحة الآفات: فحص المصائد ونقاط الدخول', 'مكافحة آفات', 'quality'::staff_role, 'أسبوعي', 5),
+  ('PRP-07', 'زيارة شركة مكافحة الآفات المتعاقدة', 'مكافحة آفات', 'quality'::staff_role, 'شهري', 6),
+  ('PRP-08', 'معايرة موازين الحرارة', 'صيانة', 'quality'::staff_role, 'شهري', 7),
+  ('PRP-09', 'صيانة وحدات التبريد الوقائية', 'صيانة', 'kitchen'::staff_role, 'ربع سنوي', 8),
+  ('PRP-10', 'فحص صلاحية مياه الشرب والثلج', 'صيانة', 'quality'::staff_role, 'ربع سنوي', 9),
+  ('PRP-11', 'فصل النفايات وإخراجها', 'نظافة', 'kitchen'::staff_role, 'يومي', 10),
+  ('PRP-12', 'تخزين المواد الكيميائية بعيداً عن الغذاء', 'تخزين', 'kitchen'::staff_role, 'أسبوعي', 11),
+  ('PRP-13', 'فحص صلاحية مواد المخزن ومبدأ FIFO', 'تخزين', 'kitchen'::staff_role, 'يومي', 12),
+  ('PRP-14', 'تدريب سلامة الغذاء للموظفين الجدد', 'تدريب', 'quality'::staff_role, 'عند التعيين', 13),
+  ('PRP-15', 'تجديد الشهادات الصحية للموظفين', 'تدريب', 'executive'::staff_role, 'سنوي', 14),
+  ('PRP-16', 'تقييم الموردين وتجديد شهاداتهم', 'موردون', 'quality'::staff_role, 'سنوي', 15),
+  ('PRP-17', 'تتبّع الدفعات واختبار الاستدعاء', 'تتبّع', 'quality'::staff_role, 'نصف سنوي', 16)
+on conflict (code) do nothing;
+
+-- 30 بند ISO 22000
+insert into safety_iso_clauses (clause, title, owner_role, sort_order) values
+  ('4.1', 'فهم المنشأة وسياقها', 'executive'::staff_role, 0),
+  ('4.2', 'فهم احتياجات الأطراف المعنية وتوقعاتها', 'executive'::staff_role, 1),
+  ('4.3', 'تحديد نطاق نظام إدارة سلامة الغذاء', 'executive'::staff_role, 2),
+  ('4.4', 'نظام إدارة سلامة الغذاء وعملياته', 'quality'::staff_role, 3),
+  ('5.1', 'القيادة والالتزام', 'executive'::staff_role, 4),
+  ('5.2', 'سياسة سلامة الغذاء', 'executive'::staff_role, 5),
+  ('5.3', 'الأدوار والمسؤوليات والصلاحيات', 'executive'::staff_role, 6),
+  ('6.1', 'إجراءات معالجة المخاطر والفرص', 'quality'::staff_role, 7),
+  ('6.2', 'أهداف سلامة الغذاء والتخطيط لبلوغها', 'executive'::staff_role, 8),
+  ('6.3', 'تخطيط التغييرات', 'quality'::staff_role, 9),
+  ('7.1', 'الموارد: الأفراد والبنية والبيئة', 'executive'::staff_role, 10),
+  ('7.2', 'الكفاءة', 'quality'::staff_role, 11),
+  ('7.3', 'التوعية', 'quality'::staff_role, 12),
+  ('7.4', 'التواصل الداخلي والخارجي', 'quality'::staff_role, 13),
+  ('7.5', 'المعلومات الموثّقة', 'quality'::staff_role, 14),
+  ('8.1', 'التخطيط والضبط التشغيلي', 'quality'::staff_role, 15),
+  ('8.2', 'برامج المتطلبات الأساسية PRP', 'quality'::staff_role, 16),
+  ('8.3', 'نظام التتبّع', 'quality'::staff_role, 17),
+  ('8.4', 'التأهب للطوارئ والاستجابة', 'executive'::staff_role, 18),
+  ('8.5', 'ضبط المخاطر: تحليل الأخطار وخطة HACCP', 'quality'::staff_role, 19),
+  ('8.6', 'تحديث معلومات PRP وخطة الضبط', 'quality'::staff_role, 20),
+  ('8.7', 'ضبط المراقبة والقياس (المعايرة)', 'quality'::staff_role, 21),
+  ('8.8', 'التحقق من PRP وخطة الضبط', 'quality'::staff_role, 22),
+  ('8.9', 'ضبط عدم المطابقة: التصحيح والسحب والاستدعاء', 'quality'::staff_role, 23),
+  ('9.1', 'المراقبة والقياس والتحليل والتقييم', 'quality'::staff_role, 24),
+  ('9.2', 'التدقيق الداخلي', 'quality'::staff_role, 25),
+  ('9.3', 'مراجعة الإدارة', 'executive'::staff_role, 26),
+  ('10.1', 'عدم المطابقة والإجراء التصحيحي', 'quality'::staff_role, 27),
+  ('10.2', 'التحسين المستمر', 'executive'::staff_role, 28),
+  ('10.3', 'تحديث نظام إدارة سلامة الغذاء', 'quality'::staff_role, 29)
+on conflict (clause) do nothing;
+
 -- إعدادات الحصص والتكلفة والتسعير
 insert into ops_settings (id, data) values (1, '{"multipliers": {"P": {"lean": 1, "balanced": 1, "performance": 1.3}, "C": {"lean": 0.6, "balanced": 1, "performance": 1.45}, "V": {"lean": 1.25, "balanced": 1, "performance": 1}, "S": {"lean": 0.75, "balanced": 1, "performance": 1.15}}, "sections": {"رئيسي": {"packaging": 3, "targetCostPct": 0.33, "labor": 4}, "فطور": {"packaging": 2.2, "targetCostPct": 0.3, "labor": 3}, "سناك": {"packaging": 1.2, "targetCostPct": 0.3, "labor": 1.5}, "شوربة": {"packaging": 1.8, "targetCostPct": 0.28, "labor": 2}, "سلطة": {"packaging": 2.5, "targetCostPct": 0.32, "labor": 2.5}, "حلا": {"packaging": 1.5, "targetCostPct": 0.28, "labor": 2}}, "wastePct": 0.06, "spiceAllowance": 0.35, "priceRoundStep": 1, "lowCarbMax": 45, "highProteinMin": 30, "kcalDiffMax": 0.1, "vatRate": 0.15, "priceIncludesVat": 1, "paymentFeePct": 0.02, "appCommissionPct": 0.2, "appSalesShare": 0.3, "marginWarnPct": 0.25, "shelfLifeApprovalH": 72, "pilotPassesRequired": 3}'::jsonb)
 on conflict (id) do update set data = excluded.data;
@@ -973,3 +1057,4 @@ commit;
 --   select count(*) from ops_recipe_lines;  -- المتوقع 457
 --   select count(*) from ops_rotation;      -- المتوقع 308
 --   select count(*) from ops_gate_defs;     -- المتوقع 8
+--   select count(*) from safety_critical_limits; -- المتوقع 10
