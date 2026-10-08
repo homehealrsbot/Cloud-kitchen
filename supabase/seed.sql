@@ -623,8 +623,27 @@ insert into ops_recipe_lines (sku, type, ing, grams, sort_order) values
   ('D04', 'S', 'berries', 40, 456)
 ;
 
+-- 8 بوابة اعتماد (قيم بداية — لا تُكتب فوق الموجود)
+insert into ops_gate_defs (gate_index, label, kind, owner_role, resets_on_recipe_change, active, note) values
+  (0, 'مطبخ + Pilot', 'kitchen_pilot', null, true, true, 'تُحسب آلياً: تجارب ناجحة بالعدد المطلوب + قرار الشيف'),
+  (1, 'مكوّنات وموردون', 'standard', 'quality'::staff_role, false, true, 'كل مكوّن له مورد معتمد وسعر موثّق'),
+  (2, 'حساسية', 'standard', 'quality'::staff_role, true, true, 'إقرار مسببات الحساسية والمواد الخفية'),
+  (3, 'تغذية', 'standard', 'quality'::staff_role, true, true, 'القيم الغذائية واتساقها مع الماكروز'),
+  (4, 'سلامة الغذاء', 'standard', 'quality'::staff_role, false, true, 'HACCP والحدود الحرجة'),
+  (5, 'صلاحية', 'shelf', 'quality'::staff_role, false, true, 'الصلاحية المعلنة مدعومة باختبار'),
+  (6, 'ملصق', 'standard', 'quality'::staff_role, true, true, 'الملصق يطابق الوصفة والقيم'),
+  (7, 'سعر وهامش', 'price', 'executive'::staff_role, true, true, 'السعر يغطي التكلفة الكاملة بهامش مقبول')
+on conflict (gate_index) do nothing;
+
+-- 3 اعتماد مكوّن (قيم بداية)
+insert into ops_ing_approval_defs (approval_index, label, kind, owner_role, active, note) values
+  (0, 'اعتماد المورد', 'supplier', 'quality'::staff_role, true, 'مورد معروف وشهاداته سارية'),
+  (1, 'إقرار الحساسية', 'allergen', 'quality'::staff_role, true, 'مسببات الحساسية والمواد الخفية موثّقة'),
+  (2, 'سعر موثّق', 'price', 'executive'::staff_role, true, 'عرض سعر محدّث من المورد')
+on conflict (approval_index) do nothing;
+
 -- إعدادات الحصص والتكلفة والتسعير
-insert into ops_settings (id, data) values (1, '{"multipliers": {"P": {"lean": 1, "balanced": 1, "performance": 1.3}, "C": {"lean": 0.6, "balanced": 1, "performance": 1.45}, "V": {"lean": 1.25, "balanced": 1, "performance": 1}, "S": {"lean": 0.75, "balanced": 1, "performance": 1.15}}, "sections": {"رئيسي": {"packaging": 3, "targetCostPct": 0.33, "labor": 4}, "فطور": {"packaging": 2.2, "targetCostPct": 0.3, "labor": 3}, "سناك": {"packaging": 1.2, "targetCostPct": 0.3, "labor": 1.5}, "شوربة": {"packaging": 1.8, "targetCostPct": 0.28, "labor": 2}, "سلطة": {"packaging": 2.5, "targetCostPct": 0.32, "labor": 2.5}, "حلا": {"packaging": 1.5, "targetCostPct": 0.28, "labor": 2}}, "wastePct": 0.06, "spiceAllowance": 0.35, "priceRoundStep": 1, "lowCarbMax": 45, "highProteinMin": 30, "kcalDiffMax": 0.1, "vatRate": 0.15, "priceIncludesVat": 1, "paymentFeePct": 0.02, "appCommissionPct": 0.2, "appSalesShare": 0.3, "marginWarnPct": 0.25, "shelfLifeApprovalH": 72}'::jsonb)
+insert into ops_settings (id, data) values (1, '{"multipliers": {"P": {"lean": 1, "balanced": 1, "performance": 1.3}, "C": {"lean": 0.6, "balanced": 1, "performance": 1.45}, "V": {"lean": 1.25, "balanced": 1, "performance": 1}, "S": {"lean": 0.75, "balanced": 1, "performance": 1.15}}, "sections": {"رئيسي": {"packaging": 3, "targetCostPct": 0.33, "labor": 4}, "فطور": {"packaging": 2.2, "targetCostPct": 0.3, "labor": 3}, "سناك": {"packaging": 1.2, "targetCostPct": 0.3, "labor": 1.5}, "شوربة": {"packaging": 1.8, "targetCostPct": 0.28, "labor": 2}, "سلطة": {"packaging": 2.5, "targetCostPct": 0.32, "labor": 2.5}, "حلا": {"packaging": 1.5, "targetCostPct": 0.28, "labor": 2}}, "wastePct": 0.06, "spiceAllowance": 0.35, "priceRoundStep": 1, "lowCarbMax": 45, "highProteinMin": 30, "kcalDiffMax": 0.1, "vatRate": 0.15, "priceIncludesVat": 1, "paymentFeePct": 0.02, "appCommissionPct": 0.2, "appSalesShare": 0.3, "marginWarnPct": 0.25, "shelfLifeApprovalH": 72, "pilotPassesRequired": 3}'::jsonb)
 on conflict (id) do update set data = excluded.data;
 
 -- مسميات الخانات وقواعدها
@@ -953,3 +972,4 @@ commit;
 --   select count(*) from ops_menu_items;    -- المتوقع 53
 --   select count(*) from ops_recipe_lines;  -- المتوقع 457
 --   select count(*) from ops_rotation;      -- المتوقع 308
+--   select count(*) from ops_gate_defs;     -- المتوقع 8

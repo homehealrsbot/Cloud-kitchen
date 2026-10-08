@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { ChefHat, ShoppingCart, Eraser, AlertTriangle } from "lucide-react";
-import { computeProduction, ING_APPROVAL_PRICE } from "@/lib/ops/engine";
+import { computeProduction, ingApprovalOfKind } from "@/lib/ops/engine";
 import { can } from "@/lib/ops/roles";
 import { useSession } from "@/lib/ops/session";
 import { useOps } from "@/lib/ops/store";
@@ -54,6 +54,8 @@ function groupRows<R extends { slotLabel: string }>(rows: R[]): R[] {
 
 export default function ProductionPage() {
   const ops = useOps();
+  // اعتماد السعر الموثّق: نسأله بنوعه من التعريفات لا برقمه
+  const priceApproval = ingApprovalOfKind(ops.data.ingApprovalDefs, "price");
   const session = useSession();
   const role = session?.role ?? null;
   const canEdit = can(role, "production.edit");
@@ -266,7 +268,7 @@ export default function ProductionPage() {
               </thead>
               <tbody>
                 {plan.shopping.map((s, i) => {
-                  const priceStatus = ops.ingApprovals(s.key)[ING_APPROVAL_PRICE];
+                  const priceStatus = priceApproval ? ops.ingApprovals(s.key)[priceApproval.index] : "PENDING";
                   const c = statusColors(priceStatus);
                   return (
                     <tr key={s.key} className="border-t" style={{ borderColor: T.border }}>

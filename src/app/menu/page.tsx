@@ -51,6 +51,10 @@ async function loadMenu() {
     menu: items,
     rotation: { slotLabels: [], slotRule: [], days: [], rules: "" },
     settings: baseSettings as unknown as Settings,
+    // الصفحة العامة ما تحسب اعتمادات: سياسة RLS على ops_menu_items أصلاً ما
+    // ترجّع إلا الأصناف اللي كل بواباتها النشطة معتمدة، فاللي يوصل هنا مُعتمد.
+    gateDefs: [],
+    ingApprovalDefs: [],
   });
 }
 

@@ -196,26 +196,96 @@ create table ops_rotation (
 -- ============================================================================
 
 create type gate_status as enum ('READY', 'PENDING', 'HOLD');
+create type pilot_result as enum ('PASS', 'FAIL');
 
--- 8 بوابات لكل صنف (0..7). الصف غير الموجود = PENDING
+-- ---------- تعريفات البوابات: بيانات، لا ثوابت ----------
+--
+-- كانت البوابات ثماني بوابات مكتوبة في الكود، وعددها (8) مكتوب في شرط النشر
+-- و CHECK (gate_index between 0 and 7). يعني إضافة بوابة = تعديل كود وقاعدة.
+-- الآن التعريفات صفوف: الإدارة التنفيذية تضيف وتوقف وتنقل الملكية من شاشة
+-- «الفريق والصلاحيات»، والمحرك وسياسات RLS يقرأون العدد والملكية من هنا.
+--
+-- kind هو العقد الثابت بين البيانات والمعادلات (ما يُغيّره المستخدم بحرية):
+--   standard      بوابة عامة
+--   kitchen_pilot محسوبة من تجارب Pilot + قرار الشيف (owner_role = null)
+--   shelf         بوابة الصلاحية — يربطها المحرك بتنبيه الصلاحية الطويلة
+--   price         بوابة السعر والهامش
+--
+-- owner_role = الدور الوحيد اللي يختم البوابة. null = محسوبة فما يختمها أحد.
+create table ops_gate_defs (
+  gate_index               int  primary key,
+  label                    text not null,
+  kind                     text not null default 'standard'
+    check (kind in ('standard', 'kitchen_pilot', 'shelf', 'price')),
+  owner_role               staff_role,
+  resets_on_recipe_change  boolean not null default false,
+  active                   boolean not null default true,
+  note                     text not null default ''
+);
+
+comment on table ops_gate_defs is
+  'بوابات اعتماد الصنف. العدد والملكية مُدخلات من الإدارة التنفيذية — شرط النشر يُحسب منها.';
+
+create table ops_ing_approval_defs (
+  approval_index int  primary key,
+  label          text not null,
+  kind           text not null default 'standard'
+    check (kind in ('standard', 'supplier', 'allergen', 'price')),
+  owner_role     staff_role,
+  active         boolean not null default true,
+  note           text not null default ''
+);
+
+-- ---------- حالات البوابات لكل صنف ----------
+-- gate_index مفتاح أجنبي على التعريفات، لا مجال أرقام مكتوب.
+-- approved_by_name / approved_at: الاعتماد بلا اسم وتاريخ مو اعتماد.
 create table ops_gates (
-  sku        text not null references ops_menu_items(id) on delete cascade,
-  gate_index int  not null check (gate_index between 0 and 7),
-  status     gate_status not null default 'PENDING',
-  note       text not null default '',
-  updated_by uuid references auth.users(id),
-  updated_at timestamptz not null default now(),
+  sku              text not null references ops_menu_items(id) on delete cascade,
+  gate_index       int  not null references ops_gate_defs(gate_index) on delete cascade,
+  status           gate_status not null default 'PENDING',
+  note             text not null default '',
+  approved_by_name text,
+  approved_at      timestamptz,
+  updated_by       uuid references auth.users(id),
+  updated_at       timestamptz not null default now(),
   primary key (sku, gate_index)
 );
 
--- 3 اعتمادات لكل مكوّن (0..2): اعتماد المورد / إقرار الحساسية / سعر موثّق
 create table ops_ing_approvals (
-  ing_key        text not null references ops_ingredients(key) on delete cascade,
-  approval_index int  not null check (approval_index between 0 and 2),
-  status         gate_status not null default 'PENDING',
-  updated_by     uuid references auth.users(id),
-  updated_at     timestamptz not null default now(),
+  ing_key          text not null references ops_ingredients(key) on delete cascade,
+  approval_index   int  not null references ops_ing_approval_defs(approval_index) on delete cascade,
+  status           gate_status not null default 'PENDING',
+  note             text not null default '',
+  approved_by_name text,
+  approved_at      timestamptz,
+  updated_by       uuid references auth.users(id),
+  updated_at       timestamptz not null default now(),
   primary key (ing_key, approval_index)
+);
+
+-- ---------- مُدخلات بوابة المطبخ ----------
+-- الجودة تسجّل التجارب، والشيف يقرّر. كم تجربة ناجحة مطلوبة؟ مُدخل في
+-- ops_settings.data->'pilotPassesRequired' — لا رقم هنا ولا في الكود.
+create table ops_pilot_trials (
+  sku              text not null references ops_menu_items(id) on delete cascade,
+  trial_index      int  not null check (trial_index >= 1),
+  result           pilot_result,
+  cooked_portion_g numeric,
+  trial_date       date,
+  notes            text not null default '',
+  recorded_by      uuid references auth.users(id),
+  recorded_at      timestamptz not null default now(),
+  primary key (sku, trial_index)
+);
+
+create table ops_kitchen_gate (
+  sku           text primary key references ops_menu_items(id) on delete cascade,
+  chef_decision gate_status not null default 'PENDING',
+  chef_name     text not null default '',
+  approved_at   timestamptz,
+  note          text not null default '',
+  updated_by    uuid references auth.users(id),
+  updated_at    timestamptz not null default now()
 );
 
 -- صلاحية معلنة معدّلة لصنف (تتجاوز قيمة المنيو)
@@ -340,8 +410,12 @@ alter table ops_recipe_lines  enable row level security;
 alter table ops_settings      enable row level security;
 alter table ops_rotation_meta enable row level security;
 alter table ops_rotation      enable row level security;
+alter table ops_gate_defs     enable row level security;
+alter table ops_ing_approval_defs enable row level security;
 alter table ops_gates         enable row level security;
 alter table ops_ing_approvals enable row level security;
+alter table ops_pilot_trials  enable row level security;
+alter table ops_kitchen_gate  enable row level security;
 alter table ops_shelf_life    enable row level security;
 alter table ops_production    enable row level security;
 alter table ops_units_sold    enable row level security;
@@ -376,13 +450,26 @@ create policy "staff reads customers" on customers
   using (private.is_staff());
 
 -- ---------- ops_menu_items ----------
--- العميل والزائر: الأصناف الجاهزة للبيع فقط = كل البوابات الثمانية READY.
--- نفس قاعدة الإطلاق المطبّقة في الواجهة، لكن هنا ما ينفع تجاوزها.
+-- العميل والزائر: الأصناف الجاهزة للبيع فقط = كل بوابة نشطة لها صف READY
+-- لهذا الصنف. نفس شرط deriveSkuQuality في المحرك، لكن هنا ما ينفع تجاوزه.
+--
+-- ليش «كل بوابة نشطة لها صف» ومو «عدد صفوف READY = عدد البوابات»؟ لأن المقارنة
+-- بعددين فيها ثغرتان: لو ما فيه بوابات معرّفة يصير 0 = 0 فينشر كل شي، وصف
+-- READY لبوابة موقوفة يُحسب فيكمّل العدد بدل بوابة نشطة ناقصة.
 create policy "public reads sellable menu" on ops_menu_items
   for select to anon, authenticated
   using (
-    (select count(*) from ops_gates g
-      where g.sku = ops_menu_items.id and g.status = 'READY') = 8
+    exists (select 1 from ops_gate_defs where active)
+    and not exists (
+      select 1 from ops_gate_defs d
+      where d.active
+        and not exists (
+          select 1 from ops_gates g
+          where g.sku = ops_menu_items.id
+            and g.gate_index = d.gate_index
+            and g.status = 'READY'
+        )
+    )
   );
 
 create policy "staff reads all menu" on ops_menu_items
@@ -442,33 +529,89 @@ create policy "kitchen writes rotation" on ops_rotation
 create policy "anyone reads gates" on ops_gates
   for select to anon, authenticated using (true);
 
--- الجودة تعدّل البوابات ما عدا بوابة السعر (7)
-create policy "quality writes gates" on ops_gates
+-- مين يختم البوابة؟ owner_role في تعريفها. سياسة واحدة لكل البوابات بدل
+-- «السابعة للتنفيذي وما عداها للجودة» — فنقل ملكية بوابة أو إضافة واحدة ما
+-- يحتاج تعديل سياسة. و owner_role = null (المحسوبة) ما يختمها أحد: المحفّز
+-- في القسم 11 هو اللي يكتبها، و SECURITY DEFINER يتجاوز RLS.
+create policy "gate owner writes gates" on ops_gates
   for all to authenticated
-  using (private.has_role(array['quality']::staff_role[]) and gate_index <> 7)
-  with check (private.has_role(array['quality']::staff_role[]) and gate_index <> 7);
+  using (
+    exists (
+      select 1 from ops_gate_defs d
+      where d.gate_index = ops_gates.gate_index
+        and d.active and d.owner_role is not null
+        and private.has_role(array[d.owner_role])
+    )
+  )
+  with check (
+    exists (
+      select 1 from ops_gate_defs d
+      where d.gate_index = ops_gates.gate_index
+        and d.active and d.owner_role is not null
+        and private.has_role(array[d.owner_role])
+    )
+  );
 
--- بوابة السعر والهامش (7) للتنفيذي فقط
-create policy "executive writes price gate" on ops_gates
+-- ---------- ops_gate_defs / ops_ing_approval_defs ----------
+-- القراءة مفتوحة: سياسة المنيو أعلاه تقرأها، والعميل ما فيها شي حساس له.
+-- الكتابة للتنفيذي فقط — هنا تُمنح السلطة، فالقسم ما يعطي نفسه بوابة.
+create policy "anyone reads gate defs" on ops_gate_defs
+  for select to anon, authenticated using (true);
+
+create policy "executive writes gate defs" on ops_gate_defs
   for all to authenticated
-  using (private.has_role(array['executive']::staff_role[]) and gate_index = 7)
-  with check (private.has_role(array['executive']::staff_role[]) and gate_index = 7);
+  using (private.has_role(array['executive']::staff_role[]))
+  with check (private.has_role(array['executive']::staff_role[]));
+
+create policy "anyone reads ing approval defs" on ops_ing_approval_defs
+  for select to anon, authenticated using (true);
+
+create policy "executive writes ing approval defs" on ops_ing_approval_defs
+  for all to authenticated
+  using (private.has_role(array['executive']::staff_role[]))
+  with check (private.has_role(array['executive']::staff_role[]));
 
 -- ---------- ops_ing_approvals ----------
 create policy "staff reads ing approvals" on ops_ing_approvals
   for select to authenticated using (private.is_staff());
 
--- الجودة: اعتماد المورد (0) وإقرار الحساسية (1)
-create policy "quality writes ing approvals" on ops_ing_approvals
+create policy "approval owner writes ing approvals" on ops_ing_approvals
   for all to authenticated
-  using (private.has_role(array['quality']::staff_role[]) and approval_index <> 2)
-  with check (private.has_role(array['quality']::staff_role[]) and approval_index <> 2);
+  using (
+    exists (
+      select 1 from ops_ing_approval_defs d
+      where d.approval_index = ops_ing_approvals.approval_index
+        and d.active and d.owner_role is not null
+        and private.has_role(array[d.owner_role])
+    )
+  )
+  with check (
+    exists (
+      select 1 from ops_ing_approval_defs d
+      where d.approval_index = ops_ing_approvals.approval_index
+        and d.active and d.owner_role is not null
+        and private.has_role(array[d.owner_role])
+    )
+  );
 
--- التنفيذي: السعر الموثّق (2)
-create policy "executive writes ing price approval" on ops_ing_approvals
+-- ---------- ops_pilot_trials / ops_kitchen_gate ----------
+-- فصل الطرفين بقصد: الجودة تسجّل التجارب، والمطبخ يقرّر. فما فيه طرف يعتمد
+-- شغله بنفسه من الطرفين.
+create policy "staff reads pilot trials" on ops_pilot_trials
+  for select to authenticated using ((select private.is_staff()));
+
+create policy "quality writes pilot trials" on ops_pilot_trials
   for all to authenticated
-  using (private.has_role(array['executive']::staff_role[]) and approval_index = 2)
-  with check (private.has_role(array['executive']::staff_role[]) and approval_index = 2);
+  using (private.has_role(array['quality']::staff_role[]))
+  with check (private.has_role(array['quality']::staff_role[]));
+
+create policy "staff reads kitchen gate" on ops_kitchen_gate
+  for select to authenticated using ((select private.is_staff()));
+
+create policy "kitchen writes kitchen gate" on ops_kitchen_gate
+  for all to authenticated
+  using (private.has_role(array['kitchen']::staff_role[]))
+  with check (private.has_role(array['kitchen']::staff_role[]));
 
 -- ---------- ops_shelf_life ----------
 create policy "anyone reads shelf life" on ops_shelf_life
@@ -571,15 +714,219 @@ create trigger trg_ingredient_column_roles
   for each row execute function private.enforce_ingredient_column_roles();
 
 -- ============================================================================
--- 11) صلاحيات الجداول (السياسات أعلاه هي الحاكم الفعلي)
+-- 11) البوابة المحسوبة: تجارب Pilot + قرار الشيف
 -- ============================================================================
+--
+-- البوابة اللي نوعها kitchen_pilot ما يختمها أحد يدوياً (owner_role = null
+-- فسياسة ops_gates ترفضها). هذا المحفّز هو اللي يكتبها، ويعيد حسابها كل ما
+-- تغيّر مُدخل من مُدخلاتها: تجربة، قرار شيف، سطر وصفة، أو إعداد عدد التجارب.
+--
+-- القاعدة: قرار الشيف HOLD = HOLD فوراً. غير كذا: وصفة فيها سطور، وما فيها
+-- مكوّن مجهول، وتجارب ناجحة >= المطلوب، وقرار الشيف READY → READY.
+--
+-- اتساق السعرات مع الماكروز ما يُفحص هنا: معادلة في المحرك، ويُفرض وقت تسجيل
+-- قرار الشيف في Server Action. تكرار المحرك في SQL أسوأ من فحص في مكان واحد.
+
+create or replace function private.sync_kitchen_pilot_gate(p_sku text) returns void
+language plpgsql security definer set search_path = public as $fn$
+declare
+  v_gate     int;
+  v_required int;
+  v_passes   int;
+  v_fails    int;
+  v_lines    int;
+  v_unknown  int;
+  v_decision gate_status;
+  v_chef     text;
+  v_chef_at  timestamptz;
+  v_status   gate_status;
+  v_note     text;
+begin
+  select gate_index into v_gate
+    from ops_gate_defs where kind = 'kitchen_pilot' and active
+    order by gate_index limit 1;
+  if v_gate is null then return; end if;
+
+  -- القيمة 0 مُدخل مشروع («قرار الشيف يكفي»)، أما غياب المفتاح فمعناه
+  -- «غير مُعد» وتبقى البوابة معلّقة — فما يصير النقص تجاوزاً.
+  select (data->>'pilotPassesRequired')::int into v_required from ops_settings where id = 1;
+
+  select count(*) filter (where result = 'PASS'),
+         count(*) filter (where result = 'FAIL')
+    into v_passes, v_fails
+    from ops_pilot_trials where sku = p_sku;
+
+  select count(*), count(*) filter (where i.key is null)
+    into v_lines, v_unknown
+    from ops_recipe_lines l
+    left join ops_ingredients i on i.key = l.ing
+    where l.sku = p_sku;
+
+  select chef_decision, chef_name, approved_at
+    into v_decision, v_chef, v_chef_at
+    from ops_kitchen_gate where sku = p_sku;
+  v_decision := coalesce(v_decision, 'PENDING');
+
+  if v_decision = 'HOLD' then
+    v_status := 'HOLD';
+    v_note   := 'أوقفها المطبخ';
+  elsif v_lines = 0 then
+    v_status := 'PENDING';
+    v_note   := 'ما فيه سطور وصفة';
+  elsif v_unknown > 0 then
+    v_status := 'PENDING';
+    v_note   := 'الوصفة فيها ' || v_unknown || ' مكوّن غير موجود في قاعدة المكوّنات';
+  elsif v_required is null then
+    v_status := 'PENDING';
+    v_note   := 'عدد تجارب Pilot المطلوبة غير مُعد في الإعدادات';
+  elsif v_passes < v_required then
+    v_status := 'PENDING';
+    v_note   := 'تجارب ناجحة ' || v_passes || ' من ' || v_required
+                || case when v_fails > 0 then ' (وفاشلة ' || v_fails || ')' else '' end;
+  elsif v_decision <> 'READY' then
+    v_status := 'PENDING';
+    v_note   := 'التجارب مكتملة — بانتظار قرار الشيف';
+  else
+    v_status := 'READY';
+    v_note   := '';
+  end if;
+
+  insert into ops_gates (sku, gate_index, status, note, approved_by_name, approved_at)
+  values (p_sku, v_gate, v_status, v_note,
+          case when v_status = 'READY' then nullif(v_chef, '') end,
+          case when v_status = 'READY' then coalesce(v_chef_at, now()) end)
+  on conflict (sku, gate_index) do update
+    set status           = excluded.status,
+        note             = excluded.note,
+        approved_by_name = excluded.approved_by_name,
+        approved_at      = excluded.approved_at,
+        updated_at       = now();
+end;
+$fn$;
+
+create or replace function private.tg_sync_kitchen_pilot() returns trigger
+language plpgsql security definer set search_path = public as $fn$
+begin
+  perform private.sync_kitchen_pilot_gate(coalesce(new.sku, old.sku));
+  return null;
+end;
+$fn$;
+
+create or replace function private.tg_sync_pilot_from_recipe() returns trigger
+language plpgsql security definer set search_path = public as $fn$
+begin
+  perform private.sync_kitchen_pilot_gate(coalesce(new.sku, old.sku));
+  return null;
+end;
+$fn$;
+
+-- تغيّر الإعدادات أو التعريفات يعيد حساب كل الأصناف (العدد المطلوب تغيّر)
+create or replace function private.tg_resync_all_kitchen_pilot() returns trigger
+language plpgsql security definer set search_path = public as $fn$
+declare r record;
+begin
+  for r in select sku from ops_pilot_trials union select sku from ops_kitchen_gate loop
+    perform private.sync_kitchen_pilot_gate(r.sku);
+  end loop;
+  return null;
+end;
+$fn$;
+
+create trigger sync_kitchen_pilot_from_trials
+  after insert or update or delete on ops_pilot_trials
+  for each row execute function private.tg_sync_kitchen_pilot();
+
+create trigger sync_kitchen_pilot_from_chef
+  after insert or update on ops_kitchen_gate
+  for each row execute function private.tg_sync_kitchen_pilot();
+
+create trigger sync_kitchen_pilot_from_recipe
+  after insert or update or delete on ops_recipe_lines
+  for each row execute function private.tg_sync_pilot_from_recipe();
+
+create trigger resync_kitchen_pilot_on_settings
+  after update on ops_settings
+  for each statement execute function private.tg_resync_all_kitchen_pilot();
+
+create trigger resync_kitchen_pilot_on_gate_defs
+  after insert or update or delete on ops_gate_defs
+  for each statement execute function private.tg_resync_all_kitchen_pilot();
+
+-- ---------- تعديل الوصفة يرجّع بواباتها للاعتماد ----------
+--
+-- ليش في القاعدة ومو في التطبيق: اللي يعدّل الوصفة هو المطبخ، والبوابات
+-- المتأثرة ملك الجودة والتنفيذي. فلو حاول التطبيق يرجّعها بهوية المطبخ
+-- ترفضه سياسة ops_gates — وهي محقّة: المطبخ ما يفتح ولا يسكّر بوابات غيره.
+-- والمحفّز SECURITY DEFINER يسوّيها بلا ما نمنح المطبخ صلاحية ما يستحقها.
+--
+-- وأهم: صار الإرجاع يشتغل مع أي تعديل وصفة، من التطبيق أو من الـAPI مباشرة،
+-- فما يعتمد على أمانة الكود.
+
+create or replace function private.tg_reset_gates_on_recipe_change() returns trigger
+language plpgsql security definer set search_path = public as $fn$
+declare
+  v_sku text := coalesce(new.sku, old.sku);
+  v_labels text;
+begin
+  with reset as (
+    update ops_gates g
+       set status = 'PENDING',
+           note = 'رجعت للاعتماد: تعدّلت الوصفة',
+           approved_by_name = null,
+           approved_at = null,
+           updated_at = now()
+     where g.sku = v_sku
+       and g.status = 'READY'
+       and exists (
+         select 1 from ops_gate_defs d
+         where d.gate_index = g.gate_index
+           and d.active
+           and d.resets_on_recipe_change
+           and d.owner_role is not null   -- المحسوبة لها محفّزها الخاص
+       )
+    returning g.gate_index
+  )
+  select string_agg(d.label, '، ' order by d.gate_index) into v_labels
+    from reset r join ops_gate_defs d on d.gate_index = r.gate_index;
+
+  if v_labels is not null then
+    insert into ops_audit (role, "by", area, text)
+    values ('النظام', 'محفّز قاعدة البيانات', 'بوابات الاعتماد',
+            v_sku || ' · تعدّلت الوصفة فرجعت للاعتماد: ' || v_labels);
+  end if;
+  return null;
+end;
+$fn$;
+
+create trigger reset_gates_on_recipe_change
+  after insert or update or delete on ops_recipe_lines
+  for each row execute function private.tg_reset_gates_on_recipe_change();
+
+-- ============================================================================
+-- 12) صلاحيات الجداول (السياسات أعلاه هي الحاكم الفعلي)
+-- ============================================================================
+
+-- Supabase يمنح anon و authenticated كل الصلاحيات على أي جدول جديد في public
+-- عبر default privileges، فنسحبها أولاً ثم نمنح اللي يحتاجه التطبيق فعلاً.
+-- RLS هو الحاكم، وهذا طبقة ثانية: لو تعطّلت RLS بالغلط الزائر لسا ما يكتب.
+do $$
+declare t text;
+begin
+  for t in select tablename from pg_tables where schemaname = 'public' loop
+    execute format('revoke insert, update, delete, truncate on public.%I from anon', t);
+    execute format('revoke truncate on public.%I from authenticated', t);
+  end loop;
+end $$;
 
 grant select on ops_ingredients to authenticated;
 grant update on ops_ingredients to authenticated;
-grant select on ops_menu_items, ops_gates, ops_shelf_life to anon;
+grant select on
+  ops_menu_items, ops_gates, ops_shelf_life, ops_gate_defs, ops_ing_approval_defs
+  to anon;
 grant select, insert, update, delete on
   ops_menu_items, ops_recipe_lines, ops_settings, ops_rotation, ops_rotation_meta,
-  ops_gates, ops_ing_approvals, ops_shelf_life, ops_production, ops_units_sold
+  ops_gates, ops_ing_approvals, ops_shelf_life, ops_production, ops_units_sold,
+  ops_gate_defs, ops_ing_approval_defs, ops_pilot_trials, ops_kitchen_gate
   to authenticated;
 grant select, insert on ops_audit to authenticated;
 grant select, insert on safety_temperature_log to authenticated;
@@ -592,7 +939,7 @@ grant select, update on customers to authenticated;
 grant select on staff to authenticated;
 
 -- ============================================================================
--- 12) إضافة حساب موظف (لا تُنفّذ من التطبيق أبداً)
+-- 13) إضافة حساب موظف (لا تُنفّذ من التطبيق أبداً)
 -- ============================================================================
 -- 1) Supabase Dashboard → Authentication → Users → Add user
 --    حط الإيميل وكلمة المرور، وفعّل Auto Confirm User.

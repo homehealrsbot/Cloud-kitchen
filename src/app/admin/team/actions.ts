@@ -13,6 +13,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getStaffSession } from "@/lib/supabase/auth";
 import { ROLES, Role, can } from "@/lib/ops/roles";
+import type { GateDef, IngApprovalDef } from "@/lib/ops/engine";
 import type { ActionResult } from "@/lib/ops/types";
 
 export interface TeamMember {
@@ -34,6 +35,40 @@ export async function listTeam(): Promise<TeamMember[]> {
   const { data, error } = await supabase.rpc("staff_list");
   if (error || !data) return [];
   return data as TeamMember[];
+}
+
+/**
+ * تعريفات بوابات الاعتماد — تُعرض في نفس شاشة الصلاحيات لأنها نفس الموضوع:
+ * مين يملك إيش. الكتابة عليها في src/app/admin/ops/actions.ts.
+ */
+export async function listApprovalDefs(): Promise<{ gates: GateDef[]; approvals: IngApprovalDef[] }> {
+  const session = await getStaffSession();
+  if (!session) return { gates: [], approvals: [] };
+  const supabase = await createClient();
+  const [g, a] = await Promise.all([
+    supabase.from("ops_gate_defs").select("*").order("gate_index"),
+    supabase.from("ops_ing_approval_defs").select("*").order("approval_index"),
+  ]);
+  type Row = Record<string, unknown>;
+  return {
+    gates: ((g.data ?? []) as Row[]).map((r) => ({
+      index: Number(r.gate_index),
+      label: String(r.label ?? ""),
+      kind: String(r.kind ?? "standard") as GateDef["kind"],
+      ownerRole: r.owner_role == null ? null : String(r.owner_role),
+      resetsOnRecipeChange: Boolean(r.resets_on_recipe_change),
+      active: Boolean(r.active),
+      note: String(r.note ?? ""),
+    })),
+    approvals: ((a.data ?? []) as Row[]).map((r) => ({
+      index: Number(r.approval_index),
+      label: String(r.label ?? ""),
+      kind: String(r.kind ?? "standard") as IngApprovalDef["kind"],
+      ownerRole: r.owner_role == null ? null : String(r.owner_role),
+      active: Boolean(r.active),
+      note: String(r.note ?? ""),
+    })),
+  };
 }
 
 /** يضيف موظفاً أو يعدّل دوره أو يوقفه، بالإيميل. */

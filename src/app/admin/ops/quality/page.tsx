@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { Search, ChevronDown, ChevronUp, ShieldCheck, AlertTriangle, CheckCircle2 } from "lucide-react";
-import { GATES, GATE_PRICE, GATE_SHELF, GateStatus, SECTIONS, SkuStatus } from "@/lib/ops/engine";
-import { can } from "@/lib/ops/roles";
+import { GateStatus, SECTIONS, SkuStatus, gateOfKind } from "@/lib/ops/engine";
+import { ROLES, can, isRole, sealsGate } from "@/lib/ops/roles";
 import { useSession } from "@/lib/ops/session";
 import { SkuView, useOps } from "@/lib/ops/store";
 import * as actions from "../actions";
@@ -15,9 +15,13 @@ export default function QualityPage() {
   const ops = useOps();
   const session = useSession();
   const role = session?.role ?? null;
-  const canGates = can(role, "quality.editGates");
-  const canPriceGate = can(role, "quality.editPriceGate");
   const canShelf = can(role, "quality.editShelfLife");
+  // بوابة الصلاحية ما نعرفها برقم: نسألها بنوعها من التعريفات
+  const shelfGate = gateOfKind(ops.data.gateDefs, "shelf");
+  // إيش يختم دوري وإيش لغيري — من التعريفات، فالنص ما يكذب لو تغيّرت
+  const myGates = ops.gateDefs.filter((d) => sealsGate(role, d.ownerRole));
+  const otherGates = ops.gateDefs.filter((d) => d.ownerRole !== null && !sealsGate(role, d.ownerRole));
+  const computedGates = ops.gateDefs.filter((d) => d.ownerRole === null);
   const showFinance = can(role, "finance.view");
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<StatusFilter>("all");
@@ -53,15 +57,22 @@ export default function QualityPage() {
   }
 
   return (
-    <OpsShell title="بوابات الجودة" subtitle="كل صنف يمر على 8 بوابات — ما يُباع إلا لما تكون كلها معتمدة">
+    <OpsShell
+      title="بوابات الاعتماد"
+      subtitle={`كل صنف يمر على ${ops.gateDefs.length} بوابة — ما يُباع إلا لما تكون كلها معتمدة`}
+    >
       <AccessNote
-        canEdit={canGates || canPriceGate}
+        canEdit={myGates.length > 0}
         editText={
-          canGates
-            ? "أنت تعتمد 7 بوابات (الوصفة، المكوّنات، الحساسية، التغذية، سلامة الغذاء، الصلاحية، الملصق). بوابة «سعر وهامش» من صلاحية الإدارة التنفيذية. الإيقاف يحتاج سبب."
-            : "أنت تعتمد بوابة «سعر وهامش» فقط. باقي البوابات السبع من صلاحية الجودة — ما تقدر تعتمدها بدالهم."
+          `أنت تختم: ${myGates.map((d) => `«${d.label}»`).join("، ")}. الإيقاف يحتاج سبب مكتوب.` +
+          (otherGates.length
+            ? ` وباقي البوابات (${otherGates.map((d) => d.label).join("، ")}) لأدوار ثانية — ما تقدر تختمها بدالهم.`
+            : "") +
+          (computedGates.length
+            ? ` و«${computedGates.map((d) => d.label).join("، ")}» محسوبة من تجارب Pilot وقرار الشيف، ما تُختم يدوياً.`
+            : "")
         }
-        viewText="عرض فقط — اعتماد البوابات من صلاحية الجودة، والمطبخ ما يعتمد شغله بنفسه."
+        viewText="عرض فقط — دورك الحالي ما يختم أي بوابة. كل بوابة لها مالك محدد في تعريفها، والمطبخ ما يعتمد شغله بنفسه."
       />
 
       <div className="grid grid-cols-3 gap-3 mb-5">
@@ -109,7 +120,7 @@ export default function QualityPage() {
                   <div className="text-[11px] mt-1 flex items-center gap-2 flex-wrap" style={{ color: T.inkSoft }}>
                     <span>{sku.item.section}</span>
                     <span>·</span>
-                    <span>{v.quality.readyCount} من {GATES.length} بوابات</span>
+                    <span>{v.quality.readyCount} من {v.quality.total} بوابات</span>
                     {v.quality.blocker && (
                       <>
                         <span>·</span>
@@ -119,12 +130,17 @@ export default function QualityPage() {
                   </div>
                 </div>
                 <div className="hidden sm:flex gap-1">
-                  {v.gates.map((g, i) => (
+                  {ops.gateDefs.map((d) => (
                     <span
-                      key={i}
-                      title={GATES[i]}
+                      key={d.index}
+                      title={d.label}
                       className="inline-block rounded-sm"
-                      style={{ width: 10, height: 18, background: g === "READY" ? T.good : g === "HOLD" ? T.warn : "#E8D9A8" }}
+                      style={{
+                        width: 10,
+                        height: 18,
+                        background:
+                          v.gates[d.index] === "READY" ? T.good : v.gates[d.index] === "HOLD" ? T.warn : "#E8D9A8",
+                      }}
                     />
                   ))}
                 </div>
@@ -146,23 +162,38 @@ export default function QualityPage() {
                   <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
                     {/* البوابات */}
                     <div className="lg:col-span-3 space-y-2">
-                      {GATES.map((g, gi) => {
-                        const editable = gi === GATE_PRICE ? canPriceGate : canGates;
+                      {ops.gateDefs.map((d) => {
+                        const gi = d.index;
+                        // مين يعدّل؟ صاحب البوابة في تعريفها. والمحسوبة ما يعدّلها أحد.
+                        const computed = d.ownerRole === null;
+                        const editable = sealsGate(role, d.ownerRole);
                         const holding = hold && hold.sku === sku.item.id && hold.gate === gi;
+                        const stamp = v.stamps[gi];
                         return (
-                          <div key={g} className="rounded-xl px-3 py-2.5" style={{ background: T.bg }}>
+                          <div key={gi} className="rounded-xl px-3 py-2.5" style={{ background: T.bg }}>
                             <div className="flex items-center justify-between gap-2 flex-wrap">
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2 flex-wrap">
                                 <ShieldCheck size={14} style={{ color: v.gates[gi] === "READY" ? T.good : T.inkSoft }} />
-                                <span className="text-xs font-bold">{g}</span>
-                                {gi === GATE_PRICE && (
-                                  <span className="text-[10px] rounded-full px-2 py-0.5" style={{ background: T.surface, color: T.inkSoft }}>الإدارة التنفيذية</span>
-                                )}
+                                <span className="text-xs font-bold">{d.label}</span>
+                                <span className="text-[10px] rounded-full px-2 py-0.5" style={{ background: T.surface, color: T.inkSoft }}>
+                                  {computed ? "محسوبة" : isRole(d.ownerRole) ? ROLES[d.ownerRole].label : d.ownerRole}
+                                </span>
                               </div>
                               <TriState value={v.gates[gi]} disabled={!editable} onChange={(next) => setGate(v, gi, next)} />
                             </div>
-                            {v.gates[gi] === "HOLD" && v.notes[gi] && (
-                              <div className="text-[11px] mt-2" style={{ color: T.warn }}>سبب الإيقاف: {v.notes[gi]}</div>
+                            {computed && (
+                              <div className="text-[10px] mt-1.5" style={{ color: T.inkSoft }}>
+                                تتحدد من تجارب Pilot وقرار الشيف — <a href="/admin/ops/kitchen-gate" className="underline">بوابة المطبخ</a>
+                              </div>
+                            )}
+                            {v.gates[gi] === "READY" && stamp?.by && (
+                              <div className="text-[10px] mt-1.5" style={{ color: T.good }}>
+                                اعتمدها {stamp.by}
+                                {stamp.at ? ` · ${new Date(stamp.at).toLocaleDateString("ar-SA")}` : ""}
+                              </div>
+                            )}
+                            {v.gates[gi] !== "READY" && v.notes[gi] && (
+                              <div className="text-[11px] mt-2" style={{ color: T.warn }}>{v.notes[gi]}</div>
                             )}
                             {holding && (
                               <div className="flex gap-2 mt-2">
@@ -224,8 +255,10 @@ export default function QualityPage() {
                         ) : (
                           <div className="text-xs font-bold">{sku.item.shelfLifeH}</div>
                         )}
-                        {v.gates[GATE_SHELF] !== "READY" && (
-                          <div className="text-[10px] mt-1.5" style={{ color: T.inkSoft }}>بوابة الصلاحية ما اعتُمدت بعد</div>
+                        {shelfGate && v.gates[shelfGate.index] !== "READY" && (
+                          <div className="text-[10px] mt-1.5" style={{ color: T.inkSoft }}>
+                            بوابة «{shelfGate.label}» ما اعتُمدت بعد
+                          </div>
                         )}
                       </div>
                       {showFinance && (

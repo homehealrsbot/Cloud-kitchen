@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { ArrowLeft, CheckCircle2, AlertTriangle, ClipboardCheck, Layers, ShieldCheck, History, RotateCcw, Users, Eye, Pencil } from "lucide-react";
-import { GATES, ING_APPROVALS, SECTIONS, integrityChecks } from "@/lib/ops/engine";
+import { SECTIONS, integrityChecks } from "@/lib/ops/engine";
 import { PERMISSION_ROWS, ROLES, Role, can, MATRIX } from "@/lib/ops/roles";
 import { useSession } from "@/lib/ops/session";
 import { OPS_MODULES } from "@/lib/ops/modules";
@@ -93,14 +93,15 @@ export default function OpsHub() {
         <Card>
           <CardTitle icon={<ShieldCheck size={17} />}>ما الذي يعطّل الإطلاق؟ (أصناف لكل بوابة)</CardTitle>
           <div className="space-y-3">
-            {GATES.map((g, gi) => {
+            {ops.gateDefs.map((d) => {
+              const gi = d.index;
               const r = ops.skus.filter((s) => s.gates[gi] === "READY").length;
               const h = ops.skus.filter((s) => s.gates[gi] === "HOLD").length;
               const p = total - r - h;
               return (
-                <div key={g}>
+                <div key={gi}>
                   <div className="flex items-center justify-between text-xs mb-1">
-                    <span className="font-medium">{g}</span>
+                    <span className="font-medium">{d.label}</span>
                     <span style={{ color: T.inkSoft }}>
                       <span style={{ color: T.good }} className="font-bold">{r}</span> معتمد ·{" "}
                       <span style={{ color: PENDING_COLOR }} className="font-bold">{p}</span> بانتظار
@@ -126,11 +127,12 @@ export default function OpsHub() {
           <Card>
             <CardTitle icon={<Layers size={17} />}>اعتماد المكوّنات ({ingTotal} مكوّن)</CardTitle>
             <div className="space-y-2">
-              {ING_APPROVALS.map((label, i) => {
+              {ops.approvalDefs.map((d) => {
+                const i = d.index;
                 const r = ops.data.ingredients.filter((ing) => ops.ingApprovals(ing.key)[i] === "READY").length;
                 return (
-                  <div key={label} className="flex items-center justify-between rounded-xl px-3 py-2.5" style={{ background: T.bg }}>
-                    <span className="text-xs font-medium">{label}</span>
+                  <div key={i} className="flex items-center justify-between rounded-xl px-3 py-2.5" style={{ background: T.bg }}>
+                    <span className="text-xs font-medium">{d.label}</span>
                     <span className="text-xs font-bold" style={{ color: r === ingTotal ? T.good : PENDING_COLOR }}>
                       {r} من {ingTotal}
                     </span>

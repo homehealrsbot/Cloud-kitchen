@@ -2,8 +2,8 @@
 
 import { Fragment, useState } from "react";
 import { Search, ChevronDown, ChevronUp, Save } from "lucide-react";
-import { ALLERGENS, AllergenKey, ING_APPROVALS, ING_APPROVAL_PRICE, Ingredient } from "@/lib/ops/engine";
-import { can } from "@/lib/ops/roles";
+import { ALLERGENS, AllergenKey, IngApprovalDef, Ingredient } from "@/lib/ops/engine";
+import { ROLES, Role, can, isRole, sealsGate } from "@/lib/ops/roles";
 import { useSession } from "@/lib/ops/session";
 import { IngredientSpecs, useOps } from "@/lib/ops/store";
 import * as actions from "../actions";
@@ -17,9 +17,9 @@ export default function IngredientsPage() {
   const role = session?.role ?? null;
   const canSpecs = can(role, "ingredients.editSpecs");
   const canPrice = can(role, "ingredients.editPrice");
-  const canApprove = can(role, "ingApproval.edit");
-  const canApprovePrice = can(role, "ingApproval.editPrice");
   const showFinance = can(role, "finance.view");
+  // أي اعتمادات يختمها دوري؟ من تعريفاتها في القاعدة
+  const myApprovals = ops.approvalDefs.filter((d) => sealsGate(role, d.ownerRole));
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
   const [open, setOpen] = useState<string | null>(null);
@@ -43,7 +43,7 @@ export default function IngredientsPage() {
     return true;
   });
 
-  const anyEdit = canSpecs || canPrice || canApprove || canApprovePrice;
+  const anyEdit = canSpecs || canPrice || myApprovals.length > 0;
   const cols = 8 + (showFinance ? 1 : 0);
 
   return (
@@ -123,14 +123,14 @@ export default function IngredientsPage() {
                     </Td>
                     <Td>
                       <div className="flex gap-1">
-                        {approvals.map((s, i) => {
-                          if (i === ING_APPROVAL_PRICE && !showFinance) return null;
+                        {ops.approvalDefs.map((d) => {
+                          if (d.kind === "price" && !showFinance) return null;
                           return (
                             <span
-                              key={i}
-                              title={`${ING_APPROVALS[i]}`}
+                              key={d.index}
+                              title={d.label}
                               className="inline-block rounded-full"
-                              style={{ width: 9, height: 9, background: statusColors(s).fg }}
+                              style={{ width: 9, height: 9, background: statusColors(approvals[d.index] ?? "PENDING").fg }}
                             />
                           );
                         })}
@@ -146,10 +146,11 @@ export default function IngredientsPage() {
                           key={ing.key}
                           ing={ing}
                           approvals={approvals}
+                          defs={ops.approvalDefs}
+                          stamps={ops.ingApprovalStamps(ing.key)}
+                          role={role}
                           canSpecs={canSpecs}
                           canPrice={canPrice}
-                          canApprove={canApprove}
-                          canApprovePrice={canApprovePrice}
                           showFinance={showFinance}
                           onError={setError}
                         />
@@ -170,19 +171,21 @@ export default function IngredientsPage() {
 function Editor({
   ing,
   approvals,
+  defs,
+  stamps,
+  role,
   canSpecs,
   canPrice,
-  canApprove,
-  canApprovePrice,
   showFinance,
   onError,
 }: {
   ing: Ingredient;
   approvals: ("READY" | "PENDING" | "HOLD")[];
+  defs: IngApprovalDef[];
+  stamps: Record<number, { by: string; at: string }>;
+  role: Role | null;
   canSpecs: boolean;
   canPrice: boolean;
-  canApprove: boolean;
-  canApprovePrice: boolean;
   showFinance: boolean;
   onError: (e: string) => void;
 }) {
@@ -273,22 +276,36 @@ function Editor({
         <div>
           <div className="text-[11px] font-bold mb-2" style={{ color: T.brand }}>اعتماد المكوّن</div>
           <div className="space-y-2">
-            {ING_APPROVALS.map((label, i) => {
-              const isPrice = i === ING_APPROVAL_PRICE;
-              if (isPrice && !showFinance) return null;
-              const editable = isPrice ? canApprovePrice : canApprove;
+            {defs.map((d) => {
+              if (d.kind === "price" && !showFinance) return null;
+              const i = d.index;
+              const editable = sealsGate(role, d.ownerRole);
+              const stamp = stamps[i];
               return (
-                <div key={label} className="flex items-center justify-between gap-2 rounded-lg px-3 py-2" style={{ background: T.surface }}>
-                  <span className="text-xs">{label}</span>
-                  <TriState
-                    value={approvals[i]}
-                    disabled={!editable}
-                    allowHold={false}
-                    onChange={async (v) => {
-                      const r = await actions.setIngApproval(ing.key, i, v);
-                      onError(r.ok ? "" : r.error);
-                    }}
-                  />
+                <div key={i} className="rounded-lg px-3 py-2" style={{ background: T.surface }}>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs">
+                      {d.label}
+                      <span className="text-[10px] mr-1.5" style={{ color: T.inkSoft }}>
+                        ({isRole(d.ownerRole) ? ROLES[d.ownerRole].label : "محسوب"})
+                      </span>
+                    </span>
+                    <TriState
+                      value={approvals[i] ?? "PENDING"}
+                      disabled={!editable}
+                      allowHold={false}
+                      onChange={async (v) => {
+                        const r = await actions.setIngApproval(ing.key, i, v);
+                        onError(r.ok ? "" : r.error);
+                      }}
+                    />
+                  </div>
+                  {approvals[i] === "READY" && stamp?.by && (
+                    <div className="text-[10px] mt-1" style={{ color: T.good }}>
+                      اعتمده {stamp.by}
+                      {stamp.at ? ` · ${new Date(stamp.at).toLocaleDateString("ar-SA")}` : ""}
+                    </div>
+                  )}
                 </div>
               );
             })}

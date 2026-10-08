@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { BookOpen, Plus, Trash2, Save, Undo2, CheckCircle2, AlertTriangle } from "lucide-react";
-import { GATES, ING_TYPE_LABEL, IngType, MAX_RECIPE_LINES, SECTIONS, GATES_RESET_ON_RECIPE_CHANGE } from "@/lib/ops/engine";
+import { ING_TYPE_LABEL, IngType, MAX_RECIPE_LINES, SECTIONS, gatesResetOnRecipeChange } from "@/lib/ops/engine";
 import { can } from "@/lib/ops/roles";
 import { useSession } from "@/lib/ops/session";
 import { useOps } from "@/lib/ops/store";
@@ -58,8 +58,12 @@ export default function RecipesPage() {
   );
   const kcalDiff = totals.kcal ? Math.abs(totals.kcal - (4 * totals.protein + 4 * totals.carb + 9 * totals.fat)) / totals.kcal : 0;
   const kcalOk = kcalDiff <= ops.data.settings.kcalDiffMax;
-  // نستخدم نفس القائمة اللي يطبقها المخزن فعلياً عند الحفظ — بدل أرقام مكتوبة يدوياً تختلف عنه
-  const readyGatesAffected = GATES_RESET_ON_RECIPE_CHANGE.filter((gi) => view.gates[gi] === "READY").map((gi) => GATES[gi]);
+  // نفس الشرط اللي يطبّقه محفّز reset_gates_on_recipe_change في القاعدة:
+  // بوابة نشطة، عليها resets_on_recipe_change، ولها مالك (المحسوبة تُعاد
+  // حسابها لا تُرجَع)، وحالتها READY الآن. فما تختلف الرسالة عن السلوك.
+  const readyGatesAffected = gatesResetOnRecipeChange(ops.data.gateDefs)
+    .filter((d) => d.ownerRole !== null && view.gates[d.index] === "READY")
+    .map((d) => d.label);
 
   function pick(id: string) {
     setSkuId(id);

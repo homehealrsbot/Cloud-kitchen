@@ -49,6 +49,9 @@ export type Cap =
   | "quality.editGates"
   | "quality.editPriceGate"
   | "quality.editShelfLife"
+  | "gateDefs.manage"
+  | "pilot.edit"
+  | "kitchenGate.edit"
   | "ingApproval.edit"
   | "ingApproval.editPrice"
   | "finance.view"
@@ -80,6 +83,9 @@ export const MATRIX: Record<Cap, Role[]> = {
   "quality.editGates": ["quality"],
   "quality.editPriceGate": ["executive"],
   "quality.editShelfLife": ["quality"],
+  "gateDefs.manage": ["executive"],
+  "pilot.edit": ["quality"],
+  "kitchenGate.edit": ["kitchen"],
   "ingApproval.edit": ["quality"],
   "ingApproval.editPrice": ["executive"],
   "finance.view": ["executive"],
@@ -97,7 +103,34 @@ export function can(role: Role | null | undefined, cap: Cap): boolean {
   return !!role && MATRIX[cap].includes(role);
 }
 
-// جدول الصلاحيات المعروض للمستخدم (مين يسوي إيش)
+export function isRole(v: unknown): v is Role {
+  return typeof v === "string" && (ALL as string[]).includes(v);
+}
+
+/**
+ * مين يختم بوابة اعتماد؟ الدور المكتوب في owner_role في تعريفها بقاعدة
+ * البيانات — لا رقم بوابة مكتوب في الكود.
+ *
+ * كان الشرط «البوابة ٧ للتنفيذي وما عداها للجودة»، مكرراً في ثلاث أماكن:
+ * السياسة، والـAction، والشاشة. أي بوابة جديدة كانت تحتاج تعديل الثلاثة.
+ * الآن الشرط واحد ومصدره صف التعريف، ونفس التعبير حرفياً في سياسة RLS على
+ * ops_gates و ops_ing_approvals، فما تعرض الواجهة زراً ترفضه القاعدة.
+ *
+ * ownerRole = null يعني بوابة محسوبة (تجارب Pilot + قرار الشيف): ما يختمها
+ * أحد يدوياً، يكتبها محفّز في القاعدة.
+ *
+ * ومين يملك تغيير التعريفات نفسها (يضيف بوابة، يوقفها، ينقل ملكيتها)؟
+ * الإدارة التنفيذية وحدها — صلاحية "gateDefs.manage".
+ */
+export function sealsGate(role: Role | null | undefined, ownerRole: string | null | undefined): boolean {
+  return !!role && !!ownerRole && role === ownerRole;
+}
+
+// جدول الصلاحيات المعروض للمستخدم (مين يسوي إيش) — الميزات الثابتة فقط.
+//
+// صفوف البوابات والاعتمادات ما هي مكتوبة هنا: تُبنى من التعريفات في القاعدة
+// عبر approvalPermissionRows أدناه. قبل كان السطر «بوابات الجودة (7 بوابات)»
+// — رقم في نص، يكذب أول ما تضيف الأقسام بوابة.
 export const PERMISSION_ROWS: { label: string; view: Cap; edit?: Cap }[] = [
   { label: "خطة الإنتاج (عدد الحصص)", view: "production.view", edit: "production.edit" },
   { label: "قائمة المشتريات (كميات)", view: "shopping.view" },
@@ -106,15 +139,39 @@ export const PERMISSION_ROWS: { label: string; view: Cap; edit?: Cap }[] = [
   { label: "الوصفات (الجرامات)", view: "recipes.view", edit: "recipes.edit" },
   { label: "المكوّنات: القيم الغذائية والحساسية", view: "ingredients.view", edit: "ingredients.editSpecs" },
   { label: "المكوّنات: الأسعار", view: "finance.view", edit: "ingredients.editPrice" },
-  { label: "بوابات الجودة (7 بوابات)", view: "quality.view", edit: "quality.editGates" },
-  { label: "بوابة السعر والهامش", view: "quality.view", edit: "quality.editPriceGate" },
-  { label: "اعتماد المورد وإقرار الحساسية", view: "ingredients.view", edit: "ingApproval.edit" },
+  { label: "تسجيل تجارب Pilot", view: "quality.view", edit: "pilot.edit" },
+  { label: "قرار الشيف على بوابة المطبخ", view: "quality.view", edit: "kitchenGate.edit" },
   { label: "الأسعار والتكاليف والهوامش", view: "finance.view" },
   { label: "إعدادات الحصص والتكلفة", view: "settings.edit", edit: "settings.edit" },
   { label: "هندسة المنيو (المبيعات)", view: "engineering.view", edit: "engineering.view" },
   { label: "سجل التعديلات", view: "audit.view" },
   { label: "الفريق والصلاحيات", view: "team.manage", edit: "team.manage" },
+  { label: "تعريف بوابات الاعتماد (إضافة/إيقاف/نقل ملكية)", view: "quality.view", edit: "gateDefs.manage" },
 ];
+
+/** صف صلاحية لبوابة اعتماد واحدة، مبني من تعريفها لا من الكود. */
+export interface ApprovalPermissionRow {
+  label: string;
+  owner: Role | null;
+  computed: boolean; // بوابة محسوبة: ما يختمها أحد يدوياً
+  active: boolean;
+}
+
+/**
+ * يحوّل تعريفات البوابات والاعتمادات إلى صفوف صلاحيات للعرض. النوع هنا بنيوي
+ * بقصد (label / ownerRole / active) عشان ملف الأدوار يبقى بلا استيراد من
+ * المحرك — طبقة الصلاحيات ما تعرف شي عن المعادلات.
+ */
+export function approvalPermissionRows(
+  defs: readonly { label: string; ownerRole: string | null; active: boolean }[],
+): ApprovalPermissionRow[] {
+  return defs.map((d) => ({
+    label: d.label,
+    owner: isRole(d.ownerRole) ? d.ownerRole : null,
+    computed: d.ownerRole === null,
+    active: d.active,
+  }));
+}
 
 // أي مسار يحتاج أي صلاحية — الأطول أولاً
 export const ROUTE_CAPS: { prefix: string; cap: Cap }[] = [
@@ -125,7 +182,9 @@ export const ROUTE_CAPS: { prefix: string; cap: Cap }[] = [
   { prefix: "/admin/ops/rotation", cap: "rotation.view" },
   { prefix: "/admin/ops/recipes", cap: "recipes.view" },
   { prefix: "/admin/ops/ingredients", cap: "ingredients.view" },
+  { prefix: "/admin/ops/kitchen-gate", cap: "quality.view" },
   { prefix: "/admin/ops/quality", cap: "quality.view" },
+  { prefix: "/admin/ops/pilot", cap: "quality.view" },
   { prefix: "/admin/ops", cap: "ops.view" },
   { prefix: "/admin/team", cap: "team.manage" },
   { prefix: "/admin/executive", cap: "legacy.executive" },

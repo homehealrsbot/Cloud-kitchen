@@ -96,6 +96,7 @@ export interface Settings {
   appSalesShare: number;
   marginWarnPct: number;
   shelfLifeApprovalH: number; // أي صلاحية معلنة أعلى من هذا الحد تحتاج اعتماد بوابة الصلاحية
+  pilotPassesRequired: number; // كم تجربة Pilot ناجحة تحتاجها بوابة المطبخ — مُدخل، لا رقم ثابت
 }
 
 export interface Rotation {
@@ -111,32 +112,102 @@ export interface OpsData {
   menu: MenuItem[];
   rotation: Rotation;
   settings: Settings;
+  // تعريفات البوابات والاعتمادات: بيانات تجي من القاعدة مع الباقي، عشان
+  // المحرك والشاشات والقاعدة كلهم يحسبون على نفس العدد ونفس الأدوار.
+  gateDefs: GateDef[];
+  ingApprovalDefs: IngApprovalDef[];
 }
 
-// ---------------- بوابات الجودة ----------------
+// ---------------- بوابات الجودة: تعريفاتها مُدخلات لا ثوابت ----------------
+//
+// كانت البوابات مصفوفة ثابتة في الكود، وعددها (٨) مكتوب في شرط النشر. يعني لو
+// أضافت الجودة بوابة تاسعة لازم تعديل كود. الآن التعريفات صفوف في
+// ops_gate_defs و ops_ing_approval_defs: الأقسام تضيف وتوقف وتعيد الترتيب،
+// والمحرك يقرأ العدد والأدوار من البيانات.
+//
+// ولهذا ما فيه هنا ولا رقم بوابة: اللي كان GATE_SHELF = 5 صار "البوابة اللي
+// نوعها shelf"، واللي كان GATE_PRICE = 7 صار "اللي نوعها price". النوع (kind)
+// هو العقد الثابت بين البيانات والمعادلات؛ الأرقام تتغيّر.
 
-export const GATES = [
-  "وصفة + Pilot",
-  "مكوّنات وموردون",
-  "حساسية",
-  "تغذية",
-  "سلامة الغذاء",
-  "صلاحية",
-  "ملصق",
-  "سعر وهامش",
-] as const;
+export type GateKind = "standard" | "kitchen_pilot" | "shelf" | "price";
 
-export const GATE_SHELF = 5;
-export const GATE_PRICE = 7;
+export interface GateDef {
+  index: number;
+  label: string;
+  kind: GateKind;
+  ownerRole: string | null; // null = محسوبة، ما يعتمدها أحد يدوياً
+  resetsOnRecipeChange: boolean;
+  active: boolean;
+  note: string;
+}
 
-// البوابات اللي ترجع "بانتظار الاعتماد" إذا تغيّرت الوصفة:
-// الوصفة + Pilot، الحساسية، التغذية، الملصق، السعر والهامش.
-// مصدر واحد — يستخدمه المخزن عند الحفظ وتستخدمه صفحة الوصفات في رسالة التنبيه،
-// عشان ما تختلف الرسالة عن السلوك الفعلي.
-export const GATES_RESET_ON_RECIPE_CHANGE: readonly number[] = [0, 2, 3, 6, GATE_PRICE];
+export type IngApprovalKind = "standard" | "supplier" | "allergen" | "price";
 
-export const ING_APPROVALS = ["اعتماد المورد", "إقرار الحساسية", "سعر موثّق"] as const;
-export const ING_APPROVAL_PRICE = 2;
+export interface IngApprovalDef {
+  index: number;
+  label: string;
+  kind: IngApprovalKind;
+  ownerRole: string | null;
+  active: boolean;
+  note: string;
+}
+
+/** التعريفات النشطة مرتّبة. أي منطق يحتاج «عدد البوابات» يسأل هذي، ما يكتب رقماً. */
+export function activeGates(defs: readonly GateDef[]): GateDef[] {
+  return defs.filter((d) => d.active).sort((a, b) => a.index - b.index);
+}
+
+export function activeIngApprovals(defs: readonly IngApprovalDef[]): IngApprovalDef[] {
+  return defs.filter((d) => d.active).sort((a, b) => a.index - b.index);
+}
+
+/** أول بوابة نشطة من نوع معيّن، أو null إذا القسم شالها. */
+export function gateOfKind(defs: readonly GateDef[], kind: GateKind): GateDef | null {
+  return activeGates(defs).find((d) => d.kind === kind) ?? null;
+}
+
+export function ingApprovalOfKind(defs: readonly IngApprovalDef[], kind: IngApprovalKind): IngApprovalDef | null {
+  return activeIngApprovals(defs).find((d) => d.kind === kind) ?? null;
+}
+
+export function gateByIndex(defs: readonly GateDef[], index: number): GateDef | null {
+  return defs.find((d) => d.index === index) ?? null;
+}
+
+export function ingApprovalByIndex(defs: readonly IngApprovalDef[], index: number): IngApprovalDef | null {
+  return defs.find((d) => d.index === index) ?? null;
+}
+
+/**
+ * البوابات اللي ترجع «بانتظار الاعتماد» إذا تغيّرت الوصفة — من عمود
+ * resets_on_recipe_change. مصدر واحد: يستخدمه الحفظ وتستخدمه رسالة التنبيه في
+ * شاشة الوصفات، فما تختلف الرسالة عن السلوك.
+ */
+export function gatesResetOnRecipeChange(defs: readonly GateDef[]): GateDef[] {
+  return activeGates(defs).filter((d) => d.resetsOnRecipeChange);
+}
+
+/**
+ * الحالات مفهرسة برقم البوابة (لا بموقعها في المصفوفة) عشان إيقاف بوابة وسط
+ * القائمة ما يزحزح اللي بعدها. الصف الناقص = PENDING.
+ */
+export function gateStatuses(
+  defs: readonly GateDef[],
+  stored?: readonly (GateStatus | undefined)[],
+): GateStatus[] {
+  const out: GateStatus[] = [];
+  for (const d of activeGates(defs)) out[d.index] = stored?.[d.index] ?? "PENDING";
+  return out;
+}
+
+export function ingApprovalStatuses(
+  defs: readonly IngApprovalDef[],
+  stored?: readonly (GateStatus | undefined)[],
+): GateStatus[] {
+  const out: GateStatus[] = [];
+  for (const d of activeIngApprovals(defs)) out[d.index] = stored?.[d.index] ?? "PENDING";
+  return out;
+}
 
 export const SECTIONS = ["رئيسي", "فطور", "سناك", "شوربة", "سلطة", "حلا"];
 export const MAIN_SECTION = "رئيسي";
@@ -331,25 +402,44 @@ export interface SkuQuality {
   blocker: string; // العائق الأول ("" إذا جاهز)
   alert: string; // تنبيه آلي ("" إذا ما فيه)
   readyCount: number;
+  total: number; // عدد البوابات النشطة وقت الحساب — يتغيّر إذا غيّرت الأقسام التعريفات
 }
 
-export function defaultGates(): GateStatus[] {
-  return GATES.map(() => "PENDING" as GateStatus);
-}
+/**
+ * حالة الصنف من بواباته. العدد المطلوب للنشر = عدد البوابات النشطة، يُقرأ من
+ * التعريفات لا من رقم مكتوب — ونفس الشرط مفروض في سياسة RLS على ops_menu_items،
+ * فالواجهة والقاعدة ما يختلفون.
+ */
+export function deriveSkuQuality(
+  gates: readonly (GateStatus | undefined)[],
+  shelfLifeH: number,
+  settings: Settings,
+  gateDefs: readonly GateDef[],
+): SkuQuality {
+  const active = activeGates(gateDefs);
+  const total = active.length;
+  const at = (d: GateDef): GateStatus => gates[d.index] ?? "PENDING";
+  const readyCount = active.filter((d) => at(d) === "READY").length;
 
-export function deriveSkuQuality(gates: GateStatus[], shelfLifeH: number, settings: Settings): SkuQuality {
-  const g = GATES.map((_, i) => gates[i] ?? "PENDING");
-  const readyCount = g.filter((s) => s === "READY").length;
-  // تنبيه آلي: صلاحية معلنة طويلة بدون اعتماد بوابة الصلاحية = إيقاف
-  if (shelfLifeH > settings.shelfLifeApprovalH && g[GATE_SHELF] !== "READY") {
-    const alert = `صلاحية معلنة ${shelfLifeH} س بلا اعتماد`;
-    return { status: "HOLD", blocker: alert, alert, readyCount };
+  // ما فيه بوابات معرّفة = ما فيه اعتماد، فما ينشر شي. (حراسة إعداد، لا قاعدة عمل:
+  // لو سمحنا بالنشر هنا يصير حذف التعريفات طريقاً لتجاوز الاعتماد كله.)
+  if (total === 0) {
+    const alert = "ما فيه بوابات اعتماد معرّفة";
+    return { status: "HOLD", blocker: alert, alert, readyCount: 0, total: 0 };
   }
-  const holdIdx = g.indexOf("HOLD");
-  if (holdIdx >= 0) return { status: "HOLD", blocker: GATES[holdIdx], alert: "", readyCount };
-  if (readyCount === GATES.length) return { status: "READY", blocker: "", alert: "", readyCount };
-  const firstOpen = g.findIndex((s) => s !== "READY");
-  return { status: "PENDING", blocker: GATES[firstOpen], alert: "", readyCount };
+
+  // تنبيه آلي: صلاحية معلنة أطول من الحد بلا اعتماد بوابة الصلاحية = إيقاف
+  const shelf = gateOfKind(gateDefs, "shelf");
+  if (shelf && shelfLifeH > settings.shelfLifeApprovalH && at(shelf) !== "READY") {
+    const alert = `صلاحية معلنة ${shelfLifeH} س بلا اعتماد`;
+    return { status: "HOLD", blocker: alert, alert, readyCount, total };
+  }
+
+  const held = active.find((d) => at(d) === "HOLD");
+  if (held) return { status: "HOLD", blocker: held.label, alert: "", readyCount, total };
+  if (readyCount === total) return { status: "READY", blocker: "", alert: "", readyCount, total };
+  const open = active.find((d) => at(d) !== "READY");
+  return { status: "PENDING", blocker: open?.label ?? "", alert: "", readyCount, total };
 }
 
 export const STATUS_LABEL: Record<SkuStatus, string> = {
@@ -357,6 +447,103 @@ export const STATUS_LABEL: Record<SkuStatus, string> = {
   PENDING: "بانتظار الاعتماد",
   HOLD: "متوقف",
 };
+
+// ---------------- تجارب Pilot وبوابة المطبخ ----------------
+//
+// البوابة اللي نوعها kitchen_pilot محسوبة لا مُدخلة: الجودة تسجّل التجارب،
+// والشيف يقرّر، والقاعدة تختم البوابة بمحفّز (private.sync_kitchen_pilot_gate).
+// الدوال هنا تعيد نفس الحساب للعرض فقط — الحقيقة في القاعدة.
+
+export type PilotResult = "PASS" | "FAIL";
+
+export interface PilotTrial {
+  index: number;
+  result: PilotResult | null; // null = خانة تجربة ما سُجّلت بعد
+  cookedPortionG: number | null;
+  date: string | null;
+  notes: string;
+  recordedAt: string;
+}
+
+export interface KitchenGateRecord {
+  decision: GateStatus;
+  chefName: string;
+  approvedAt: string | null;
+  note: string;
+}
+
+export interface GateCheck {
+  label: string;
+  ok: boolean;
+  detail: string;
+}
+
+export interface KitchenPilotView {
+  passes: number;
+  fails: number;
+  required: number | null; // null = المفتاح غير مُعد في الإعدادات
+  trialsOk: boolean;
+  checks: GateCheck[];
+  record: KitchenGateRecord | null;
+  status: GateStatus;
+  blocker: string;
+}
+
+/**
+ * الفحوص المحسوبة اللي يشوفها الشيف قبل قراره. كلها مشتقّة من بيانات موجودة
+ * (الوصفة، المكوّنات، السعرات، التجارب) — ما فيها إدخال يدوي، فما تُجمّل.
+ */
+export function deriveKitchenPilot(
+  sku: ComputedSku,
+  trials: readonly PilotTrial[],
+  record: KitchenGateRecord | null,
+  settings: Settings,
+): KitchenPilotView {
+  const passes = trials.filter((t) => t.result === "PASS").length;
+  const fails = trials.filter((t) => t.result === "FAIL").length;
+  const required = Number.isFinite(settings.pilotPassesRequired) ? settings.pilotPassesRequired : null;
+  const trialsOk = required !== null && passes >= required;
+  const missing = sku.lines.filter((l) => l.missing);
+
+  const checks: GateCheck[] = [
+    {
+      label: "الوصفة مكتملة",
+      ok: sku.lines.length > 0,
+      detail: sku.lines.length ? `${sku.lines.length} سطر` : "ما فيه سطور وصفة",
+    },
+    {
+      label: "كل المكوّنات معروفة",
+      ok: missing.length === 0,
+      detail: missing.length ? `مجهولة: ${missing.map((l) => l.ing).join("، ")}` : "لا يوجد مكوّن مجهول",
+    },
+    {
+      label: "اتساق السعرات مع الماكروز",
+      ok: sku.kcalDiffOk,
+      detail: `فرق ${(sku.kcalDiff * 100).toFixed(1)}% (الحد ${(settings.kcalDiffMax * 100).toFixed(0)}%)`,
+    },
+    {
+      label: "تجارب Pilot ناجحة",
+      ok: trialsOk,
+      detail:
+        required === null
+          ? "عدد التجارب المطلوبة غير مُعد في الإعدادات"
+          : `${passes} من ${required}${fails ? ` — وفاشلة ${fails}` : ""}`,
+    },
+  ];
+
+  const decision = record?.decision ?? "PENDING";
+  if (decision === "HOLD") {
+    return { passes, fails, required, trialsOk, checks, record, status: "HOLD", blocker: "أوقفها المطبخ" };
+  }
+  const failed = checks.find((c) => !c.ok);
+  if (failed) {
+    return { passes, fails, required, trialsOk, checks, record, status: "PENDING", blocker: failed.label };
+  }
+  if (decision !== "READY") {
+    return { passes, fails, required, trialsOk, checks, record, status: "PENDING", blocker: "بانتظار قرار الشيف" };
+  }
+  return { passes, fails, required, trialsOk, checks, record, status: "READY", blocker: "" };
+}
 
 // ---------------- خطة الإنتاج والمشتريات ----------------
 

@@ -15,19 +15,27 @@ import baseSettings from "@/data/ops/settings.json";
 import {
   AllergenKey,
   ComputedSku,
-  GATES,
+  GateDef,
   GateStatus,
-  ING_APPROVALS,
+  IngApprovalDef,
   Ingredient,
+  KitchenGateRecord,
+  KitchenPilotView,
   MenuItem,
   OpsData,
+  PilotTrial,
   RecipeLine,
   Settings,
   SkuQuality,
+  activeGates,
+  activeIngApprovals,
   computeMenu,
+  deriveKitchenPilot,
   deriveSkuQuality,
+  gateStatuses,
+  ingApprovalStatuses,
 } from "./engine";
-import type { AuditEntry, OpsSnapshot } from "./types";
+import type { AuditEntry, GateStamp, OpsSnapshot } from "./types";
 
 export type { AuditEntry, OpsSnapshot, ActionResult } from "./types";
 
@@ -46,9 +54,13 @@ export const BASE_DATA = {
 
 export interface SkuView {
   sku: ComputedSku;
-  gates: GateStatus[];
+  gates: GateStatus[]; // مفهرسة برقم البوابة
   notes: Record<number, string>;
+  stamps: Record<number, GateStamp>; // من ختم كل بوابة ومتى
   quality: SkuQuality;
+  trials: PilotTrial[];
+  chef: KitchenGateRecord | null;
+  pilot: KitchenPilotView;
 }
 
 /** نفس الشكل اللي كانت الشاشات تستخدمه — ما تغيّر شي من ناحيتها. */
@@ -64,7 +76,11 @@ export interface OpsView {
   computed: ComputedSku[];
   skus: SkuView[];
   skuMap: Map<string, SkuView>;
+  /** تعريفات البوابات النشطة مرتّبة — الشاشات تدور عليها بدل مصفوفة ثابتة. */
+  gateDefs: GateDef[];
+  approvalDefs: IngApprovalDef[];
   ingApprovals: (key: string) => GateStatus[];
+  ingApprovalStamps: (key: string) => Record<number, GateStamp>;
   recipesEdited: boolean;
 }
 
@@ -84,6 +100,8 @@ export function useOps(): OpsView {
         menu: [],
         rotation: { slotLabels: [], slotRule: [], days: [], rules: "" },
         settings: BASE_DATA.settings,
+        gateDefs: [],
+        ingApprovalDefs: [],
       };
       return {
         ready: false,
@@ -92,20 +110,32 @@ export function useOps(): OpsView {
         computed: [],
         skus: [],
         skuMap: new Map(),
-        ingApprovals: () => ING_APPROVALS.map(() => "PENDING" as GateStatus),
+        gateDefs: [],
+        approvalDefs: [],
+        ingApprovals: () => [],
+        ingApprovalStamps: () => ({}),
         recipesEdited: false,
       };
     }
 
     const { data } = snap;
     const computed = computeMenu(data);
+    const gateDefs = activeGates(data.gateDefs);
+    const approvalDefs = activeIngApprovals(data.ingApprovalDefs);
     const skus: SkuView[] = computed.map((sku) => {
-      const gates = GATES.map((_, i) => snap.gates[sku.item.id]?.[i] ?? "PENDING") as GateStatus[];
+      const id = sku.item.id;
+      const gates = gateStatuses(data.gateDefs, snap.gates[id]);
+      const trials = snap.pilotTrials[id] ?? [];
+      const chef = snap.kitchenGate[id] ?? null;
       return {
         sku,
         gates,
-        notes: snap.gateNotes[sku.item.id] ?? {},
-        quality: deriveSkuQuality(gates, sku.item.shelfLifeH, data.settings),
+        notes: snap.gateNotes[id] ?? {},
+        stamps: snap.gateStamps[id] ?? {},
+        quality: deriveSkuQuality(gates, sku.item.shelfLifeH, data.settings, data.gateDefs),
+        trials,
+        chef,
+        pilot: deriveKitchenPilot(sku, trials, chef, data.settings),
       };
     });
 
@@ -121,8 +151,10 @@ export function useOps(): OpsView {
       computed,
       skus,
       skuMap: new Map(skus.map((s) => [s.sku.item.id, s])),
-      ingApprovals: (key: string) =>
-        ING_APPROVALS.map((_, i) => snap.ingApprovals[key]?.[i] ?? "PENDING") as GateStatus[],
+      gateDefs,
+      approvalDefs,
+      ingApprovals: (key: string) => ingApprovalStatuses(data.ingApprovalDefs, snap.ingApprovals[key]),
+      ingApprovalStamps: (key: string) => snap.ingApprovalStamps[key] ?? {},
       recipesEdited: snap.recipesEdited,
     };
   }, [snap]);

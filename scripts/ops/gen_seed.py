@@ -46,6 +46,7 @@ def main() -> int:
     rec = json.loads((DATA / "recipes.json").read_text(encoding="utf-8"))
     rot = json.loads((DATA / "rotation.json").read_text(encoding="utf-8"))
     settings = json.loads((DATA / "settings.json").read_text(encoding="utf-8"))
+    defs = json.loads((DATA / "gate-defs.json").read_text(encoding="utf-8"))
 
     # --- فحص سلامة قبل التوليد: نفس فحوصات integrityChecks في المحرك ---
     ing_keys = {i["key"] for i in ing}
@@ -66,6 +67,31 @@ def main() -> int:
     missing = sections - set(settings["sections"].keys())
     if missing:
         errors.append(f"أقسام في المنيو بلا إعدادات: {missing}")
+
+    # تعريفات البوابات: النوع المحسوب لازم بلا مالك، وغيره لازم له مالك،
+    # والأنواع الفريدة ما تتكرر — نفس ما يفرضه setGateDef في التطبيق.
+    roles = {"executive", "kitchen", "quality"}
+    seen_idx = set()
+    for g in defs["gates"]:
+        if g["index"] in seen_idx:
+            errors.append(f"رقم بوابة مكرر: {g['index']}")
+        seen_idx.add(g["index"])
+        if g["kind"] == "kitchen_pilot":
+            if g["ownerRole"] is not None:
+                errors.append(f"بوابة محسوبة لها مالك: {g['label']}")
+        elif g["ownerRole"] not in roles:
+            errors.append(f"بوابة بلا مالك صحيح: {g['label']} -> {g['ownerRole']}")
+    for kind in ("kitchen_pilot", "shelf", "price"):
+        n = sum(1 for g in defs["gates"] if g["kind"] == kind)
+        if n > 1:
+            errors.append(f"نوع بوابة فريد مكرر: {kind} ({n})")
+    if not any(g["kind"] == "shelf" for g in defs["gates"]):
+        errors.append("ما فيه بوابة صلاحية — تنبيه الصلاحية الطويلة ما يشتغل")
+    for a in defs["ingredientApprovals"]:
+        if a["ownerRole"] not in roles:
+            errors.append(f"اعتماد مكوّن بلا مالك صحيح: {a['label']}")
+    if settings.get("pilotPassesRequired") is None:
+        errors.append("pilotPassesRequired ناقص من settings.json — بوابة المطبخ ما تُختم أبداً")
     if errors:
         print("فحص السلامة فشل — ما تم توليد الملف:", file=sys.stderr)
         for e in errors:
@@ -141,6 +167,35 @@ def main() -> int:
     w(";")
     w("")
 
+    # --- تعريفات البوابات والاعتمادات ---
+    # قيم بداية فقط: بعد التشغيل تملكها الإدارة التنفيذية. ولهذا do nothing على
+    # الصفوف الموجودة — إعادة تنفيذ seed.sql ما تمسح تعديلاتها ولا تعيد تنشيط
+    # بوابة أوقفتها، بخلاف باقي الجداول اللي مصدرها الإكسل.
+    w(f"-- {len(defs['gates'])} بوابة اعتماد (قيم بداية — لا تُكتب فوق الموجود)")
+    w("insert into ops_gate_defs (gate_index, label, kind, owner_role, resets_on_recipe_change, active, note) values")
+    rows = []
+    for g in defs["gates"]:
+        owner = "null" if g["ownerRole"] is None else f"{q(g['ownerRole'])}::staff_role"
+        rows.append(
+            f"  ({int(g['index'])}, {q(g['label'])}, {q(g['kind'])}, {owner}, "
+            f"{'true' if g['resetsOnRecipeChange'] else 'false'}, true, {q(g.get('note',''))})"
+        )
+    w(",\n".join(rows))
+    w("on conflict (gate_index) do nothing;")
+    w("")
+
+    w(f"-- {len(defs['ingredientApprovals'])} اعتماد مكوّن (قيم بداية)")
+    w("insert into ops_ing_approval_defs (approval_index, label, kind, owner_role, active, note) values")
+    rows = []
+    for a in defs["ingredientApprovals"]:
+        rows.append(
+            f"  ({int(a['index'])}, {q(a['label'])}, {q(a['kind'])}, "
+            f"{q(a['ownerRole'])}::staff_role, true, {q(a.get('note',''))})"
+        )
+    w(",\n".join(rows))
+    w("on conflict (approval_index) do nothing;")
+    w("")
+
     # --- الإعدادات ---
     w("-- إعدادات الحصص والتكلفة والتسعير")
     w(f"insert into ops_settings (id, data) values (1, {jsonb(settings)})")
@@ -175,6 +230,7 @@ def main() -> int:
     w("--   select count(*) from ops_menu_items;    -- المتوقع " + str(len(men)))
     w("--   select count(*) from ops_recipe_lines;  -- المتوقع " + str(len(rec)))
     w("--   select count(*) from ops_rotation;      -- المتوقع " + str(total_slots))
+    w("--   select count(*) from ops_gate_defs;     -- المتوقع " + str(len(defs["gates"])))
     w("")
 
     OUT.write_text("\n".join(L), encoding="utf-8")
