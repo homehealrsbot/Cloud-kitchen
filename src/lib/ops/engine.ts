@@ -47,9 +47,12 @@ export interface Ingredient {
   fiber: number;
   price: number; // ر.س / كجم
   allergenText: string;
-  source: string;
+  source: string; // مصدر القيم الغذائية (USDA وغيره) — لا المورد
   flags: Record<AllergenKey, boolean>;
   hidden: string; // مواد خفية محتملة
+  supplier: string; // المورد المعتمد — تكتبه الجودة
+  supplierNote: string;
+  priceQuoteDate: string | null; // تاريخ عرض السعر — يكتبه التنفيذي
 }
 
 export interface RecipeLine {

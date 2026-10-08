@@ -39,7 +39,10 @@ import type { AuditEntry, GateStamp, OpsSnapshot } from "./types";
 
 export type { AuditEntry, OpsSnapshot, ActionResult } from "./types";
 
-export type IngredientSpecs = Pick<Ingredient, "kcal" | "protein" | "carb" | "fat" | "fiber" | "hidden" | "flags">;
+export type IngredientSpecs = Pick<
+  Ingredient,
+  "kcal" | "protein" | "carb" | "fat" | "fiber" | "hidden" | "flags" | "supplier" | "supplierNote"
+>;
 
 /**
  * قيم الملف الأصلي (الإكسل) — تُستخدم فقط للمقارنة في شاشة الإعدادات

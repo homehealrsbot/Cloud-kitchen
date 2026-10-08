@@ -197,6 +197,8 @@ function Editor({
     fiber: ing.fiber,
     hidden: ing.hidden,
     flags: { ...ing.flags },
+    supplier: ing.supplier,
+    supplierNote: ing.supplierNote,
   });
   const [savedMsg, setSavedMsg] = useState("");
   const fields: { k: "kcal" | "protein" | "carb" | "fat" | "fiber"; label: string }[] = [
@@ -255,7 +257,34 @@ function Editor({
               style={{ borderColor: T.border, background: canSpecs ? "#FFFDF5" : T.bg, color: T.ink }}
             />
           </label>
-          {ing.source && <div className="text-[10px] mt-2" style={{ color: T.inkSoft }}>المصدر: {ing.source}</div>}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3">
+            <label className="text-[10px] block" style={{ color: T.inkSoft }}>
+              <span className="block mb-1">المورد المعتمد</span>
+              <input
+                value={specs.supplier}
+                disabled={!canSpecs}
+                placeholder="اسم المورد"
+                onChange={(e) => { setSavedMsg(""); setSpecs((s) => ({ ...s, supplier: e.target.value })); }}
+                className="w-full rounded-lg border px-3 py-1.5 text-xs disabled:opacity-60"
+                style={{ borderColor: T.border, background: canSpecs ? "#FFFDF5" : T.bg, color: T.ink }}
+              />
+            </label>
+            <label className="text-[10px] block" style={{ color: T.inkSoft }}>
+              <span className="block mb-1">ملاحظة المورد (شهادات، بديل، قيود)</span>
+              <input
+                value={specs.supplierNote}
+                disabled={!canSpecs}
+                onChange={(e) => { setSavedMsg(""); setSpecs((s) => ({ ...s, supplierNote: e.target.value })); }}
+                className="w-full rounded-lg border px-3 py-1.5 text-xs disabled:opacity-60"
+                style={{ borderColor: T.border, background: canSpecs ? "#FFFDF5" : T.bg, color: T.ink }}
+              />
+            </label>
+          </div>
+          {ing.source && (
+            <div className="text-[10px] mt-2" style={{ color: T.inkSoft }}>
+              مصدر القيم الغذائية: {ing.source}
+            </div>
+          )}
           {canSpecs && (
             <button
               onClick={async () => {
@@ -324,8 +353,24 @@ function Editor({
                   onError(r.ok ? "" : r.error);
                 }}
               />
+              <label className="text-[10px] block mt-2.5" style={{ color: T.inkSoft }}>
+                <span className="block mb-1">تاريخ عرض السعر</span>
+                <input
+                  type="date"
+                  dir="ltr"
+                  defaultValue={ing.priceQuoteDate ?? ""}
+                  disabled={!canPrice}
+                  onChange={async (e) => {
+                    const r = await actions.setIngredientPrice(ing.key, ing.price, e.target.value);
+                    onError(r.ok ? "" : r.error);
+                  }}
+                  className="rounded-lg border px-3 py-1.5 text-xs disabled:opacity-60"
+                  style={{ borderColor: T.border, background: canPrice ? "#FFFDF5" : T.bg, color: T.ink }}
+                />
+              </label>
               <div className="text-[10px] mt-1.5" style={{ color: T.inkSoft }}>
                 تغيير السعر ينعكس فوراً على تكلفة وسعر كل الأصناف اللي تستخدم المكوّن.
+                و«سعر موثّق» ما يُعتمد إلا بسعر وتاريخ عرض.
               </div>
             </div>
           )}

@@ -40,6 +40,9 @@ function toIngredient(r: Row): Ingredient {
     source: String(r.source ?? ""),
     flags: (r.flags ?? {}) as Ingredient["flags"],
     hidden: String(r.hidden ?? ""),
+    supplier: String(r.supplier ?? ""),
+    supplierNote: String(r.supplier_note ?? ""),
+    priceQuoteDate: r.price_quote_date ? String(r.price_quote_date) : null,
   };
 }
 

@@ -126,9 +126,14 @@ create table ops_ingredients (
   fiber         numeric(8,2) not null default 0,
   price         numeric(10,2) not null default 0,   -- ر.س / كجم
   allergen_text text not null default '',
-  source        text not null default '',
+  source        text not null default '',          -- مصدر القيم الغذائية، لا المورد
   flags         jsonb not null default '{}'::jsonb,  -- {gluten:true, nuts:false, ...}
   hidden        text not null default '',
+  -- المورد: بوابة «مكوّنات وموردون» واعتماد «اعتماد المورد» بلا خانة يُكتب فيها
+  -- المورد = اعتماد بلا اسم. الجودة تكتبه، والتنفيذي يكتب تاريخ عرض السعر.
+  supplier         text not null default '',
+  supplier_note    text not null default '',
+  price_quote_date date,
   sort_order    int not null default 0,
   updated_at    timestamptz not null default now()
 );
@@ -692,17 +697,20 @@ as $$
 declare
   r staff_role := private.current_staff_role();
 begin
-  if new.price is distinct from old.price and r is distinct from 'executive' then
-    raise exception 'تعديل سعر المكوّن من صلاحية الإدارة التنفيذية فقط';
+  if ( new.price, new.price_quote_date ) is distinct from ( old.price, old.price_quote_date )
+     and r is distinct from 'executive' then
+    raise exception 'تعديل سعر المكوّن وتاريخ عرضه من صلاحية الإدارة التنفيذية فقط';
   end if;
 
   if ( new.kcal, new.protein, new.carb, new.fat, new.fiber,
-       new.flags, new.hidden, new.allergen_text, new.source )
+       new.flags, new.hidden, new.allergen_text, new.source,
+       new.supplier, new.supplier_note )
      is distinct from
      ( old.kcal, old.protein, old.carb, old.fat, old.fiber,
-       old.flags, old.hidden, old.allergen_text, old.source )
+       old.flags, old.hidden, old.allergen_text, old.source,
+       old.supplier, old.supplier_note )
      and r is distinct from 'quality' then
-    raise exception 'تعديل القيم الغذائية والحساسية من صلاحية الجودة والمتابعة فقط';
+    raise exception 'تعديل القيم الغذائية والحساسية والمورد من صلاحية الجودة والمتابعة فقط';
   end if;
 
   return new;

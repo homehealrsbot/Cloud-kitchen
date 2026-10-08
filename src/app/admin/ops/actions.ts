@@ -243,7 +243,11 @@ export async function saveRecipe(
 
 export async function setIngredientSpecs(
   key: string,
-  specs: { kcal: number; protein: number; carb: number; fat: number; fiber: number; hidden: string; flags: Record<string, boolean> },
+  specs: {
+    kcal: number; protein: number; carb: number; fat: number; fiber: number;
+    hidden: string; flags: Record<string, boolean>;
+    supplier: string; supplierNote: string;
+  },
 ): Promise<ActionResult> {
   const ctx = await guard("ingredients.editSpecs");
   if (isDenial(ctx)) return ctx;
@@ -257,23 +261,33 @@ export async function setIngredientSpecs(
     .update({
       kcal: specs.kcal, protein: specs.protein, carb: specs.carb,
       fat: specs.fat, fiber: specs.fiber, hidden: specs.hidden, flags: specs.flags,
+      supplier: specs.supplier.trim(), supplier_note: specs.supplierNote.trim(),
     })
     .eq("key", key);
   if (error) return dbError(error.message);
 
-  await writeAudit(ctx, "المكوّنات", `تحديث القيم الغذائية/الحساسية: ${await ingName(ctx, key)}`);
+  await writeAudit(ctx, "المكوّنات", `تحديث بيانات المكوّن: ${await ingName(ctx, key)}`);
   return done(["/admin/ops/ingredients"]);
 }
 
-export async function setIngredientPrice(key: string, price: number): Promise<ActionResult> {
+export async function setIngredientPrice(
+  key: string,
+  price: number,
+  quoteDate: string | null = null,
+): Promise<ActionResult> {
   const ctx = await guard("ingredients.editPrice");
   if (isDenial(ctx)) return ctx;
   if (!(Number(price) > 0)) return { ok: false, error: "السعر لازم يكون أكبر من صفر" };
 
-  const { error } = await ctx.supabase.from("ops_ingredients").update({ price: Number(price) }).eq("key", key);
+  // تاريخ عرض السعر يتحدّث مع السعر: سعر بلا تاريخ ما ينفع يُعتمد كـ«سعر موثّق»
+  const patch: Record<string, unknown> = { price: Number(price) };
+  if (quoteDate !== null) patch.price_quote_date = quoteDate || null;
+
+  const { error } = await ctx.supabase.from("ops_ingredients").update(patch).eq("key", key);
   if (error) return dbError(error.message);
 
-  await writeAudit(ctx, "أسعار المكوّنات", `سعر ${await ingName(ctx, key)}: ${Number(price)} ر.س/كجم`);
+  await writeAudit(ctx, "أسعار المكوّنات",
+    `سعر ${await ingName(ctx, key)}: ${Number(price)} ر.س/كجم` + (quoteDate ? ` (عرض ${quoteDate})` : ""));
   return done(["/admin/ops/ingredients"]);
 }
 
@@ -291,6 +305,27 @@ export async function setIngApproval(
   if (isDefDenial(def)) return def;
 
   if (status === "HOLD" && !note.trim()) return { ok: false, error: "سبب الرفض إجباري" };
+
+  // اعتماد بلا دليل مو اعتماد: اعتماد المورد يحتاج اسم مورد مكتوب، والسعر
+  // الموثّق يحتاج سعراً وتاريخ عرض. النوع (kind) هو اللي يحدد الشرط، فإضافة
+  // اعتماد جديد من نوع عام ما تتطلب شي.
+  if (status === "READY") {
+    const { data: ing } = await ctx.supabase
+      .from("ops_ingredients")
+      .select("supplier,price,price_quote_date")
+      .eq("key", key)
+      .maybeSingle();
+    const { data: defRow } = await ctx.supabase
+      .from("ops_ing_approval_defs").select("kind").eq("approval_index", index).maybeSingle();
+    const kind = String(defRow?.kind ?? "standard");
+    if (kind === "supplier" && !String(ing?.supplier ?? "").trim()) {
+      return { ok: false, error: "اكتب اسم المورد أولاً — ما ينفع نعتمد مورداً بلا اسم" };
+    }
+    if (kind === "price") {
+      if (!(Number(ing?.price) > 0)) return { ok: false, error: "ما فيه سعر مسجّل لهذا المكوّن" };
+      if (!ing?.price_quote_date) return { ok: false, error: "سجّل تاريخ عرض السعر أولاً" };
+    }
+  }
 
   const stamped = status === "READY";
   const { error } = await ctx.supabase.from("ops_ing_approvals").upsert({
