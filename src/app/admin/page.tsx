@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowLeft, ClipboardList, LogOut, ShieldCheck, TrendingUp, ChefHat } from "lucide-react";
+import { ArrowLeft, ClipboardList, LogOut, ShieldCheck, TrendingUp, ChefHat, Users } from "lucide-react";
 import { T } from "@/lib/kitchen-shared";
 import { OPS_MODULES } from "@/lib/ops/modules";
 import { ROLES, can } from "@/lib/ops/roles";
@@ -83,6 +83,25 @@ export default async function AdminHome() {
           ))}
         </div>
       </div>
+
+      {can(role, "team.manage") && (
+        <Link
+          href="/admin/team"
+          className="w-full max-w-md flex items-center gap-4 rounded-2xl p-4 mt-4"
+          style={{ background: T.surface, border: `1px solid ${T.border}` }}
+        >
+          <span className="rounded-full flex items-center justify-center shrink-0" style={{ width: 42, height: 42, background: T.brandTint, color: T.brand }}>
+            <Users size={19} />
+          </span>
+          <span className="flex-1">
+            <span className="block text-sm font-bold">الفريق والصلاحيات</span>
+            <span className="block text-[11px] mt-0.5" style={{ color: T.inkSoft }}>
+              أضف موظفاً، أعطه دوراً، أو أوقفه
+            </span>
+          </span>
+          <ArrowLeft size={16} style={{ color: T.inkSoft }} />
+        </Link>
+      )}
 
       <p className="text-[11px] mt-8 text-center max-w-md leading-relaxed" style={{ color: T.inkSoft }}>
         صلاحيات دورك مفروضة في قاعدة البيانات نفسها، مو بس في الواجهة — أي تعديل خارج صلاحيتك

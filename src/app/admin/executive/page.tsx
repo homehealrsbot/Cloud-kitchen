@@ -6,7 +6,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { ChefHat, ChevronRight, Package, ShoppingBag, TrendingUp, Users, Wallet } from "lucide-react";
+import { ChefHat, ChevronRight, Package, ShieldCheck, ShoppingBag, TrendingUp, Users, Wallet } from "lucide-react";
 import { T } from "@/lib/kitchen-shared";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
@@ -134,7 +134,7 @@ export default async function ExecutiveDashboard() {
           )}
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <Link href="/admin/ops" className="rounded-2xl py-3.5 text-center text-sm font-bold text-white" style={{ background: T.brandBright }}>
             <ShoppingBag size={15} className="inline ml-1.5" /> مركز العمليات
           </Link>
@@ -143,6 +143,9 @@ export default async function ExecutiveDashboard() {
           </Link>
           <Link href="/admin/ops/ingredients" className="rounded-2xl py-3.5 text-center text-sm font-bold" style={{ background: T.brandTint, color: T.brand }}>
             <Package size={15} className="inline ml-1.5" /> المكوّنات والأسعار
+          </Link>
+          <Link href="/admin/team" className="rounded-2xl py-3.5 text-center text-sm font-bold" style={{ background: T.brandTint, color: T.brand }}>
+            <ShieldCheck size={15} className="inline ml-1.5" /> الفريق والصلاحيات
           </Link>
         </div>
 

@@ -55,6 +55,7 @@ export type Cap =
   | "settings.edit"
   | "engineering.view"
   | "audit.view"
+  | "team.manage"
   | "data.reset"
   | "legacy.executive"
   | "legacy.kitchen"
@@ -85,6 +86,7 @@ export const MATRIX: Record<Cap, Role[]> = {
   "settings.edit": ["executive"],
   "engineering.view": ["executive"],
   "audit.view": ["executive"],
+  "team.manage": ["executive"],
   "data.reset": ["executive"],
   "legacy.executive": ["executive"],
   "legacy.kitchen": ["kitchen", "executive"],
@@ -111,6 +113,7 @@ export const PERMISSION_ROWS: { label: string; view: Cap; edit?: Cap }[] = [
   { label: "إعدادات الحصص والتكلفة", view: "settings.edit", edit: "settings.edit" },
   { label: "هندسة المنيو (المبيعات)", view: "engineering.view", edit: "engineering.view" },
   { label: "سجل التعديلات", view: "audit.view" },
+  { label: "الفريق والصلاحيات", view: "team.manage", edit: "team.manage" },
 ];
 
 // أي مسار يحتاج أي صلاحية — الأطول أولاً
@@ -124,6 +127,7 @@ export const ROUTE_CAPS: { prefix: string; cap: Cap }[] = [
   { prefix: "/admin/ops/ingredients", cap: "ingredients.view" },
   { prefix: "/admin/ops/quality", cap: "quality.view" },
   { prefix: "/admin/ops", cap: "ops.view" },
+  { prefix: "/admin/team", cap: "team.manage" },
   { prefix: "/admin/executive", cap: "legacy.executive" },
   { prefix: "/admin/kitchen", cap: "legacy.kitchen" },
   { prefix: "/admin/process", cap: "legacy.safetyLogs" },
