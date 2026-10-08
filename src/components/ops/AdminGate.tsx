@@ -11,7 +11,8 @@ import { usePathname } from "next/navigation";
 import { ReactNode } from "react";
 import { ShieldAlert } from "lucide-react";
 import { T } from "@/lib/kitchen-shared";
-import { MATRIX, ROLES, can, capForPath, useSession } from "@/lib/ops/roles";
+import { MATRIX, ROLES, can, capForPath } from "@/lib/ops/roles";
+import { useSession } from "@/lib/ops/session";
 
 export default function AdminGate({ children }: { children: ReactNode }) {
   const pathname = usePathname();

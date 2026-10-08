@@ -8,7 +8,7 @@
 import { redirect } from "next/navigation";
 import AdminGate from "@/components/ops/AdminGate";
 import NotConfigured from "@/components/auth/NotConfigured";
-import { RoleProvider } from "@/lib/ops/roles";
+import { RoleProvider } from "@/lib/ops/session";
 import { getCurrentUser } from "@/lib/supabase/auth";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 

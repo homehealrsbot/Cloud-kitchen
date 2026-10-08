@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { ChefHat, ShoppingCart, Eraser, AlertTriangle } from "lucide-react";
 import { computeProduction, ING_APPROVAL_PRICE } from "@/lib/ops/engine";
-import { can, useSession } from "@/lib/ops/roles";
+import { can } from "@/lib/ops/roles";
+import { useSession } from "@/lib/ops/session";
 import { useOps } from "@/lib/ops/store";
 import * as actions from "../actions";
 import {

@@ -3,7 +3,8 @@
 import { useMemo, useState } from "react";
 import { BookOpen, Plus, Trash2, Save, Undo2, CheckCircle2, AlertTriangle } from "lucide-react";
 import { GATES, ING_TYPE_LABEL, IngType, MAX_RECIPE_LINES, SECTIONS, GATES_RESET_ON_RECIPE_CHANGE } from "@/lib/ops/engine";
-import { can, useSession } from "@/lib/ops/roles";
+import { can } from "@/lib/ops/roles";
+import { useSession } from "@/lib/ops/session";
 import { useOps } from "@/lib/ops/store";
 import * as actions from "../actions";
 import { AccessNote, Card, CardTitle, ErrorNote, Loading, OpsShell, StatusBadge, T, TableWrap, Td, Th, num, pct, sar } from "@/components/ops/ui";

@@ -3,7 +3,8 @@
 import { useMemo, useState } from "react";
 import { CalendarDays, CheckCircle2, XCircle, RotateCcw, BarChart3 } from "lucide-react";
 import { LUNCH_SLOTS, checkRotation, slotOptions } from "@/lib/ops/engine";
-import { can, useSession } from "@/lib/ops/roles";
+import { can } from "@/lib/ops/roles";
+import { useSession } from "@/lib/ops/session";
 import { useOps } from "@/lib/ops/store";
 import * as actions from "../actions";
 import { AccessNote, Card, CardTitle, ErrorNote, Loading, OpsShell, Pill, StatusBadge, T, TableWrap, Td, Th, num } from "@/components/ops/ui";

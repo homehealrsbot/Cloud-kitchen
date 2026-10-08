@@ -2,7 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { ArrowLeft, ClipboardList, LogOut, ShieldCheck, TrendingUp, ChefHat } from "lucide-react";
 import { T } from "@/lib/kitchen-shared";
-import { OPS_MODULES } from "@/components/ops/ui";
+import { OPS_MODULES } from "@/lib/ops/modules";
 import { ROLES, can } from "@/lib/ops/roles";
 import { getStaffSession } from "@/lib/supabase/auth";
 import NotConfigured from "@/components/auth/NotConfigured";

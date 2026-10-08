@@ -3,7 +3,8 @@
 import { Fragment, useState } from "react";
 import { Search, ChevronDown, ChevronUp, Save } from "lucide-react";
 import { ALLERGENS, AllergenKey, ING_APPROVALS, ING_APPROVAL_PRICE, Ingredient } from "@/lib/ops/engine";
-import { can, useSession } from "@/lib/ops/roles";
+import { can } from "@/lib/ops/roles";
+import { useSession } from "@/lib/ops/session";
 import { IngredientSpecs, useOps } from "@/lib/ops/store";
 import * as actions from "../actions";
 import { AccessNote, Card, ErrorNote, Loading, NumInput, OpsShell, Pill, T, TableWrap, Td, Th, TriState, num, sar, statusColors } from "@/components/ops/ui";

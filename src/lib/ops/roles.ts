@@ -1,13 +1,13 @@
-"use client";
-
 // الأدوار والصلاحيات — مصدر واحد يحدد مين يشوف إيش ومين يعدّل إيش.
+//
+// هذا الملف نقي بقصد: بلا "use client" وبلا React. الدور يُفحص في ثلاث طبقات
+// — Server Actions، ومكوّنات العميل، وسياسات RLS — فلازم can و MATRIX
+// يشتغلون على الجهتين. سياق React للجلسة في src/lib/ops/session.tsx.
 //
 // الدور يجي من الخادم: جلسة Supabase مُوقَّعة + صف المستخدم في جدول staff.
 // الفحوصات هنا (can / capForPath) للواجهة فقط — تخفي اللي ما يخص الدور وتمنع
 // الأزرار. الحماية الفعلية في قاعدة البيانات: سياسات RLS في supabase/schema.sql
 // تمنع أي كتابة خارج صلاحية الدور، فتعديل الواجهة أو الكوكيز ما يفيد شي.
-
-import { createContext, useContext } from "react";
 
 export type Role = "executive" | "kitchen" | "quality";
 
@@ -136,25 +136,9 @@ export function capForPath(pathname: string): Cap | null {
   return hit ? hit.cap : null;
 }
 
-// ---------------- جلسة الدور (تُغذّى من الخادم) ----------------
-
 export interface Session {
   userId: string;
   email: string;
   role: Role;
   name: string;
-}
-
-// القيمة تُحقن من src/app/admin/layout.tsx وهو Server Component يقرأ الجلسة
-// الحقيقية. ما فيه localStorage ولا تخزين في المتصفح.
-const SessionContext = createContext<Session | null>(null);
-
-export const RoleProvider = SessionContext.Provider;
-
-export function useSession(): Session | null {
-  return useContext(SessionContext);
-}
-
-export function useRole(): Role | null {
-  return useContext(SessionContext)?.role ?? null;
 }

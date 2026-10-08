@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useState } from "react";
 import { Search, UtensilsCrossed, TrendingDown } from "lucide-react";
 import { SECTIONS, SkuStatus } from "@/lib/ops/engine";
-import { can, useSession } from "@/lib/ops/roles";
+import { can } from "@/lib/ops/roles";
+import { useSession } from "@/lib/ops/session";
 import { useOps } from "@/lib/ops/store";
 import { Card, CardTitle, Loading, OpsShell, Pill, StatusBadge, T, TableWrap, Td, Th, num, pct, sar } from "@/components/ops/ui";
 

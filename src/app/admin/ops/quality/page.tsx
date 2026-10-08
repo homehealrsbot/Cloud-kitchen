@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { Search, ChevronDown, ChevronUp, ShieldCheck, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { GATES, GATE_PRICE, GATE_SHELF, GateStatus, SECTIONS, SkuStatus } from "@/lib/ops/engine";
-import { can, useSession } from "@/lib/ops/roles";
+import { can } from "@/lib/ops/roles";
+import { useSession } from "@/lib/ops/session";
 import { SkuView, useOps } from "@/lib/ops/store";
 import * as actions from "../actions";
 import { AccessNote, ErrorNote, Kpi, Loading, NumInput, OpsShell, Pill, StatusBadge, T, TriState, num, pct, sar } from "@/components/ops/ui";
