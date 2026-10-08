@@ -12,7 +12,7 @@ import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import NotConfigured from "@/components/auth/NotConfigured";
 import { loadOpsSnapshot } from "@/lib/ops/server-data";
-import { computeMenu, computeProduction } from "@/lib/ops/engine";
+import { computeMenu, computeProduction, deriveSkuQuality } from "@/lib/ops/engine";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "الإدارة التنفيذية — Macro meals" };
@@ -39,10 +39,21 @@ export default async function ExecutiveDashboard() {
   ]);
 
   const computed = snapshot.data.settings ? computeMenu(snapshot.data) : [];
-  const ready = computed.filter((c) => {
-    const gates = snapshot.gates[c.item.id] ?? [];
-    return gates.length === 8 && gates.every((g) => g === "READY");
-  });
+
+  // «جاهز للبيع» = نفس حكم المحرك ونفس حكم سياسة النشر في القاعدة. كان هنا
+  // شرط مكتوب بيده (gates.length === 8) — رقم ثاني يتقادم لوحده، وينكسر صامتاً
+  // أول ما تضيف الأقسام بوابة أو توقف واحدة.
+  const quality = computed.map((c) =>
+    deriveSkuQuality(
+      snapshot.gates[c.item.id] ?? [],
+      c.item.shelfLifeH,
+      snapshot.data.settings,
+      snapshot.data.gateDefs,
+    ),
+  );
+  const ready = quality.filter((q) => q.status === "READY");
+  const held = quality.filter((q) => q.status === "HOLD");
+  const activeGateCount = snapshot.data.gateDefs.filter((d) => d.active).length;
   const avgContribution = computed.length
     ? computed.reduce((a, c) => a + c.contributionPct, 0) / computed.length
     : 0;
@@ -86,7 +97,12 @@ export default async function ExecutiveDashboard() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <Kpi label="عملاء مسجّلون" value={fmt(customerCount ?? 0)} hint="حسابات أنشأها العملاء بأنفسهم" />
           <Kpi label="فريق العمل" value={fmt(staffCount ?? 0)} hint="حسابات بأدوار" />
-          <Kpi label="أصناف جاهزة للبيع" value={`${ready.length} / ${computed.length}`} tone="good" hint="معتمدة من كل البوابات" />
+          <Kpi
+            label="أصناف جاهزة للبيع"
+            value={`${ready.length} / ${computed.length}`}
+            tone="good"
+            hint={`معتمدة من كل البوابات النشطة (${activeGateCount})${held.length ? ` · ${held.length} متوقف` : ""}`}
+          />
           <Kpi label="أصناف تحت حد الهامش" value={fmt(underMargin)} tone={underMargin > 0 ? "warn" : undefined} hint={`الحد ${Math.round((snapshot.data.settings?.marginWarnPct ?? 0) * 100)}%`} />
         </div>
 
