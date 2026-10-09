@@ -66,5 +66,6 @@
   "appSalesShare": 0.3,
   "marginWarnPct": 0.25,
   "shelfLifeApprovalH": 72,
-  "pilotPassesRequired": 3
+  "pilotPassesRequired": 3,
+  "readyItemsRequired": 0
 }

@@ -642,6 +642,15 @@ insert into ops_ing_approval_defs (approval_index, label, kind, owner_role, acti
   (2, 'سعر موثّق', 'price', 'executive'::staff_role, true, 'عرض سعر محدّث من المورد')
 on conflict (approval_index) do nothing;
 
+-- 5 محور جاهزية (قيم بداية — لا تُكتب فوق الموجود)
+insert into ops_launch_axes (axis_index, label, kind, active, note) values
+  (1, 'بوابة المطبخ', 'kitchen_gate', true, 'تجارب الطبخ وقرار الشيف — المحور الوحيد المذكور بالاسم في ورقة لوحة التحكم'),
+  (2, 'بوابات الاعتماد', 'sku_gates', true, 'الصنف ما يُنشر إلا بعد ختم كل بوابة نشطة من صاحبها'),
+  (3, 'المكوّنات والموردون', 'ingredients', true, 'المواصفة والمورد والحساسية والسعر لكل مكوّن مستخدم في وصفة'),
+  (4, 'سلامة الغذاء', 'food_safety', true, 'خطة HACCP وحدودها وسجل المراقبة والبرامج التمهيدية وعدم المطابقة'),
+  (5, 'الإنتاج والهوامش', 'production', true, 'جدول الدوران وخطة الحصص وحد الهامش')
+on conflict (axis_index) do nothing;
+
 -- خطة HACCP: 8 خطوة (قيم بداية — لا تُكتب فوق الموجود)
 insert into safety_haccp_steps (step_index, label, stage, hazard, hazard_type, control_measure, is_ccp, ccp_code) values
   (1, 'استلام المواد', 'استلام', 'وصول مواد خارج نطاق الحرارة الآمن أو من مورد غير معتمد', 'biological', 'فحص حرارة الشحنة والتاريخ والمورد عند الاستلام', true, 'CCP1'),
@@ -727,7 +736,7 @@ insert into safety_iso_clauses (clause, title, owner_role, sort_order) values
 on conflict (clause) do nothing;
 
 -- إعدادات الحصص والتكلفة والتسعير
-insert into ops_settings (id, data) values (1, '{"multipliers": {"P": {"lean": 1, "balanced": 1, "performance": 1.3}, "C": {"lean": 0.6, "balanced": 1, "performance": 1.45}, "V": {"lean": 1.25, "balanced": 1, "performance": 1}, "S": {"lean": 0.75, "balanced": 1, "performance": 1.15}}, "sections": {"رئيسي": {"packaging": 3, "targetCostPct": 0.33, "labor": 4}, "فطور": {"packaging": 2.2, "targetCostPct": 0.3, "labor": 3}, "سناك": {"packaging": 1.2, "targetCostPct": 0.3, "labor": 1.5}, "شوربة": {"packaging": 1.8, "targetCostPct": 0.28, "labor": 2}, "سلطة": {"packaging": 2.5, "targetCostPct": 0.32, "labor": 2.5}, "حلا": {"packaging": 1.5, "targetCostPct": 0.28, "labor": 2}}, "wastePct": 0.06, "spiceAllowance": 0.35, "priceRoundStep": 1, "lowCarbMax": 45, "highProteinMin": 30, "kcalDiffMax": 0.1, "vatRate": 0.15, "priceIncludesVat": 1, "paymentFeePct": 0.02, "appCommissionPct": 0.2, "appSalesShare": 0.3, "marginWarnPct": 0.25, "shelfLifeApprovalH": 72, "pilotPassesRequired": 3}'::jsonb)
+insert into ops_settings (id, data) values (1, '{"multipliers": {"P": {"lean": 1, "balanced": 1, "performance": 1.3}, "C": {"lean": 0.6, "balanced": 1, "performance": 1.45}, "V": {"lean": 1.25, "balanced": 1, "performance": 1}, "S": {"lean": 0.75, "balanced": 1, "performance": 1.15}}, "sections": {"رئيسي": {"packaging": 3, "targetCostPct": 0.33, "labor": 4}, "فطور": {"packaging": 2.2, "targetCostPct": 0.3, "labor": 3}, "سناك": {"packaging": 1.2, "targetCostPct": 0.3, "labor": 1.5}, "شوربة": {"packaging": 1.8, "targetCostPct": 0.28, "labor": 2}, "سلطة": {"packaging": 2.5, "targetCostPct": 0.32, "labor": 2.5}, "حلا": {"packaging": 1.5, "targetCostPct": 0.28, "labor": 2}}, "wastePct": 0.06, "spiceAllowance": 0.35, "priceRoundStep": 1, "lowCarbMax": 45, "highProteinMin": 30, "kcalDiffMax": 0.1, "vatRate": 0.15, "priceIncludesVat": 1, "paymentFeePct": 0.02, "appCommissionPct": 0.2, "appSalesShare": 0.3, "marginWarnPct": 0.25, "shelfLifeApprovalH": 72, "pilotPassesRequired": 3, "readyItemsRequired": 0}'::jsonb)
 on conflict (id) do update set data = excluded.data;
 
 -- مسميات الخانات وقواعدها
@@ -1057,4 +1066,5 @@ commit;
 --   select count(*) from ops_recipe_lines;  -- المتوقع 457
 --   select count(*) from ops_rotation;      -- المتوقع 308
 --   select count(*) from ops_gate_defs;     -- المتوقع 8
+--   select count(*) from ops_launch_axes;   -- المتوقع 5
 --   select count(*) from safety_critical_limits; -- المتوقع 10

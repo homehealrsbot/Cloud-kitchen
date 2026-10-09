@@ -100,6 +100,9 @@ export interface Settings {
   marginWarnPct: number;
   shelfLifeApprovalH: number; // أي صلاحية معلنة أعلى من هذا الحد تحتاج اعتماد بوابة الصلاحية
   pilotPassesRequired: number; // كم تجربة Pilot ناجحة تحتاجها بوابة المطبخ — مُدخل، لا رقم ثابت
+  // أقل عدد أصناف جاهزة للبيع يسمح بقرار GO. قرار تجاري يكتبه التنفيذي؛
+  // 0 أو غير مكتوب = ما فيه حد معلن، والقرار يبقى NO-GO لهذا السبب نفسه.
+  readyItemsRequired: number;
 }
 
 export interface Rotation {

@@ -7,6 +7,7 @@
 import type { Cap } from "./roles";
 
 export const OPS_MODULES: { href: string; label: string; view: Cap; edit?: Cap; desc: string }[] = [
+  { href: "/admin/launch", label: "قرار الإطلاق", view: "launch.view", desc: "GO / NO-GO ومحاور الجاهزية" },
   { href: "/admin/ops/production", label: "الإنتاج والمشتريات", view: "production.view", edit: "production.edit", desc: "حصص اليوم وقائمة الشراء" },
   { href: "/admin/ops/kitchen-card", label: "بطاقة المطبخ", view: "card.view", desc: "أوزان الدفعة وطريقة التحضير" },
   { href: "/admin/ops/rotation", label: "جدول الدوران", view: "rotation.view", edit: "rotation.edit", desc: "أصناف كل يوم خلال 14 يوم" },
@@ -15,7 +16,7 @@ export const OPS_MODULES: { href: string; label: string; view: Cap; edit?: Cap; 
   { href: "/admin/ops/pilot", label: "تجارب Pilot", view: "quality.view", edit: "pilot.edit", desc: "تجارب الطبخ ونتائجها قبل الاعتماد" },
   { href: "/admin/ops/kitchen-gate", label: "بوابة المطبخ", view: "quality.view", edit: "kitchenGate.edit", desc: "فحوص محسوبة وقرار الشيف" },
   { href: "/admin/ops/quality", label: "بوابات الاعتماد", view: "quality.view", edit: "quality.editGates", desc: "اعتماد كل صنف قبل البيع" },
-  { href: "/admin/ops/menu", label: "المنيو", view: "ops.view", desc: "53 صنف بحالتها وقيمها" },
+  { href: "/admin/ops/menu", label: "المنيو", view: "ops.view", desc: "كل الأصناف بحالتها وقيمها" },
   { href: "/admin/ops/engineering", label: "هندسة المنيو", view: "engineering.view", edit: "engineering.view", desc: "تصنيف الأصناف حسب المبيعات والهامش" },
   { href: "/admin/ops/settings", label: "الإعدادات", view: "settings.edit", edit: "settings.edit", desc: "مضاعفات الحصص ونسب التكلفة" },
   { href: "/admin/safety", label: "سلامة الغذاء", view: "safety.view", edit: "safety.plan", desc: "خطة HACCP والحدود الحرجة وبرامج PRP" },

@@ -241,6 +241,23 @@ create table ops_ing_approval_defs (
   note           text not null default ''
 );
 
+-- ---------- محاور قرار الإطلاق (GO / NO-GO) ----------
+-- ورقة «لوحة_التحكم» في ملف العمليات: قرار واحد فوق وتحته جدول المحاور.
+-- المحاور هنا مُدخلات مثل البوابات: التنفيذي يوقف محوراً أو يعيد ترتيبه أو
+-- يسمّيه بلغته. المكتوب في الكود هو «كيف يُحسب كل نوع» فقط، ولهذا kind
+-- محصور بقائمة: نوع ما له محرك = محور يرجّع صفراً بلا سبب مفهوم.
+create table ops_launch_axes (
+  axis_index int  primary key,
+  label      text not null,
+  kind       text not null
+    check (kind in ('kitchen_gate', 'sku_gates', 'ingredients', 'food_safety', 'production')),
+  active     boolean not null default true,
+  note       text not null default ''
+);
+
+comment on table ops_launch_axes is
+  'محاور جاهزية الإطلاق. القرار يُحسب منها ومن حد الإطلاق الأدنى في الإعدادات — ما فيه رقم مكتوب باليد.';
+
 -- ---------- حالات البوابات لكل صنف ----------
 -- gate_index مفتاح أجنبي على التعريفات، لا مجال أرقام مكتوب.
 -- approved_by_name / approved_at: الاعتماد بلا اسم وتاريخ مو اعتماد.
@@ -545,6 +562,7 @@ alter table ops_rotation_meta enable row level security;
 alter table ops_rotation      enable row level security;
 alter table ops_gate_defs     enable row level security;
 alter table ops_ing_approval_defs enable row level security;
+alter table ops_launch_axes   enable row level security;
 alter table ops_gates         enable row level security;
 alter table ops_ing_approvals enable row level security;
 alter table ops_pilot_trials  enable row level security;
@@ -706,6 +724,19 @@ create policy "anyone reads ing approval defs" on ops_ing_approval_defs
   for select to anon, authenticated using (true);
 
 create policy "executive writes ing approval defs" on ops_ing_approval_defs
+  for all to authenticated
+  using (private.has_role(array['executive']::staff_role[]))
+  with check (private.has_role(array['executive']::staff_role[]));
+
+-- ---------- ops_launch_axes ----------
+-- كل موظف يقرأ لوحة الجاهزية: هي اللي تقول لقسمه وش يوقف الإطلاق. وتعريف
+-- المحاور نفسها للتنفيذي وحده — نفس قاعدة البوابات، فالقسم ما يشيل المحور
+-- اللي يقيسه.
+create policy "staff reads launch axes" on ops_launch_axes
+  for select to authenticated
+  using (private.has_role(array['executive','kitchen','quality']::staff_role[]));
+
+create policy "executive writes launch axes" on ops_launch_axes
   for all to authenticated
   using (private.has_role(array['executive']::staff_role[]))
   with check (private.has_role(array['executive']::staff_role[]));
@@ -1259,7 +1290,8 @@ grant select on
 grant select, insert, update, delete on
   ops_menu_items, ops_recipe_lines, ops_settings, ops_rotation, ops_rotation_meta,
   ops_gates, ops_ing_approvals, ops_shelf_life, ops_production, ops_units_sold,
-  ops_gate_defs, ops_ing_approval_defs, ops_pilot_trials, ops_kitchen_gate
+  ops_gate_defs, ops_ing_approval_defs, ops_pilot_trials, ops_kitchen_gate,
+  ops_launch_axes
   to authenticated;
 grant select, insert on ops_audit to authenticated;
 grant select, insert, update, delete on

@@ -22,6 +22,7 @@ import {
   ingApprovalStatuses,
 } from "./engine";
 import type { AuditEntry, GateStamp, OpsSnapshot } from "./types";
+import { AXIS_KINDS, type AxisKind, type LaunchAxisDef } from "./launch";
 
 type Row = Record<string, unknown>;
 
@@ -286,4 +287,24 @@ export async function loadOpsSnapshot(): Promise<OpsSnapshot> {
     // هل الوصفات معدّلة عن الملف الأصلي؟ ما نعرفها من القاعدة، فنتركها false.
     recipesEdited: false,
   };
+}
+
+/**
+ * محاور قرار الإطلاق. مقروءة لحالها لا ضمن loadOpsSnapshot: ما تحتاجها إلا
+ * لوحة الجاهزية، وضمّها للصورة الكاملة يعني استعلاماً زائداً على كل شاشة
+ * عمليات. RLS تحجبها عن غير الموظفين.
+ */
+export async function loadLaunchAxes(): Promise<LaunchAxisDef[]> {
+  if (!isSupabaseConfigured) return [];
+  const supabase = await createClient();
+  const { data } = await supabase.from("ops_launch_axes").select("*").order("axis_index");
+  return ((data ?? []) as Row[])
+    .filter((r) => (AXIS_KINDS as string[]).includes(String(r.kind)))
+    .map((r) => ({
+      index: Number(r.axis_index),
+      label: String(r.label ?? ""),
+      kind: String(r.kind) as AxisKind,
+      active: r.active !== false,
+      note: String(r.note ?? ""),
+    }));
 }

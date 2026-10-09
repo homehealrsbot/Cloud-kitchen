@@ -50,6 +50,8 @@ export type Cap =
   | "quality.editPriceGate"
   | "quality.editShelfLife"
   | "gateDefs.manage"
+  | "launch.view"
+  | "launchAxes.manage"
   | "pilot.edit"
   | "kitchenGate.edit"
   | "safety.view"
@@ -90,6 +92,10 @@ export const MATRIX: Record<Cap, Role[]> = {
   "quality.editPriceGate": ["executive"],
   "quality.editShelfLife": ["quality"],
   "gateDefs.manage": ["executive"],
+  // لوحة الجاهزية يشوفها كل دور: هي اللي تقول لقسمه وش يوقف الإطلاق. أما
+  // تعريف المحاور نفسها فللتنفيذي — القسم ما يشيل المحور اللي يقيسه.
+  "launch.view": ALL,
+  "launchAxes.manage": ["executive"],
   "pilot.edit": ["quality"],
   "kitchenGate.edit": ["kitchen"],
   // سلامة الغذاء: الجودة تضع الخطة والحدود، والمطبخ يسجّل المراقبة، والجودة
@@ -166,6 +172,8 @@ export const PERMISSION_ROWS: { label: string; view: Cap; edit?: Cap }[] = [
   { label: "اعتماد سجل المراقبة (توقيع ثانٍ)", view: "safety.view", edit: "safety.verify" },
   { label: "رفع عدم مطابقة", view: "safety.view", edit: "ncr.raise" },
   { label: "معالجة عدم المطابقة وإغلاقها", view: "safety.view", edit: "ncr.manage" },
+  { label: "لوحة قرار الإطلاق (GO / NO-GO)", view: "launch.view" },
+  { label: "تعريف محاور الجاهزية", view: "launch.view", edit: "launchAxes.manage" },
 ];
 
 /** صف صلاحية لبوابة اعتماد واحدة، مبني من تعريفها لا من الكود. */

@@ -6,7 +6,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { ChefHat, ChevronRight, Package, ShieldCheck, ShoppingBag, TrendingUp, Users, Wallet } from "lucide-react";
+import { ChefHat, ChevronRight, Package, Rocket, ShieldCheck, ShoppingBag, TrendingUp, Users, Wallet } from "lucide-react";
 import { T } from "@/lib/kitchen-shared";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
@@ -150,8 +150,11 @@ export default async function ExecutiveDashboard() {
           )}
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          <Link href="/admin/ops" className="rounded-2xl py-3.5 text-center text-sm font-bold text-[#0B1410]" style={{ background: T.brandBright }}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+          <Link href="/admin/launch" className="rounded-2xl py-3.5 text-center text-sm font-bold text-[#0B1410]" style={{ background: T.brandBright }}>
+            <Rocket size={15} className="inline ml-1.5" /> قرار الإطلاق
+          </Link>
+          <Link href="/admin/ops" className="rounded-2xl py-3.5 text-center text-sm font-bold" style={{ background: T.brandTint, color: T.brand }}>
             <ShoppingBag size={15} className="inline ml-1.5" /> مركز العمليات
           </Link>
           <Link href="/admin/ops/engineering" className="rounded-2xl py-3.5 text-center text-sm font-bold" style={{ background: T.brandTint, color: T.brand }}>

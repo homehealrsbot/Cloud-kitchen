@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { Save, Undo2, SlidersHorizontal } from "lucide-react";
 import { ING_TYPE_LABEL, IngType, LEVELS, SECTIONS, Settings } from "@/lib/ops/engine";
@@ -170,6 +171,23 @@ export default function SettingsPage() {
           <Row label="حد البروتين لوسم «بروتين عالٍ» (جم)" hint="للرئيسي والسلطة"><Field label="حد البروتين" value={s.highProteinMin} onChange={(v) => patch({ highProteinMin: v })} /></Row>
           <Row label="حد فرق السعرات المقبول عن الماكروز" hint="للتحقق من اتساق بيانات المكوّنات"><Field label="فرق السعرات" value={s.kcalDiffMax} percent onChange={(v) => patch({ kcalDiffMax: v })} /></Row>
           <Row label="حد الصلاحية اللي يحتاج اعتماد (ساعة)" hint="أي صنف صلاحيته المعلنة أعلى يتوقف تلقائياً لحد اعتماد بوابة الصلاحية"><Field label="حد الصلاحية" value={s.shelfLifeApprovalH} onChange={(v) => patch({ shelfLifeApprovalH: v })} /></Row>
+          <Row label="تجارب Pilot الناجحة المطلوبة" hint="كم تجربة طبخ ناجحة تحتاجها بوابة المطبخ قبل قرار الشيف"><Field label="تجارب Pilot" value={s.pilotPassesRequired} onChange={(v) => patch({ pilotPassesRequired: v })} /></Row>
+        </div>
+      </Card>
+
+      <Card className="mb-6">
+        <CardTitle>قرار الإطلاق</CardTitle>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3">
+          <Row
+            label="حد الإطلاق الأدنى (عدد الأصناف الجاهزة)"
+            hint="قرار تجاري: كم صنف جاهز للبيع يكفي لفتح البيع. صفر = ما انحدد، والقرار يبقى NO-GO لهذا السبب"
+          >
+            <Field label="حد الإطلاق" value={s.readyItemsRequired} onChange={(v) => patch({ readyItemsRequired: v })} />
+          </Row>
+        </div>
+        <div className="text-[10px] mt-3 leading-relaxed" style={{ color: T.inkSoft }}>
+          هذا الرقم وحده ما يفتح الإطلاق: لازم كل محور جاهزية مكتمل كمان. شوف{" "}
+          <Link href="/admin/launch" className="underline font-bold">لوحة قرار الإطلاق</Link>.
         </div>
       </Card>
 

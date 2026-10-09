@@ -48,6 +48,7 @@ def main() -> int:
     settings = json.loads((DATA / "settings.json").read_text(encoding="utf-8"))
     defs = json.loads((DATA / "gate-defs.json").read_text(encoding="utf-8"))
     fs = json.loads((DATA / "food-safety.json").read_text(encoding="utf-8"))
+    axes = json.loads((DATA / "launch-axes.json").read_text(encoding="utf-8"))
 
     # --- فحص سلامة قبل التوليد: نفس فحوصات integrityChecks في المحرك ---
     ing_keys = {i["key"] for i in ing}
@@ -218,6 +219,18 @@ def main() -> int:
     w("on conflict (approval_index) do nothing;")
     w("")
 
+    # --- محاور قرار الإطلاق ---
+    # قيم بداية: محور لكل وحدة قائمة في النظام. التنفيذي يوقف أو يعيد التسمية،
+    # فـ do nothing على الموجود مثل البوابات.
+    w(f"-- {len(axes)} محور جاهزية (قيم بداية — لا تُكتب فوق الموجود)")
+    w("insert into ops_launch_axes (axis_index, label, kind, active, note) values")
+    w(",\n".join(
+        f"  ({int(a['index'])}, {q(a['label'])}, {q(a['kind'])}, "
+        f"{'true' if a['active'] else 'false'}, {q(a.get('note',''))})"
+        for a in axes))
+    w("on conflict (axis_index) do nothing;")
+    w("")
+
     # --- سلامة الغذاء: الخطة والحدود والبرامج والبنود ---
     # قيم بداية قياسية تملكها الجودة بعد التشغيل، فـ do nothing على الموجود.
     w(f"-- خطة HACCP: {len(fs['haccpSteps'])} خطوة (قيم بداية — لا تُكتب فوق الموجود)")
@@ -294,6 +307,7 @@ def main() -> int:
     w("--   select count(*) from ops_recipe_lines;  -- المتوقع " + str(len(rec)))
     w("--   select count(*) from ops_rotation;      -- المتوقع " + str(total_slots))
     w("--   select count(*) from ops_gate_defs;     -- المتوقع " + str(len(defs["gates"])))
+    w("--   select count(*) from ops_launch_axes;   -- المتوقع " + str(len(axes)))
     w("--   select count(*) from safety_critical_limits; -- المتوقع " + str(len(fs["criticalLimits"])))
     w("")
 
