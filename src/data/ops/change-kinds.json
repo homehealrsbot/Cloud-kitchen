@@ -1,0 +1,580 @@
+[
+  {
+    "kind": "gate.set",
+    "label": "ختم بوابة اعتماد",
+    "area": "بوابات الاعتماد",
+    "targetTable": "ops_gates",
+    "strategy": "upsert",
+    "keyColumns": [
+      "sku",
+      "gate_index"
+    ],
+    "patchColumns": [
+      "status",
+      "note",
+      "approved_by_name",
+      "approved_at"
+    ],
+    "requesterRoles": [
+      "quality",
+      "executive"
+    ],
+    "approverRole": "executive",
+    "note": "ختم بوابة على صنف — يُطبَّق بعد الاعتماد فقط",
+    "active": true
+  },
+  {
+    "kind": "ing_approval.set",
+    "label": "اعتماد مكوّن",
+    "area": "المكوّنات",
+    "targetTable": "ops_ing_approvals",
+    "strategy": "upsert",
+    "keyColumns": [
+      "ing_key",
+      "approval_index"
+    ],
+    "patchColumns": [
+      "status",
+      "note",
+      "approved_by_name",
+      "approved_at"
+    ],
+    "requesterRoles": [
+      "quality",
+      "executive"
+    ],
+    "approverRole": "executive",
+    "note": "اعتماد مواصفة أو مورد أو حساسية أو سعر مكوّن",
+    "active": true
+  },
+  {
+    "kind": "ingredient.specs",
+    "label": "مواصفة مكوّن",
+    "area": "المكوّنات",
+    "targetTable": "ops_ingredients",
+    "strategy": "upsert",
+    "keyColumns": [
+      "key"
+    ],
+    "patchColumns": [
+      "kcal",
+      "protein",
+      "carb",
+      "fat",
+      "fiber",
+      "allergen_text",
+      "flags",
+      "source",
+      "hidden",
+      "supplier",
+      "supplier_note"
+    ],
+    "requesterRoles": [
+      "quality"
+    ],
+    "approverRole": "executive",
+    "note": "القيم الغذائية والحساسية والمورد — السعر نوع منفصل",
+    "active": true
+  },
+  {
+    "kind": "ingredient.price",
+    "label": "سعر مكوّن",
+    "area": "المكوّنات",
+    "targetTable": "ops_ingredients",
+    "strategy": "upsert",
+    "keyColumns": [
+      "key"
+    ],
+    "patchColumns": [
+      "price",
+      "price_quote_date"
+    ],
+    "requesterRoles": [
+      "executive"
+    ],
+    "approverRole": "executive",
+    "note": "السعر يمسّ كل الأطباق اللي تستخدم المكوّن",
+    "active": true
+  },
+  {
+    "kind": "shelf_life.set",
+    "label": "صلاحية صنف",
+    "area": "الجودة",
+    "targetTable": "ops_shelf_life",
+    "strategy": "upsert",
+    "keyColumns": [
+      "sku"
+    ],
+    "patchColumns": [
+      "hours"
+    ],
+    "requesterRoles": [
+      "quality"
+    ],
+    "approverRole": "executive",
+    "note": "الصلاحية المعلنة بالساعات",
+    "active": true
+  },
+  {
+    "kind": "production.set",
+    "label": "حصص الإنتاج",
+    "area": "الإنتاج",
+    "targetTable": "ops_production",
+    "strategy": "upsert",
+    "keyColumns": [
+      "day_index",
+      "slot"
+    ],
+    "patchColumns": [
+      "portions"
+    ],
+    "requesterRoles": [
+      "kitchen"
+    ],
+    "approverRole": "executive",
+    "note": "عدد الحصص المخططة لخانة في يوم",
+    "active": true
+  },
+  {
+    "kind": "units_sold.set",
+    "label": "مبيعات صنف",
+    "area": "هندسة المنيو",
+    "targetTable": "ops_units_sold",
+    "strategy": "upsert",
+    "keyColumns": [
+      "sku"
+    ],
+    "patchColumns": [
+      "units"
+    ],
+    "requesterRoles": [
+      "executive"
+    ],
+    "approverRole": "executive",
+    "note": "الوحدات المباعة — أساس تصنيف هندسة المنيو",
+    "active": true
+  },
+  {
+    "kind": "pilot.set",
+    "label": "تجربة Pilot",
+    "area": "بوابة المطبخ",
+    "targetTable": "ops_pilot_trials",
+    "strategy": "upsert",
+    "keyColumns": [
+      "sku",
+      "trial_index"
+    ],
+    "patchColumns": [
+      "result",
+      "cooked_portion_g",
+      "trial_date",
+      "notes"
+    ],
+    "requesterRoles": [
+      "quality"
+    ],
+    "approverRole": "executive",
+    "note": "نتيجة تجربة طبخ — تدخل في حساب بوابة المطبخ",
+    "active": true
+  },
+  {
+    "kind": "kitchen_gate.set",
+    "label": "قرار الشيف",
+    "area": "بوابة المطبخ",
+    "targetTable": "ops_kitchen_gate",
+    "strategy": "upsert",
+    "keyColumns": [
+      "sku"
+    ],
+    "patchColumns": [
+      "chef_decision",
+      "chef_name",
+      "approved_at",
+      "note"
+    ],
+    "requesterRoles": [
+      "kitchen"
+    ],
+    "approverRole": "executive",
+    "note": "قرار الشيف على جاهزية الصنف للإنتاج",
+    "active": true
+  },
+  {
+    "kind": "settings.save",
+    "label": "إعدادات التكلفة والحدود",
+    "area": "الإعدادات",
+    "targetTable": "ops_settings",
+    "strategy": "upsert",
+    "keyColumns": [
+      "id"
+    ],
+    "patchColumns": [
+      "data"
+    ],
+    "requesterRoles": [
+      "executive"
+    ],
+    "approverRole": "executive",
+    "note": "مضاعفات الحصص ونسب التكلفة وحدود الجودة وحد الإطلاق",
+    "active": true
+  },
+  {
+    "kind": "recipe.replace",
+    "label": "وصفة صنف",
+    "area": "الوصفات",
+    "targetTable": "ops_recipe_lines",
+    "strategy": "replace_lines",
+    "keyColumns": [
+      "sku"
+    ],
+    "patchColumns": [
+      "type",
+      "ing",
+      "grams",
+      "sort_order"
+    ],
+    "requesterRoles": [
+      "kitchen"
+    ],
+    "approverRole": "executive",
+    "note": "أسطر الوصفة كاملة — تعديلها يصفّر البوابات المرتبطة بها",
+    "active": true
+  },
+  {
+    "kind": "rotation.set",
+    "label": "خانة جدول الدوران",
+    "area": "جدول الدوران",
+    "targetTable": "ops_rotation",
+    "strategy": "upsert",
+    "keyColumns": [
+      "day_index",
+      "slot"
+    ],
+    "patchColumns": [
+      "sku"
+    ],
+    "requesterRoles": [
+      "kitchen"
+    ],
+    "approverRole": "executive",
+    "note": "الصنف المخصّص لخانة في يوم من أيام الدوران",
+    "active": true
+  },
+  {
+    "kind": "gate_def.set",
+    "label": "تعريف بوابة اعتماد",
+    "area": "بوابات الاعتماد",
+    "targetTable": "ops_gate_defs",
+    "strategy": "upsert",
+    "keyColumns": [
+      "gate_index"
+    ],
+    "patchColumns": [
+      "label",
+      "kind",
+      "owner_role",
+      "resets_on_recipe_change",
+      "active",
+      "note"
+    ],
+    "requesterRoles": [
+      "executive"
+    ],
+    "approverRole": "executive",
+    "note": "إضافة بوابة أو إيقافها أو نقل ملكيتها",
+    "active": true
+  },
+  {
+    "kind": "ing_approval_def.set",
+    "label": "تعريف اعتماد مكوّن",
+    "area": "المكوّنات",
+    "targetTable": "ops_ing_approval_defs",
+    "strategy": "upsert",
+    "keyColumns": [
+      "approval_index"
+    ],
+    "patchColumns": [
+      "label",
+      "kind",
+      "owner_role",
+      "active",
+      "note"
+    ],
+    "requesterRoles": [
+      "executive"
+    ],
+    "approverRole": "executive",
+    "active": true,
+    "note": "إضافة اعتماد مكوّن أو إيقافه أو نقل ملكيته"
+  },
+  {
+    "kind": "launch_axis.set",
+    "label": "محور جاهزية الإطلاق",
+    "area": "قرار الإطلاق",
+    "targetTable": "ops_launch_axes",
+    "strategy": "upsert",
+    "keyColumns": [
+      "axis_index"
+    ],
+    "patchColumns": [
+      "label",
+      "kind",
+      "active",
+      "note"
+    ],
+    "requesterRoles": [
+      "executive"
+    ],
+    "approverRole": "executive",
+    "note": "تعريف محاور قرار الإطلاق",
+    "active": true
+  },
+  {
+    "kind": "ccp.log",
+    "label": "قراءة نقطة تحكّم حرجة",
+    "area": "سلامة الغذاء",
+    "targetTable": "safety_ccp_log",
+    "strategy": "insert",
+    "keyColumns": [],
+    "patchColumns": [
+      "limit_id",
+      "log_date",
+      "shift",
+      "reading_value",
+      "reading_bool",
+      "out_of_limit_note",
+      "corrective_action",
+      "recorded_by",
+      "recorded_by_name"
+    ],
+    "requesterRoles": [
+      "kitchen",
+      "quality"
+    ],
+    "approverRole": "executive",
+    "note": "قراءة مراقبة — الحكم بالنجاح أو الخروج عن الحد يحسبه محفّز في القاعدة — واقعة تُسجَّل فوراً، ما تمر بمسار الاعتماد",
+    "active": false
+  },
+  {
+    "kind": "ccp.verify",
+    "label": "اعتماد قراءة مراقبة",
+    "area": "سلامة الغذاء",
+    "targetTable": "safety_ccp_log",
+    "strategy": "upsert",
+    "keyColumns": [
+      "id"
+    ],
+    "patchColumns": [
+      "verified_by",
+      "verified_by_name",
+      "verified_at"
+    ],
+    "requesterRoles": [
+      "quality"
+    ],
+    "approverRole": "executive",
+    "note": "التوقيع الثاني على قراءة — واقعة تُسجَّل فوراً، ما تمر بمسار الاعتماد",
+    "active": false
+  },
+  {
+    "kind": "prp.log",
+    "label": "تسجيل برنامج تمهيدي",
+    "area": "سلامة الغذاء",
+    "targetTable": "safety_prp_log",
+    "strategy": "upsert",
+    "keyColumns": [
+      "prp_code",
+      "log_date"
+    ],
+    "patchColumns": [
+      "done",
+      "note",
+      "recorded_by",
+      "recorded_by_name"
+    ],
+    "requesterRoles": [
+      "kitchen",
+      "quality"
+    ],
+    "approverRole": "executive",
+    "note": "تنفيذ برنامج تمهيدي في يوم — واقعة تُسجَّل فوراً، ما تمر بمسار الاعتماد",
+    "active": false
+  },
+  {
+    "kind": "ncr.raise",
+    "label": "رفع عدم مطابقة",
+    "area": "سلامة الغذاء",
+    "targetTable": "safety_nonconformance",
+    "strategy": "insert",
+    "keyColumns": [],
+    "patchColumns": [
+      "source",
+      "severity",
+      "description",
+      "immediate_action",
+      "due_date",
+      "raised_by",
+      "raised_by_name"
+    ],
+    "requesterRoles": [
+      "executive",
+      "kitchen",
+      "quality"
+    ],
+    "approverRole": "executive",
+    "note": "بلاغ عدم مطابقة جديد — واقعة تُسجَّل فوراً، ما تمر بمسار الاعتماد",
+    "active": false
+  },
+  {
+    "kind": "ncr.update",
+    "label": "معالجة عدم مطابقة",
+    "area": "سلامة الغذاء",
+    "targetTable": "safety_nonconformance",
+    "strategy": "upsert",
+    "keyColumns": [
+      "id"
+    ],
+    "patchColumns": [
+      "status",
+      "root_cause",
+      "corrective_action",
+      "preventive_action",
+      "due_date",
+      "closed_by",
+      "closed_by_name",
+      "closed_at"
+    ],
+    "requesterRoles": [
+      "quality",
+      "executive"
+    ],
+    "approverRole": "executive",
+    "note": "السبب الجذري والإجراءات وإغلاق البلاغ",
+    "active": true
+  },
+  {
+    "kind": "haccp_step.set",
+    "label": "خطوة في خطة HACCP",
+    "area": "سلامة الغذاء",
+    "targetTable": "safety_haccp_steps",
+    "strategy": "upsert",
+    "keyColumns": [
+      "step_index"
+    ],
+    "patchColumns": [
+      "label",
+      "stage",
+      "hazard",
+      "hazard_type",
+      "control_measure",
+      "is_ccp",
+      "ccp_code",
+      "active",
+      "note"
+    ],
+    "requesterRoles": [
+      "quality"
+    ],
+    "approverRole": "executive",
+    "note": "خطوة في الخطة ونوع خطرها",
+    "active": true
+  },
+  {
+    "kind": "limit.set",
+    "label": "حد حرج",
+    "area": "سلامة الغذاء",
+    "targetTable": "safety_critical_limits",
+    "strategy": "upsert",
+    "keyColumns": [
+      "id"
+    ],
+    "patchColumns": [
+      "step_index",
+      "parameter",
+      "limit_kind",
+      "min_value",
+      "max_value",
+      "unit",
+      "monitoring_method",
+      "frequency",
+      "corrective_action",
+      "active",
+      "sort_order"
+    ],
+    "requesterRoles": [
+      "quality"
+    ],
+    "approverRole": "executive",
+    "note": "حدود نقطة التحكّم وطريقة مراقبتها",
+    "active": true
+  },
+  {
+    "kind": "limit.add",
+    "label": "حد حرج جديد",
+    "area": "سلامة الغذاء",
+    "targetTable": "safety_critical_limits",
+    "strategy": "insert",
+    "keyColumns": [],
+    "patchColumns": [
+      "step_index",
+      "parameter",
+      "limit_kind",
+      "min_value",
+      "max_value",
+      "unit",
+      "monitoring_method",
+      "frequency",
+      "corrective_action",
+      "sort_order"
+    ],
+    "requesterRoles": [
+      "quality"
+    ],
+    "approverRole": "executive",
+    "note": "إضافة حد حرج لنقطة تحكّم",
+    "active": true
+  },
+  {
+    "kind": "iso.set",
+    "label": "بند ISO 22000",
+    "area": "سلامة الغذاء",
+    "targetTable": "safety_iso_clauses",
+    "strategy": "upsert",
+    "keyColumns": [
+      "clause"
+    ],
+    "patchColumns": [
+      "status",
+      "evidence",
+      "owner_role",
+      "updated_by"
+    ],
+    "requesterRoles": [
+      "quality"
+    ],
+    "approverRole": "executive",
+    "note": "حالة بند من بنود المواصفة ودليلها",
+    "active": true
+  },
+  {
+    "kind": "staff.set",
+    "label": "عضو فريق",
+    "area": "الفريق",
+    "targetTable": "staff",
+    "strategy": "upsert",
+    "keyColumns": [
+      "user_id"
+    ],
+    "patchColumns": [
+      "role",
+      "name",
+      "active"
+    ],
+    "requesterRoles": [
+      "executive"
+    ],
+    "approverRole": "executive",
+    "note": "دور الموظف واسمه وتفعيله — واقعة تُسجَّل فوراً، ما تمر بمسار الاعتماد",
+    "active": false
+  }
+]

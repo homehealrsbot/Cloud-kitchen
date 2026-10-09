@@ -49,6 +49,7 @@ def main() -> int:
     defs = json.loads((DATA / "gate-defs.json").read_text(encoding="utf-8"))
     fs = json.loads((DATA / "food-safety.json").read_text(encoding="utf-8"))
     axes = json.loads((DATA / "launch-axes.json").read_text(encoding="utf-8"))
+    ckinds = json.loads((DATA / "change-kinds.json").read_text(encoding="utf-8"))
 
     # --- فحص سلامة قبل التوليد: نفس فحوصات integrityChecks في المحرك ---
     ing_keys = {i["key"] for i in ing}
@@ -231,6 +232,20 @@ def main() -> int:
     w("on conflict (axis_index) do nothing;")
     w("")
 
+    # --- أنواع طلبات التغيير ---
+    # القائمة البيضاء اللي تحكم دالة التطبيق. قيم بداية؛ التنفيذي يوقف نوعاً
+    # أو ينقل سلطة اعتماده، فـ do nothing على الموجود.
+    w(f"-- {len(ckinds)} نوع طلب تغيير (قائمة بيضاء — لا تُكتب فوق الموجود)")
+    w("insert into ops_change_kinds (kind, label, area, target_table, strategy, key_columns, patch_columns, requester_roles, approver_role, active, note) values")
+    w(",\n".join(
+        f"  ({q(c['kind'])}, {q(c['label'])}, {q(c['area'])}, {q(c['targetTable'])}, "
+        f"{q(c['strategy'])}::change_strategy, {arr(c['keyColumns'])}, {arr(c['patchColumns'])}, "
+        + "array[" + ", ".join(q(r) + "::staff_role" for r in c["requesterRoles"]) + "], "
+        + f"{q(c['approverRole'])}::staff_role, {'true' if c.get('active', True) else 'false'}, {q(c.get('note',''))})"
+        for c in ckinds))
+    w("on conflict (kind) do nothing;")
+    w("")
+
     # --- سلامة الغذاء: الخطة والحدود والبرامج والبنود ---
     # قيم بداية قياسية تملكها الجودة بعد التشغيل، فـ do nothing على الموجود.
     w(f"-- خطة HACCP: {len(fs['haccpSteps'])} خطوة (قيم بداية — لا تُكتب فوق الموجود)")
@@ -308,6 +323,7 @@ def main() -> int:
     w("--   select count(*) from ops_rotation;      -- المتوقع " + str(total_slots))
     w("--   select count(*) from ops_gate_defs;     -- المتوقع " + str(len(defs["gates"])))
     w("--   select count(*) from ops_launch_axes;   -- المتوقع " + str(len(axes)))
+    w("--   select count(*) from ops_change_kinds;  -- المتوقع " + str(len(ckinds)))
     w("--   select count(*) from safety_critical_limits; -- المتوقع " + str(len(fs["criticalLimits"])))
     w("")
 

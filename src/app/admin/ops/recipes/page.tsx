@@ -6,14 +6,15 @@ import { ING_TYPE_LABEL, IngType, MAX_RECIPE_LINES, SECTIONS, gatesResetOnRecipe
 import { can } from "@/lib/ops/roles";
 import { useSession } from "@/lib/ops/session";
 import { useOps } from "@/lib/ops/store";
-import * as actions from "../actions";
 import { AccessNote, Card, CardTitle, ErrorNote, Loading, OpsShell, StatusBadge, T, TableWrap, Td, Th, num, pct, sar } from "@/components/ops/ui";
+import { useStage } from "@/lib/ops/stage";
 
 type DraftLine = { type: IngType; ing: string; grams: string };
 const TYPES: IngType[] = ["P", "C", "V", "S"];
 
 export default function RecipesPage() {
   const ops = useOps();
+  const stage = useStage();
   const session = useSession();
   const role = session?.role ?? null;
   const canEdit = can(role, "recipes.edit");
@@ -88,13 +89,13 @@ export default function RecipesPage() {
     setDraft(lines.filter((_, idx) => idx !== i));
   }
   async function save() {
-    const r = await actions.saveRecipe(sku.item.id, lines.map((l) => ({ type: l.type, ing: l.ing, grams: Number(l.grams) })));
+    const r = await stage.saveRecipe(sku.item.id, lines.map((l) => ({ type: l.type, ing: l.ing, grams: Number(l.grams) })));
     if (r.ok) {
       setDraft(null);
       setError("");
       setSaved(
         readyGatesAffected.length
-          ? `تم الحفظ. رجعت هذي البوابات للاعتماد: ${readyGatesAffected.join("، ")}`
+          ? `أُضيف للمسوّدة. بعد الاعتماد ترجع هذي البوابات للمراجعة: ${readyGatesAffected.join("، ")}`
           : "تم حفظ الوصفة",
       );
     } else setError(r.error);

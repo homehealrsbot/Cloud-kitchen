@@ -14,7 +14,7 @@ import { PilotResult, SECTIONS, gateOfKind } from "@/lib/ops/engine";
 import { can } from "@/lib/ops/roles";
 import { useSession } from "@/lib/ops/session";
 import { useOps } from "@/lib/ops/store";
-import * as actions from "../actions";
+import { useStage } from "@/lib/ops/stage";
 import {
   AccessNote, Card, ErrorNote, Kpi, Loading, OpsShell, PENDING_COLOR, Pill, StatusBadge, T, Td, Th, TableWrap,
 } from "@/components/ops/ui";
@@ -23,6 +23,7 @@ type Filter = "all" | "done" | "open";
 
 export default function PilotPage() {
   const ops = useOps();
+  const stage = useStage();
   const session = useSession();
   const role = session?.role ?? null;
   const canEdit = can(role, "pilot.edit");
@@ -59,7 +60,7 @@ export default function PilotPage() {
     notes: string;
   }) {
     setBusy(true);
-    const r = await actions.setPilotTrial(skuId, trialIndex, patch);
+    const r = await stage.setPilotTrial(skuId, trialIndex, patch);
     setError(r.ok ? "" : r.error);
     setBusy(false);
   }
@@ -190,7 +191,7 @@ export default function PilotPage() {
                             onSave={(patch) => save(id, idx, patch)}
                             onClear={async () => {
                               setBusy(true);
-                              const r = await actions.clearPilotTrial(id, idx);
+                              const r = await stage.clearPilotTrial(id, idx);
                               setError(r.ok ? "" : r.error);
                               setBusy(false);
                             }}

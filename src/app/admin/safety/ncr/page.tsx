@@ -22,6 +22,7 @@ import {
 } from "@/lib/safety/types";
 import * as actions from "../actions";
 import { AccessNote, Card, CardTitle, Kpi, Note, SafetyShell, T, useSafety } from "@/components/safety/ui";
+import { useStage } from "@/lib/ops/stage";
 
 type Filter = "open" | "all" | "closed";
 
@@ -207,6 +208,7 @@ function NcrRow({
   pending: boolean;
   onRun: (fn: () => Promise<{ ok: boolean; error?: string }>, okText: string) => void;
 }) {
+  const stage = useStage();
   const [open, setOpen] = useState(false);
   const [d, setD] = useState({
     status: ncr.status,
@@ -300,8 +302,8 @@ function NcrRow({
                     disabled={pending}
                     onClick={() =>
                       onRun(
-                        () => actions.updateNcr({ id: ncr.id, ...d, status: st, dueDate: d.dueDate || null }),
-                        st === "closed" ? "أُغلق البلاغ" : `الحالة: ${NCR_STATUS_LABEL[st]}`,
+                        () => stage.updateNcr({ id: ncr.id, ...d, status: st, dueDate: d.dueDate || null }),
+                        st === "closed" ? "للمسوّدة — إغلاق البلاغ" : `للمسوّدة — الحالة: ${NCR_STATUS_LABEL[st]}`,
                       )
                     }
                     className="rounded-lg px-3 py-1.5 text-[10px] font-bold disabled:opacity-40"

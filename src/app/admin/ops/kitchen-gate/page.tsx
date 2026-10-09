@@ -16,7 +16,7 @@ import { GateStatus, SECTIONS, gateOfKind } from "@/lib/ops/engine";
 import { can } from "@/lib/ops/roles";
 import { useSession } from "@/lib/ops/session";
 import { SkuView, useOps } from "@/lib/ops/store";
-import * as actions from "../actions";
+import { useStage } from "@/lib/ops/stage";
 import {
   AccessNote, Card, CardTitle, ErrorNote, Kpi, Loading, OpsShell, PENDING_COLOR, Pill, StatusBadge, T, num,
 } from "@/components/ops/ui";
@@ -25,6 +25,7 @@ type Filter = "all" | "ready" | "blocked";
 
 export default function KitchenGatePage() {
   const ops = useOps();
+  const stage = useStage();
   const session = useSession();
   const role = session?.role ?? null;
   const canDecide = can(role, "kitchenGate.edit");
@@ -67,7 +68,7 @@ export default function KitchenGatePage() {
 
   async function decide(v: SkuView, decision: GateStatus, note: string) {
     setBusy(true);
-    const r = await actions.setChefDecision(v.sku.item.id, decision, note);
+    const r = await stage.setChefDecision(v.sku.item.id, decision, note);
     setError(r.ok ? "" : r.error);
     if (r.ok) setHoldText("");
     setBusy(false);

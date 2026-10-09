@@ -4,11 +4,12 @@ import { useMemo, useState } from "react";
 import { BarChart3 } from "lucide-react";
 import { ENG_CLASS, computeEngineering } from "@/lib/ops/engine";
 import { useOps } from "@/lib/ops/store";
-import * as actions from "../actions";
 import { AccessNote, Card, CardTitle, ErrorNote, Loading, NumInput, OpsShell, T, TableWrap, Td, Th, pct, sar } from "@/components/ops/ui";
+import { useStage } from "@/lib/ops/stage";
 
 export default function EngineeringPage() {
   const ops = useOps();
+  const stage = useStage();
   const [error, setError] = useState("");
   const rows = useMemo(() => computeEngineering(ops.computed, ops.state.unitsSold), [ops.computed, ops.state.unitsSold]);
 
@@ -84,7 +85,7 @@ export default function EngineeringPage() {
                         value={r.units}
                         placeholder="—"
                         onCommit={async (v) => {
-                          const res = await actions.setUnitsSold(r.sku.item.id, v);
+                          const res = await stage.setUnitsSold(r.sku.item.id, v);
                           setError(res.ok ? "" : res.error);
                         }}
                       />

@@ -13,7 +13,7 @@ import { ShieldCheck, Plus, Cpu } from "lucide-react";
 import { T } from "@/lib/kitchen-shared";
 import { GateDef, IngApprovalDef, GateKind } from "@/lib/ops/engine";
 import { ROLES, Role, isRole } from "@/lib/ops/roles";
-import { setGateDef, setIngApprovalDef } from "@/app/admin/ops/actions";
+import { useStage } from "@/lib/ops/stage";
 
 const KIND_LABEL: Record<GateKind, string> = {
   standard: "عامة",
@@ -31,13 +31,14 @@ export default function GateDefManager({
   gateDefs: GateDef[];
   approvalDefs: IngApprovalDef[];
 }) {
+  const stage = useStage();
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [pending, start] = useTransition();
   const [adding, setAdding] = useState(false);
   const nextIndex = Math.max(-1, ...gateDefs.map((d) => d.index)) + 1;
   const [draft, setDraft] = useState({ label: "", kind: "standard" as GateKind, ownerRole: "quality" as Role });
 
-  function run(fn: () => Promise<{ ok: boolean; error?: string }>, okText = "تم الحفظ") {
+  function run(fn: () => Promise<{ ok: boolean; error?: string }>, okText = "أُضيف للمسوّدة") {
     setMsg(null);
     start(async () => {
       const r = await fn();
@@ -102,7 +103,7 @@ export default function GateDefManager({
                       disabled={pending}
                       onChange={(e) =>
                         run(() =>
-                          setGateDef({
+                          stage.setGateDef({
                             index: d.index,
                             label: d.label,
                             kind: d.kind,
@@ -127,7 +128,7 @@ export default function GateDefManager({
                     disabled={pending}
                     onClick={() =>
                       run(() =>
-                        setGateDef({
+                        stage.setGateDef({
                           index: d.index,
                           label: d.label,
                           kind: d.kind,
@@ -153,7 +154,7 @@ export default function GateDefManager({
                     disabled={pending}
                     onClick={() =>
                       run(() =>
-                        setGateDef({
+                        stage.setGateDef({
                           index: d.index,
                           label: d.label,
                           kind: d.kind,
@@ -217,7 +218,7 @@ export default function GateDefManager({
                 onClick={() =>
                   run(
                     () =>
-                      setGateDef({
+                      stage.setGateDef({
                         index: nextIndex,
                         label: draft.label,
                         kind: draft.kind,
@@ -232,7 +233,7 @@ export default function GateDefManager({
                         }
                         return r;
                       }),
-                    "أُضيفت البوابة — صارت شرطاً للنشر",
+                    "أُضيفت البوابة للمسوّدة — تصير شرطاً للنشر بعد الاعتماد",
                   )
                 }
                 className="rounded-xl px-5 py-2.5 text-sm font-bold text-[#0B1410] disabled:opacity-45"
@@ -296,7 +297,7 @@ export default function GateDefManager({
                   disabled={pending}
                   onChange={(e) =>
                     run(() =>
-                      setIngApprovalDef({
+                      stage.setIngApprovalDef({
                         index: d.index,
                         label: d.label,
                         kind: d.kind,
@@ -317,7 +318,7 @@ export default function GateDefManager({
                   disabled={pending}
                   onClick={() =>
                     run(() =>
-                      setIngApprovalDef({
+                      stage.setIngApprovalDef({
                         index: d.index,
                         label: d.label,
                         kind: d.kind,

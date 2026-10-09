@@ -6,8 +6,8 @@ import { ALLERGENS, AllergenKey, IngApprovalDef, Ingredient } from "@/lib/ops/en
 import { ROLES, Role, can, isRole, sealsGate } from "@/lib/ops/roles";
 import { useSession } from "@/lib/ops/session";
 import { IngredientSpecs, useOps } from "@/lib/ops/store";
-import * as actions from "../actions";
 import { AccessNote, Card, ErrorNote, Loading, NumInput, OpsShell, Pill, T, TableWrap, Td, Th, TriState, num, sar, statusColors } from "@/components/ops/ui";
+import { useStage } from "@/lib/ops/stage";
 
 type Filter = "all" | "allergen" | "pending";
 
@@ -189,6 +189,7 @@ function Editor({
   showFinance: boolean;
   onError: (e: string) => void;
 }) {
+  const stage = useStage();
   const [specs, setSpecs] = useState<IngredientSpecs>({
     kcal: ing.kcal,
     protein: ing.protein,
@@ -288,9 +289,9 @@ function Editor({
           {canSpecs && (
             <button
               onClick={async () => {
-                const r = await actions.setIngredientSpecs(ing.key, specs);
+                const r = await stage.setIngredientSpecs(ing.key, specs);
                 onError(r.ok ? "" : r.error);
-                setSavedMsg(r.ok ? "تم الحفظ — ينعكس فوراً على كل الوصفات اللي تستخدم المكوّن" : "");
+                setSavedMsg(r.ok ? "أُضيف للمسوّدة — بعد الاعتماد ينعكس على كل الوصفات اللي تستخدم المكوّن" : "");
               }}
               className="flex items-center gap-1.5 rounded-lg px-4 py-2 text-xs font-bold text-[#0B1410] mt-3"
               style={{ background: T.brandBright }}
@@ -324,7 +325,7 @@ function Editor({
                       disabled={!editable}
                       allowHold={false}
                       onChange={async (v) => {
-                        const r = await actions.setIngApproval(ing.key, i, v);
+                        const r = await stage.setIngApproval(ing.key, i, v);
                         onError(r.ok ? "" : r.error);
                       }}
                     />
@@ -349,7 +350,7 @@ function Editor({
                 width={110}
                 disabled={!canPrice}
                 onCommit={async (v) => {
-                  const r = await actions.setIngredientPrice(ing.key, v ?? 0);
+                  const r = await stage.setIngredientPrice(ing.key, v ?? 0);
                   onError(r.ok ? "" : r.error);
                 }}
               />
@@ -361,7 +362,7 @@ function Editor({
                   defaultValue={ing.priceQuoteDate ?? ""}
                   disabled={!canPrice}
                   onChange={async (e) => {
-                    const r = await actions.setIngredientPrice(ing.key, ing.price, e.target.value);
+                    const r = await stage.setIngredientPrice(ing.key, ing.price, e.target.value);
                     onError(r.ok ? "" : r.error);
                   }}
                   className="rounded-lg border px-3 py-1.5 text-xs disabled:opacity-60"

@@ -5,13 +5,14 @@ import { useState } from "react";
 import { Save, Undo2, SlidersHorizontal } from "lucide-react";
 import { ING_TYPE_LABEL, IngType, LEVELS, SECTIONS, Settings } from "@/lib/ops/engine";
 import { BASE_DATA, useOps } from "@/lib/ops/store";
-import * as actions from "../actions";
 import { AccessNote, Card, CardTitle, ErrorNote, Loading, OpsShell, T, TableWrap, Td, Th } from "@/components/ops/ui";
+import { useStage } from "@/lib/ops/stage";
 
 const TYPES: IngType[] = ["P", "C", "V", "S"];
 
 export default function SettingsPage() {
   const ops = useOps();
+  const stage = useStage();
   const [draft, setDraft] = useState<Settings | null>(null);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState("");
@@ -42,11 +43,11 @@ export default function SettingsPage() {
       setError("خطوة تقريب السعر لازم تكون أكبر من صفر");
       return;
     }
-    const r = await actions.saveSettings(draft);
+    const r = await stage.saveSettings(draft);
     if (r.ok) {
       setDraft(null);
       setError("");
-      setSaved("تم الحفظ — الأسعار والتكاليف والهوامش تحدثت في كل الصفحات");
+      setSaved("أُضيف للمسوّدة — اضغط «إرسال» تحت، والأرقام تتحدّث بعد الاعتماد");
     } else setError(r.error);
   }
 

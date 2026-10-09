@@ -52,6 +52,7 @@ export type Cap =
   | "gateDefs.manage"
   | "launch.view"
   | "launchAxes.manage"
+  | "requests.view"
   | "pilot.edit"
   | "kitchenGate.edit"
   | "safety.view"
@@ -96,6 +97,9 @@ export const MATRIX: Record<Cap, Role[]> = {
   // تعريف المحاور نفسها فللتنفيذي — القسم ما يشيل المحور اللي يقيسه.
   "launch.view": ALL,
   "launchAxes.manage": ["executive"],
+  // كل موظف يشوف طلباته؛ واللي ينتظر قراره تحدده سلطة الاعتماد في
+  // ops_change_kinds لا هذي المصفوفة.
+  "requests.view": ALL,
   "pilot.edit": ["quality"],
   "kitchenGate.edit": ["kitchen"],
   // سلامة الغذاء: الجودة تضع الخطة والحدود، والمطبخ يسجّل المراقبة، والجودة
@@ -173,6 +177,7 @@ export const PERMISSION_ROWS: { label: string; view: Cap; edit?: Cap }[] = [
   { label: "رفع عدم مطابقة", view: "safety.view", edit: "ncr.raise" },
   { label: "معالجة عدم المطابقة وإغلاقها", view: "safety.view", edit: "ncr.manage" },
   { label: "لوحة قرار الإطلاق (GO / NO-GO)", view: "launch.view" },
+  { label: "إرسال التعديلات كطلبات", view: "requests.view" },
   { label: "تعريف محاور الجاهزية", view: "launch.view", edit: "launchAxes.manage" },
 ];
 

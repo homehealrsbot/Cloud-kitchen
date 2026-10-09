@@ -8,12 +8,14 @@ import { useSession } from "@/lib/ops/session";
 import { useOps } from "@/lib/ops/store";
 import * as actions from "../actions";
 import { AccessNote, Card, CardTitle, ErrorNote, Loading, OpsShell, Pill, StatusBadge, T, TableWrap, Td, Th, num } from "@/components/ops/ui";
+import { useStage } from "@/lib/ops/stage";
 
 const MEAL_GROUPS = ["فطور", "غداء", "عشاء", "سناك", "شوربة", "سلطة", "حلا"];
 const FRIDAY_DISHES = ["كبسة", "مجبوس", "مندي"];
 
 export default function RotationPage() {
   const ops = useOps();
+  const stage = useStage();
   const session = useSession();
   const canEdit = can(session?.role, "rotation.edit");
   const [day, setDay] = useState(0);
@@ -115,7 +117,7 @@ export default function RotationPage() {
                               aria-label={label}
                               value={id}
                               onChange={async (e) => {
-                                const r = await actions.setRotationSlot(day, slot, e.target.value);
+                                const r = await stage.setRotationSlot(day, slot, e.target.value);
                                 setError(r.ok ? "" : r.error);
                               }}
                               className="w-full rounded-lg border px-2 py-1.5 text-xs font-bold"

@@ -8,6 +8,7 @@ import type { Cap } from "./roles";
 
 export const OPS_MODULES: { href: string; label: string; view: Cap; edit?: Cap; desc: string }[] = [
   { href: "/admin/launch", label: "قرار الإطلاق", view: "launch.view", desc: "GO / NO-GO ومحاور الجاهزية" },
+  { href: "/admin/requests", label: "الطلبات", view: "requests.view", desc: "التعديلات المرسلة وحالتها" },
   { href: "/admin/ops/production", label: "الإنتاج والمشتريات", view: "production.view", edit: "production.edit", desc: "حصص اليوم وقائمة الشراء" },
   { href: "/admin/ops/kitchen-card", label: "بطاقة المطبخ", view: "card.view", desc: "أوزان الدفعة وطريقة التحضير" },
   { href: "/admin/ops/rotation", label: "جدول الدوران", view: "rotation.view", edit: "rotation.edit", desc: "أصناف كل يوم خلال 14 يوم" },

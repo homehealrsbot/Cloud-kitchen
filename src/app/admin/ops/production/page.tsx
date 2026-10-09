@@ -7,7 +7,7 @@ import { computeProduction, ingApprovalOfKind } from "@/lib/ops/engine";
 import { can } from "@/lib/ops/roles";
 import { useSession } from "@/lib/ops/session";
 import { useOps } from "@/lib/ops/store";
-import * as actions from "../actions";
+import { useStage } from "@/lib/ops/stage";
 import {
   AccessNote,
   Card,
@@ -54,6 +54,7 @@ function groupRows<R extends { slotLabel: string }>(rows: R[]): R[] {
 
 export default function ProductionPage() {
   const ops = useOps();
+  const stage = useStage();
   // اعتماد السعر الموثّق: نسأله بنوعه من التعريفات لا برقمه
   const priceApproval = ingApprovalOfKind(ops.data.ingApprovalDefs, "price");
   const session = useSession();
@@ -140,7 +141,7 @@ export default function ProductionPage() {
             canEdit && plan.totals.portions > 0 ? (
               <button
                 onClick={async () => {
-                  const r = await actions.clearDay(day);
+                  const r = await stage.clearDay(day);
                   setError(r.ok ? "" : r.error);
                 }}
                 className="flex items-center gap-1 text-[11px] font-bold print:hidden"
@@ -195,7 +196,7 @@ export default function ProductionPage() {
                         disabled={isHold && r.portions === 0}
                         placeholder={isHold ? "موقوف" : "0"}
                         onCommit={async (v) => {
-                          const res = await actions.setPortions(day, r.slot, v ?? 0, r.skuId);
+                          const res = await stage.setPortions(day, r.slot, v ?? 0, r.skuId);
                           setError(res.ok ? "" : res.error);
                         }}
                       />

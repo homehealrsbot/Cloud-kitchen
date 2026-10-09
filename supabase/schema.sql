@@ -515,6 +515,68 @@ create table safety_nonconformance (
 create index idx_ncr_status on safety_nonconformance(status, raised_at desc);
 
 -- ============================================================================
+-- 7.8) طلبات التغيير — مسوّدة ثم إرسال ثم اعتماد
+-- ============================================================================
+--
+-- قبل: كل ضغطة زر كانت تكتب في القاعدة فوراً. يعني ما فيه «تراجع»، وما فيه
+-- مراجعة قبل الأثر، والموظف يغيّر رقماً يمسّ السعر أو الاعتماد بلا ما يشوفه
+-- أحد. صار المسار:
+--
+--   ١ · مسوّدة في الصفحة   — لا شي يُكتب، والموظف يجمّع تعديلاته ويراجعها
+--   ٢ · إرسال              — تُكتب هنا كطلبات بحالة pending، والبيانات الحيّة ما تتغيّر
+--   ٣ · اعتماد             — صاحب السلطة يقبل أو يرفض، وعند القبول فقط يُطبَّق
+--
+-- وإذا كان المُرسل هو نفسه صاحب سلطة الاعتماد، يُطبَّق فوراً ويُسجَّل أنه
+-- اعتمد نفسه — ما نخفي الخطوة، نسجّلها.
+
+create type change_status as enum ('pending', 'applied', 'rejected', 'failed');
+create type change_strategy as enum ('upsert', 'insert', 'replace_lines');
+
+-- القائمة البيضاء. دالة التطبيق ما تكتب في أي جدول ولا عمود خارج الصف هنا،
+-- فحتى لو انبعث طلب مزوّر ما يقدر يلمس عموداً ما هو مكتوب في patch_columns.
+-- وهي بيانات لا كود: التنفيذي يوقف نوعاً أو ينقل سلطة اعتماده لدور ثاني.
+create table ops_change_kinds (
+  kind           text primary key,
+  label          text not null,
+  area           text not null,                       -- للعرض والتجميع
+  target_table   text not null,
+  strategy       change_strategy not null default 'upsert',
+  key_columns    text[] not null default '{}',
+  patch_columns  text[] not null,
+  requester_roles staff_role[] not null default '{executive,kitchen,quality}',
+  approver_role  staff_role not null default 'executive',
+  active         boolean not null default true,
+  note           text not null default ''
+);
+
+comment on table ops_change_kinds is
+  'أنواع التغيير المسموح بها وقائمة أعمدتها البيضاء. سلطة الاعتماد عمود هنا، لا شرط في الكود.';
+
+create table ops_change_requests (
+  id                bigserial primary key,
+  batch_id          uuid not null,                    -- كل ضغطة «إرسال» دفعة واحدة
+  kind              text not null references ops_change_kinds(kind),
+  target_key        jsonb not null default '{}'::jsonb,
+  patch             jsonb not null,
+  before_val        jsonb,                            -- القيمة قبل التغيير، للمراجعة
+  summary           text not null,                    -- جملة عربية يقرأها المعتمِد
+  status            change_status not null default 'pending',
+  requested_by      uuid not null references auth.users(id),
+  requested_by_name text not null default '',
+  requested_by_role staff_role not null,
+  requested_at      timestamptz not null default now(),
+  decided_by        uuid references auth.users(id),
+  decided_by_name   text,
+  decided_at        timestamptz,
+  decision_note     text not null default '',
+  error             text not null default ''
+);
+
+create index idx_change_req_status on ops_change_requests(status, requested_at desc);
+create index idx_change_req_batch  on ops_change_requests(batch_id);
+create index idx_change_req_by     on ops_change_requests(requested_by, requested_at desc);
+
+-- ============================================================================
 -- 8) تحديث updated_at تلقائياً
 -- ============================================================================
 
@@ -563,6 +625,8 @@ alter table ops_rotation      enable row level security;
 alter table ops_gate_defs     enable row level security;
 alter table ops_ing_approval_defs enable row level security;
 alter table ops_launch_axes   enable row level security;
+alter table ops_change_kinds  enable row level security;
+alter table ops_change_requests enable row level security;
 alter table ops_gates         enable row level security;
 alter table ops_ing_approvals enable row level security;
 alter table ops_pilot_trials  enable row level security;
@@ -895,6 +959,45 @@ create policy "quality and executive update ncr" on safety_nonconformance
   for update to authenticated
   using (private.has_role(array['quality', 'executive']::staff_role[]))
   with check (private.has_role(array['quality', 'executive']::staff_role[]));
+
+-- ---------- طلبات التغيير ----------
+create policy "staff reads change kinds" on ops_change_kinds
+  for select to authenticated using ((select private.is_staff()));
+create policy "executive writes change kinds" on ops_change_kinds
+  for all to authenticated
+  using (private.has_role(array['executive']::staff_role[]))
+  with check (private.has_role(array['executive']::staff_role[]));
+
+-- الموظف يشوف طلباته، والمعتمِد يشوف اللي ينتظر قراره. وما فيه سياسة update
+-- ولا delete إطلاقاً: الحالة ما تتغيّر إلا من decide_change، فلا أحد يعلّم
+-- طلبه «مقبول» ولا يمحي أثر طلب رُفض.
+create policy "requester reads own requests" on ops_change_requests
+  for select to authenticated
+  using (requested_by = (select auth.uid()));
+
+create policy "approver reads pending requests" on ops_change_requests
+  for select to authenticated
+  using (
+    exists (
+      select 1 from ops_change_kinds k
+       where k.kind = ops_change_requests.kind
+         and private.has_role(array[k.approver_role])
+    )
+  );
+
+create policy "staff submits own requests" on ops_change_requests
+  for insert to authenticated
+  with check (
+    requested_by = (select auth.uid())
+    and status = 'pending'
+    and requested_by_role = (select private.current_staff_role())
+    and exists (
+      select 1 from ops_change_kinds k
+       where k.kind = ops_change_requests.kind
+         and k.active
+         and private.has_role(k.requester_roles)
+    )
+  );
 
 -- ============================================================================
 -- 10) فصل الأعمدة: السعر للتنفيذي، القيم الغذائية للجودة
@@ -1267,6 +1370,247 @@ create trigger ncr_from_failed_ccp
   for each row execute function private.tg_ncr_from_failed_ccp();
 
 -- ============================================================================
+-- 11.5) تطبيق طلب التغيير
+-- ============================================================================
+--
+-- هذي الدالة هي الباب الوحيد اللي يكتب نيابةً عن طلب معتمَد، وهي الوحيدة في
+-- النظام اللي تتجاوز RLS في الكتابة. تجاوزها محصور بثلاث قيود مجتمعة:
+--
+--   ١ · النوع لازم يكون صفاً نشطاً في ops_change_kinds،
+--   ٢ · الجدول المستهدف هو عمود في ذلك الصف — لا يُرسَل من العميل،
+--   ٣ · كل عمود في المفتاح أو التعديل لازم يكون مذكوراً في قوائم الصف البيضاء.
+--
+-- يعني أسوأ ما يقدر عليه طلب مزوّر هو كتابة عمود مسموح أصلاً لنوعه، وهذا
+-- بالضبط اللي يفحصه المعتمِد بعينه قبل القبول.
+--
+-- ليش SECURITY DEFINER أصلاً: سياسات RLS تقول «الجودة وحدها تختم بوابة
+-- الجودة». والمعتمِد تنفيذي، فلو طبّقنا بصلاحيته ترفضه السياسة. البديل كان
+-- توسيع السياسات نفسها للتنفيذي — وهذا يهدم الفصل بين الأقسام في كل وقت، لا
+-- في لحظة الاعتماد وحدها.
+-- استبدال مجموعة صفوف تخص مفتاحاً واحداً: أسطر وصفة صنف، أو خانات يوم دوران.
+-- هذي الحالة ما تنفع فيها upsert لأن السطر المحذوف لازم يختفي فعلاً، والترقيم
+-- تلقائي فما فيه مفتاح ثابت نطابق عليه.
+create or replace function private.replace_lines(
+  p_table    text,
+  p_key_cols text[],
+  p_key      jsonb,
+  p_rows     jsonb,
+  p_cols     text[]
+) returns void
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $fn$
+declare
+  bad      text;
+  merged   jsonb;
+  cols     text[];
+  col_list text;
+  sel_list text;
+  key_pred text;
+begin
+  select string_agg(distinct key, '، ') into bad
+    from jsonb_array_elements(p_rows) e, jsonb_object_keys(e) as t(key)
+   where key <> all (p_cols);
+  if bad is not null then
+    raise exception 'أعمدة غير مسموحة في الصفوف: %', bad;
+  end if;
+
+  -- كل صف يحمل مفتاحه، فالصفوف ما تقدر تُكتب خارج نطاق الطلب
+  merged := coalesce((select jsonb_agg(e || p_key) from jsonb_array_elements(p_rows) e), '[]'::jsonb);
+
+  key_pred := (select string_agg(format('t.%I is not distinct from k.%I', x, x), ' and ')
+                 from unnest(p_key_cols) x);
+
+  execute format(
+    'delete from public.%I t using jsonb_populate_record(null::public.%I, $1) k where %s',
+    p_table, p_table, key_pred
+  ) using p_key;
+
+  if jsonb_array_length(merged) = 0 then
+    return;
+  end if;
+
+  cols := (select array_agg(distinct key order by key)
+             from jsonb_array_elements(merged) e, jsonb_object_keys(e) as t(key));
+  col_list := (select string_agg(quote_ident(x), ', ') from unnest(cols) x);
+  sel_list := (select string_agg('r.' || quote_ident(x), ', ') from unnest(cols) x);
+
+  execute format(
+    'insert into public.%I (%s) select %s from jsonb_populate_recordset(null::public.%I, $1) r',
+    p_table, col_list, sel_list, p_table
+  ) using merged;
+end;
+$fn$;
+
+create or replace function private.apply_change(p_kind text, p_key jsonb, p_patch jsonb)
+returns void
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $fn$
+declare
+  k             ops_change_kinds%rowtype;
+  bad           text;
+  all_cols      text[];
+  col_list      text;
+  sel_list      text;
+  set_list      text;
+  conflict_cols text;
+  c             text;
+begin
+  select * into k from ops_change_kinds where kind = p_kind and active;
+  if not found then
+    raise exception 'نوع تغيير غير معروف أو موقوف: %', p_kind;
+  end if;
+
+  -- المفتاح: لا عمود زائد ولا ناقص
+  select string_agg(key, '، ') into bad
+    from jsonb_object_keys(p_key) as t(key)
+   where key <> all (k.key_columns);
+  if bad is not null then
+    raise exception 'أعمدة مفتاح غير مسموحة في «%»: %', k.label, bad;
+  end if;
+  foreach c in array k.key_columns loop
+    if not (p_key ? c) then
+      raise exception 'عمود مفتاح ناقص في «%»: %', k.label, c;
+    end if;
+  end loop;
+
+  -- التعديل: داخل القائمة البيضاء، وغير فاضٍ
+  if k.strategy <> 'replace_lines' then
+    select string_agg(key, '، ') into bad
+      from jsonb_object_keys(p_patch) as t(key)
+     where key <> all (k.patch_columns);
+    if bad is not null then
+      raise exception 'أعمدة تعديل غير مسموحة في «%»: %', k.label, bad;
+    end if;
+    if p_patch = '{}'::jsonb then
+      raise exception 'طلب «%» بلا أي تعديل', k.label;
+    end if;
+  end if;
+
+  if k.strategy = 'insert' then
+    all_cols := (select array_agg(key order by key) from jsonb_object_keys(p_patch) as t(key));
+    col_list := (select string_agg(quote_ident(x), ', ') from unnest(all_cols) x);
+    sel_list := (select string_agg('r.' || quote_ident(x), ', ') from unnest(all_cols) x);
+    execute format(
+      'insert into public.%I (%s) select %s from jsonb_populate_record(null::public.%I, $1) r',
+      k.target_table, col_list, sel_list, k.target_table
+    ) using p_patch;
+
+  elsif k.strategy = 'upsert' then
+    all_cols := (select array_agg(key order by key) from jsonb_object_keys(p_key || p_patch) as t(key));
+    col_list := (select string_agg(quote_ident(x), ', ') from unnest(all_cols) x);
+    sel_list := (select string_agg('r.' || quote_ident(x), ', ') from unnest(all_cols) x);
+    conflict_cols := (select string_agg(quote_ident(x), ', ') from unnest(k.key_columns) x);
+    set_list := (select string_agg(quote_ident(key) || ' = excluded.' || quote_ident(key), ', ')
+                   from jsonb_object_keys(p_patch) as t(key));
+    -- jsonb_populate_record يحوّل كل حقل لنوع عموده من rowtype الجدول،
+    -- فما نبني قيماً بالنص ولا نخمّن النوع.
+    execute format(
+      'insert into public.%I (%s) select %s from jsonb_populate_record(null::public.%I, $1) r '
+      'on conflict (%s) do update set %s',
+      k.target_table, col_list, sel_list, k.target_table, conflict_cols, set_list
+    ) using (p_key || p_patch);
+
+  else
+    -- replace_lines: استبدال مجموعة صفوف تخص مفتاحاً واحداً (أسطر وصفة مثلاً).
+    -- الصفوف الجديدة في p_patch->'rows'.
+    if jsonb_typeof(p_patch -> 'rows') <> 'array' then
+      raise exception 'طلب «%» يحتاج مصفوفة rows', k.label;
+    end if;
+    perform private.replace_lines(k.target_table, k.key_columns, p_key, p_patch -> 'rows', k.patch_columns);
+  end if;
+end;
+$fn$;
+
+-- القرار على الطلب. الباب الوحيد اللي يغيّر حالة طلب — ما فيه سياسة update
+-- على الجدول أصلاً، فحتى صاحب الطلب ما يقدر يعلّمه مقبولاً.
+--
+-- لو فشل التطبيق (قيد في القاعدة، صف اختفى، نوع تغيّر) ما نضيّع السبب: نرجع
+-- للنقطة قبل المحاولة، ونكتب الحالة failed ونص الخطأ في الصف. الطلب يبقى
+-- مرئياً بسببه بدل ما يختفي بصمت.
+create or replace function public.decide_change(
+  p_id      bigint,
+  p_approve boolean,
+  p_note    text default ''
+) returns text
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $fn$
+declare
+  r         ops_change_requests%rowtype;
+  k         ops_change_kinds%rowtype;
+  me        uuid := auth.uid();
+  my_role   staff_role := private.current_staff_role();
+  my_name   text;
+  result    text;
+begin
+  if me is null or my_role is null then
+    raise exception 'لازم تسجّل دخول بحساب فريق';
+  end if;
+
+  select * into r from ops_change_requests where id = p_id for update;
+  if not found then
+    raise exception 'الطلب غير موجود';
+  end if;
+  if r.status <> 'pending' then
+    raise exception 'الطلب انبتّ فيه مسبقاً (%)', r.status;
+  end if;
+
+  select * into k from ops_change_kinds where kind = r.kind;
+  if k.approver_role <> my_role then
+    raise exception 'اعتماد «%» من صلاحية % وحده', k.label, k.approver_role;
+  end if;
+
+  select name into my_name from staff where user_id = me;
+
+  if not p_approve then
+    update ops_change_requests
+       set status = 'rejected', decided_by = me, decided_by_name = coalesce(my_name, ''),
+           decided_at = now(), decision_note = coalesce(p_note, '')
+     where id = p_id;
+    insert into ops_audit (user_id, role, by, area, text)
+    values (me, my_role::text, coalesce(my_name, ''), k.area,
+            'رفض طلب: ' || r.summary || case when coalesce(p_note,'') <> '' then ' — ' || p_note else '' end);
+    return 'rejected';
+  end if;
+
+  begin
+    perform private.apply_change(r.kind, r.target_key, r.patch);
+    update ops_change_requests
+       set status = 'applied', decided_by = me, decided_by_name = coalesce(my_name, ''),
+           decided_at = now(), decision_note = coalesce(p_note, '')
+     where id = p_id;
+    result := 'applied';
+  exception when others then
+    update ops_change_requests
+       set status = 'failed', decided_by = me, decided_by_name = coalesce(my_name, ''),
+           decided_at = now(), decision_note = coalesce(p_note, ''), error = SQLERRM
+     where id = p_id;
+    result := 'failed';
+  end;
+
+  insert into ops_audit (user_id, role, by, area, text)
+  values (me, my_role::text, coalesce(my_name, ''), k.area,
+          case when result = 'applied' then 'اعتمد وطبّق: ' else 'فشل تطبيق: ' end || r.summary);
+  return result;
+end;
+$fn$;
+
+-- PostgreSQL يمنح EXECUTE لـ PUBLIC على أي دالة جديدة افتراضياً. هاتان
+-- الدالتان تتجاوزان RLS، فلو بقي المنح الافتراضي صار أي مستخدم مسجّل قادراً
+-- على تطبيق تغيير بلا اعتماد لو وصل لهما بأي طريق. ما نعتمد على أن مخطط
+-- private غير مكشوف عبر PostgREST — نسحب المنح صراحةً.
+revoke all on function private.apply_change(text, jsonb, jsonb) from public, anon, authenticated;
+revoke all on function private.replace_lines(text, text[], jsonb, jsonb, text[]) from public, anon, authenticated;
+
+revoke all on function public.decide_change(bigint, boolean, text) from public, anon;
+grant execute on function public.decide_change(bigint, boolean, text) to authenticated;
+
+-- ============================================================================
 -- 12) صلاحيات الجداول (السياسات أعلاه هي الحاكم الفعلي)
 -- ============================================================================
 
@@ -1291,8 +1635,12 @@ grant select, insert, update, delete on
   ops_menu_items, ops_recipe_lines, ops_settings, ops_rotation, ops_rotation_meta,
   ops_gates, ops_ing_approvals, ops_shelf_life, ops_production, ops_units_sold,
   ops_gate_defs, ops_ing_approval_defs, ops_pilot_trials, ops_kitchen_gate,
-  ops_launch_axes
+  ops_launch_axes, ops_change_kinds
   to authenticated;
+-- الطلبات: إدراج وقراءة فقط. التعديل عليها يمر من decide_change وحدها، فما
+-- فيه سياسة update ولا منح update — يعني ما ينفع أحد يعلّم طلبه مقبولاً.
+grant select, insert on ops_change_requests to authenticated;
+grant usage, select on sequence ops_change_requests_id_seq to authenticated;
 grant select, insert on ops_audit to authenticated;
 grant select, insert, update, delete on
   safety_haccp_steps, safety_critical_limits, safety_ccp_log,

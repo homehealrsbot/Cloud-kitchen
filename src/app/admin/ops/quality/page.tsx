@@ -6,13 +6,14 @@ import { GateStatus, SECTIONS, SkuStatus, gateOfKind } from "@/lib/ops/engine";
 import { ROLES, can, isRole, sealsGate } from "@/lib/ops/roles";
 import { useSession } from "@/lib/ops/session";
 import { SkuView, useOps } from "@/lib/ops/store";
-import * as actions from "../actions";
 import { AccessNote, ErrorNote, Kpi, Loading, NumInput, OpsShell, Pill, StatusBadge, T, TriState, num, pct, sar } from "@/components/ops/ui";
+import { useStage } from "@/lib/ops/stage";
 
 type StatusFilter = "all" | SkuStatus;
 
 export default function QualityPage() {
   const ops = useOps();
+  const stage = useStage();
   const session = useSession();
   const role = session?.role ?? null;
   const canShelf = can(role, "quality.editShelfLife");
@@ -51,7 +52,7 @@ export default function QualityPage() {
       setHold({ sku: v.sku.item.id, gate: gi, text: "" });
       return;
     }
-    const r = await actions.setGate(v.sku.item.id, gi, next, "");
+    const r = await stage.setGate(v.sku.item.id, gi, next, "");
     setError(r.ok ? "" : r.error);
     setHold(null);
   }
@@ -208,7 +209,7 @@ export default function QualityPage() {
                                 <button
                                   disabled={!hold.text.trim()}
                                   onClick={async () => {
-                                    const r = await actions.setGate(sku.item.id, gi, "HOLD", hold.text);
+                                    const r = await stage.setGate(sku.item.id, gi, "HOLD", hold.text);
                                     setError(r.ok ? "" : r.error);
                                     if (r.ok) setHold(null);
                                   }}
@@ -248,7 +249,7 @@ export default function QualityPage() {
                             value={sku.item.shelfLifeH}
                             min={1}
                             onCommit={async (val) => {
-                              const r = await actions.setShelfLife(sku.item.id, val ?? 0);
+                              const r = await stage.setShelfLife(sku.item.id, val ?? 0);
                               setError(r.ok ? "" : r.error);
                             }}
                           />

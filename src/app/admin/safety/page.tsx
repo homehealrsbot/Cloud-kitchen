@@ -19,6 +19,7 @@ import {
 } from "@/lib/safety/types";
 import * as actions from "./actions";
 import { AccessNote, Card, CardTitle, Kpi, Note, SafetyShell, T, useSafety } from "@/components/safety/ui";
+import { useStage } from "@/lib/ops/stage";
 
 const TODAY = () => new Date().toISOString().slice(0, 10);
 
@@ -272,6 +273,7 @@ function IsoRow({
   pending: boolean;
   onSave: (fn: () => Promise<{ ok: boolean; error?: string }>, okText?: string) => void;
 }) {
+  const stage = useStage();
   const [evidence, setEvidence] = useState(clause.evidence);
   const [open, setOpen] = useState(false);
 
@@ -309,7 +311,7 @@ function IsoRow({
               <button
                 key={st}
                 disabled={!canEdit || pending}
-                onClick={() => onSave(() => actions.setIsoClause(clause.clause, st, evidence), `بند ${clause.clause}: ${ISO_STATUS_LABEL[st]}`)}
+                onClick={() => onSave(() => stage.setIsoClause(clause.clause, st, evidence), `للمسوّدة — بند ${clause.clause}: ${ISO_STATUS_LABEL[st]}`)}
                 className="rounded-lg px-2.5 py-1 text-[10px] font-bold disabled:opacity-40"
                 style={
                   clause.status === st

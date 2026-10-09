@@ -7,8 +7,10 @@
 
 import { redirect } from "next/navigation";
 import AdminGate from "@/components/ops/AdminGate";
+import DraftBar from "@/components/ops/DraftBar";
 import NotConfigured from "@/components/auth/NotConfigured";
 import { RoleProvider } from "@/lib/ops/session";
+import { DraftProvider } from "@/lib/ops/draft";
 import { getCurrentUser } from "@/lib/supabase/auth";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
@@ -23,9 +25,14 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (!user) redirect("/login?next=/admin/ops");
   if (!user.staff) redirect("/no-access");
 
+  // المسوّدة فوق كل شاشات الإدارة: الموظف يتنقّل بين تبويبات الوحدة الواحدة
+  // ومسوّدته معه، ويرسلها دفعة وحدة.
   return (
     <RoleProvider value={user.staff}>
-      <AdminGate>{children}</AdminGate>
+      <DraftProvider>
+        <AdminGate>{children}</AdminGate>
+        <DraftBar />
+      </DraftProvider>
     </RoleProvider>
   );
 }
