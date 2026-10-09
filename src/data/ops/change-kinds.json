@@ -557,6 +557,29 @@
     "active": true
   },
   {
+    "kind": "change_kind.set",
+    "label": "قاعدة إرسال واعتماد",
+    "area": "القواعد والصلاحيات",
+    "targetTable": "ops_change_kinds",
+    "strategy": "upsert",
+    "keyColumns": [
+      "kind"
+    ],
+    "patchColumns": [
+      "label",
+      "requester_roles",
+      "approver_role",
+      "active",
+      "note"
+    ],
+    "requesterRoles": [
+      "executive"
+    ],
+    "approverRole": "executive",
+    "note": "مين يرسل نوع التغيير ومين يعتمده وهل هو مُفعّل — تعديل القاعدة نفسه يُسجَّل كطلب",
+    "active": true
+  },
+  {
     "kind": "staff.set",
     "label": "عضو فريق",
     "area": "الفريق",

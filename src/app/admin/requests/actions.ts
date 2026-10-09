@@ -92,6 +92,31 @@ async function extraAuthority(
       return `اعتماد «${data.label}» يختمه ${roleLabel(data.owner_role)} وحده`;
     }
   }
+  if (item.kind === "change_kind.set") {
+    const target = String(item.targetKey.kind ?? "");
+    const { data } = await supabase
+      .from("ops_change_kinds")
+      .select("kind")
+      .eq("kind", target)
+      .maybeSingle();
+    // نوع جديد يحتاج كوداً جديداً: دالّة تجميع في stage.ts ومكان ينادى منه.
+    // القاعدة ترفضه أصلاً (target_table و patch_columns لا يقبلان الفراغ)
+    // لكن رسالتها رسالة قيد، فنوضّح السبب قبل الإرسال.
+    if (!data) return `ما فيه قاعدة بهذا الاسم (${target}) — القواعد الجديدة تجي مع تحديث للنظام`;
+    // الأعمدة البنيوية ما هي في القائمة البيضاء، والحرس في القاعدة يرفضها،
+    // وهذا الفحص الثالث عشان ما يُكتب صف طلب يُعرف أنه يفشل.
+    const structural = ["kind", "target_table", "strategy", "key_columns", "patch_columns"]
+      .filter((c) => c in item.patch);
+    if (structural.length) {
+      return `بنية القاعدة (${structural.join("، ")}) تتغيّر مع تحديث النظام فقط`;
+    }
+    if (target === "change_kind.set") {
+      const authority = ["requester_roles", "approver_role", "active"].filter((c) => c in item.patch);
+      if (authority.length) {
+        return "سلطة تعديل القواعد نفسها ثابتة على الإدارة التنفيذية";
+      }
+    }
+  }
   return null;
 }
 

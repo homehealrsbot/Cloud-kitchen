@@ -20,6 +20,8 @@ import { changedFields } from "@/lib/ops/changes";
 import type { GateStatus, IngType, PilotResult, Settings } from "@/lib/ops/engine";
 import type { ActionResult } from "@/lib/ops/types";
 
+const ROLE_VALUES: string[] = ["executive", "kitchen", "quality"];
+
 const OK: ActionResult = { ok: true };
 const no = (error: string): ActionResult => ({ ok: false, error });
 
@@ -55,6 +57,20 @@ export interface StageApi {
     id: number; status: string; rootCause: string; correctiveAction: string;
     preventiveAction: string; dueDate: string | null;
   }) => Promise<ActionResult>;
+  /**
+   * قاعدة إرسال واعتماد — مين يرسل نوع التغيير ومين يعتمده.
+   *
+   * `before` يجي من الشاشة لا من مخزن الـops: القواعد والمحاور ما تدخل حسابات
+   * المحرّك فما لها مكان في المخزن، والمعتمِد يحتاج يشوف القيمة قبل التعديل.
+   */
+  setChangeKind: (
+    input: { kind: string; label: string; requesterRoles: string[]; approverRole: string; active: boolean; note: string },
+    before: { label: string; requesterRoles: string[]; approverRole: string; active: boolean; note: string },
+  ) => Promise<ActionResult>;
+  setLaunchAxis: (
+    input: { index: number; label: string; active: boolean; note: string },
+    before: { label: string; active: boolean; note: string },
+  ) => Promise<ActionResult>;
   setGateDef: (input: {
     index: number; label: string; kind: string; ownerRole: string | null;
     resetsOnRecipeChange: boolean; active: boolean; note: string;
@@ -340,6 +356,58 @@ export function useStage(): StageApi {
           cur ? { label: cur.label, active: cur.active, owner_role: cur.ownerRole } : null,
           `بوابة «${label}»${cur ? " · تعديل التعريف" : " · بوابة جديدة"}`,
         );
+      },
+
+      setChangeKind(input, before) {
+        const label = input.label.trim();
+        if (!label) return Promise.resolve(no("اسم القاعدة مطلوب"));
+        if (input.requesterRoles.length === 0) {
+          return Promise.resolve(no("لازم دور واحد على الأقل يقدر يرسل هذا النوع"));
+        }
+        if (!ROLE_VALUES.includes(input.approverRole)) {
+          return Promise.resolve(no("الدور المعتمِد غير معروف"));
+        }
+        if (input.requesterRoles.some((r) => !ROLE_VALUES.includes(r))) {
+          return Promise.resolve(no("فيه دور مرسِل غير معروف"));
+        }
+        // نوع القواعد نفسه: القاعدة ترفض تعديل سلطته، فنمنعه هنا برسالة
+        // مفهومة بدل ما يوصل الطلب للاعتماد ويفشل عند التطبيق
+        if (input.kind === "change_kind.set") {
+          const same =
+            input.approverRole === before.approverRole &&
+            input.active === before.active &&
+            input.requesterRoles.slice().sort().join() === before.requesterRoles.slice().sort().join();
+          if (!same) {
+            return Promise.resolve(
+              no("سلطة تعديل القواعد نفسها ثابتة على الإدارة التنفيذية — تقدر تعدّل اسمها وملاحظتها فقط"),
+            );
+          }
+        }
+        const next = {
+          label,
+          requester_roles: input.requesterRoles.slice().sort(),
+          approver_role: input.approverRole,
+          active: input.active,
+          note: input.note.trim(),
+        };
+        const prev = {
+          label: before.label,
+          requester_roles: before.requesterRoles.slice().sort(),
+          approver_role: before.approverRole,
+          active: before.active,
+          note: before.note,
+        };
+        const patch = changedFields(next, prev);
+        return put("change_kind.set", { kind: input.kind }, patch, prev, `قاعدة «${label}»`);
+      },
+
+      setLaunchAxis(input, before) {
+        const label = input.label.trim();
+        if (!label) return Promise.resolve(no("اسم المحور مطلوب"));
+        const next = { label, active: input.active, note: input.note.trim() };
+        const prev = { label: before.label, active: before.active, note: before.note };
+        const patch = changedFields(next, prev);
+        return put("launch_axis.set", { axis_index: input.index }, patch, prev, `محور «${label}»`);
       },
 
       setIngApprovalDef(input) {

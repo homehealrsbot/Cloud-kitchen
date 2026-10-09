@@ -651,7 +651,7 @@ insert into ops_launch_axes (axis_index, label, kind, active, note) values
   (5, 'الإنتاج والهوامش', 'production', true, 'جدول الدوران وخطة الحصص وحد الهامش')
 on conflict (axis_index) do nothing;
 
--- 25 نوع طلب تغيير (قائمة بيضاء — لا تُكتب فوق الموجود)
+-- 26 نوع طلب تغيير (قائمة بيضاء — لا تُكتب فوق الموجود)
 insert into ops_change_kinds (kind, label, area, target_table, strategy, key_columns, patch_columns, requester_roles, approver_role, active, note) values
   ('gate.set', 'ختم بوابة اعتماد', 'بوابات الاعتماد', 'ops_gates', 'upsert'::change_strategy, array['sku', 'gate_index']::text[], array['status', 'note', 'approved_by_name', 'approved_at']::text[], array['quality'::staff_role, 'executive'::staff_role], 'executive'::staff_role, true, 'ختم بوابة على صنف — يُطبَّق بعد الاعتماد فقط'),
   ('ing_approval.set', 'اعتماد مكوّن', 'المكوّنات', 'ops_ing_approvals', 'upsert'::change_strategy, array['ing_key', 'approval_index']::text[], array['status', 'note', 'approved_by_name', 'approved_at']::text[], array['quality'::staff_role, 'executive'::staff_role], 'executive'::staff_role, true, 'اعتماد مواصفة أو مورد أو حساسية أو سعر مكوّن'),
@@ -677,6 +677,7 @@ insert into ops_change_kinds (kind, label, area, target_table, strategy, key_col
   ('limit.set', 'حد حرج', 'سلامة الغذاء', 'safety_critical_limits', 'upsert'::change_strategy, array['id']::text[], array['step_index', 'parameter', 'limit_kind', 'min_value', 'max_value', 'unit', 'monitoring_method', 'frequency', 'corrective_action', 'active', 'sort_order']::text[], array['quality'::staff_role], 'executive'::staff_role, true, 'حدود نقطة التحكّم وطريقة مراقبتها'),
   ('limit.add', 'حد حرج جديد', 'سلامة الغذاء', 'safety_critical_limits', 'insert'::change_strategy, '{}'::text[], array['step_index', 'parameter', 'limit_kind', 'min_value', 'max_value', 'unit', 'monitoring_method', 'frequency', 'corrective_action', 'sort_order']::text[], array['quality'::staff_role], 'executive'::staff_role, true, 'إضافة حد حرج لنقطة تحكّم'),
   ('iso.set', 'بند ISO 22000', 'سلامة الغذاء', 'safety_iso_clauses', 'upsert'::change_strategy, array['clause']::text[], array['status', 'evidence', 'owner_role', 'updated_by']::text[], array['quality'::staff_role], 'executive'::staff_role, true, 'حالة بند من بنود المواصفة ودليلها'),
+  ('change_kind.set', 'قاعدة إرسال واعتماد', 'القواعد والصلاحيات', 'ops_change_kinds', 'upsert'::change_strategy, array['kind']::text[], array['label', 'requester_roles', 'approver_role', 'active', 'note']::text[], array['executive'::staff_role], 'executive'::staff_role, true, 'مين يرسل نوع التغيير ومين يعتمده وهل هو مُفعّل — تعديل القاعدة نفسه يُسجَّل كطلب'),
   ('staff.set', 'عضو فريق', 'الفريق', 'staff', 'upsert'::change_strategy, array['user_id']::text[], array['role', 'name', 'active']::text[], array['executive'::staff_role], 'executive'::staff_role, false, 'دور الموظف واسمه وتفعيله — واقعة تُسجَّل فوراً، ما تمر بمسار الاعتماد')
 on conflict (kind) do nothing;
 
@@ -1096,5 +1097,5 @@ commit;
 --   select count(*) from ops_rotation;      -- المتوقع 308
 --   select count(*) from ops_gate_defs;     -- المتوقع 8
 --   select count(*) from ops_launch_axes;   -- المتوقع 5
---   select count(*) from ops_change_kinds;  -- المتوقع 25
+--   select count(*) from ops_change_kinds;  -- المتوقع 26
 --   select count(*) from safety_critical_limits; -- المتوقع 10

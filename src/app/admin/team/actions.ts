@@ -14,6 +14,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getStaffSession } from "@/lib/supabase/auth";
 import { ROLES, Role, can } from "@/lib/ops/roles";
 import type { GateDef, IngApprovalDef } from "@/lib/ops/engine";
+import type { LaunchAxisDef } from "@/lib/ops/launch";
 import type { ActionResult } from "@/lib/ops/types";
 
 export interface TeamMember {
@@ -69,6 +70,25 @@ export async function listApprovalDefs(): Promise<{ gates: GateDef[]; approvals:
       note: String(r.note ?? ""),
     })),
   };
+}
+
+/**
+ * محاور قرار الإطلاق — تُعرض في نفس شاشة القواعد لأنها نفس السؤال: إيش
+ * الشروط اللي لازم تتحقق قبل ما يُقال «جاهز».
+ */
+export async function listLaunchAxes(): Promise<LaunchAxisDef[]> {
+  const session = await getStaffSession();
+  if (!session) return [];
+  const supabase = await createClient();
+  const { data } = await supabase.from("ops_launch_axes").select("*").order("axis_index");
+  type Row = Record<string, unknown>;
+  return ((data ?? []) as Row[]).map((r) => ({
+    index: Number(r.axis_index),
+    label: String(r.label ?? ""),
+    kind: String(r.kind) as LaunchAxisDef["kind"],
+    active: Boolean(r.active),
+    note: String(r.note ?? ""),
+  }));
 }
 
 /** يضيف موظفاً أو يعدّل دوره أو يوقفه، بالإيميل. */

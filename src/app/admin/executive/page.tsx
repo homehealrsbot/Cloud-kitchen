@@ -164,7 +164,7 @@ export default async function ExecutiveDashboard() {
             <Package size={15} className="inline ml-1.5" /> المكوّنات والأسعار
           </Link>
           <Link href="/admin/team" className="rounded-2xl py-3.5 text-center text-sm font-bold" style={{ background: T.brandTint, color: T.brand }}>
-            <ShieldCheck size={15} className="inline ml-1.5" /> الفريق والصلاحيات
+            <ShieldCheck size={15} className="inline ml-1.5" /> القواعد والصلاحيات
           </Link>
         </div>
 

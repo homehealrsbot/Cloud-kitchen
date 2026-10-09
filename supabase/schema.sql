@@ -552,6 +552,48 @@ create table ops_change_kinds (
 comment on table ops_change_kinds is
   'أنواع التغيير المسموح بها وقائمة أعمدتها البيضاء. سلطة الاعتماد عمود هنا، لا شرط في الكود.';
 
+-- ---------- حرس القائمة البيضاء ----------
+-- الأعمدة البنيوية هنا كود لا بيانات: target_table و strategy و key_columns و
+-- patch_columns هي اللي تحدد إيش يقدر private.apply_change يكتب وفي أي جدول.
+-- لو صارت قابلة للتعديل من داخل النظام، صار بإمكان من يملك نوعاً واحداً أن
+-- يوسّعه ليكتب أي عمود في أي جدول — فيسقط الحصر كله. فتُعدَّل من الهجرة فقط.
+--
+-- وصف change_kind.set محمي أكثر: هو النوع اللي يعدّل القواعد. لو قدر أحد
+-- يوسّع requester_roles عليه، صار يعطي نفسه سلطة الاعتماد على كل شي.
+create or replace function private.guard_change_kinds()
+returns trigger
+language plpgsql
+security invoker
+set search_path = ''
+as $g$
+begin
+  if tg_op = 'DELETE' then
+    raise exception 'أنواع التغيير ما تُحذف — أوقفها بـ active = false حتى يبقى سجل الطلبات القديمة مفهوماً';
+  end if;
+
+  if new.kind           is distinct from old.kind
+  or new.target_table   is distinct from old.target_table
+  or new.strategy       is distinct from old.strategy
+  or new.key_columns    is distinct from old.key_columns
+  or new.patch_columns  is distinct from old.patch_columns then
+    raise exception 'بنية نوع التغيير (الجدول والاستراتيجية والأعمدة) تُعدَّل من الهجرة فقط — هي القائمة البيضاء نفسها';
+  end if;
+
+  if old.kind = 'change_kind.set'
+  and (new.requester_roles is distinct from old.requester_roles
+    or new.approver_role   is distinct from old.approver_role
+    or new.active          is distinct from old.active) then
+    raise exception 'سلطة تعديل القواعد نفسها ثابتة على الإدارة التنفيذية — ما تُنقل من داخل النظام';
+  end if;
+
+  return new;
+end;
+$g$;
+
+create trigger trg_change_kinds_guard
+  before update or delete on ops_change_kinds
+  for each row execute function private.guard_change_kinds();
+
 create table ops_change_requests (
   id                bigserial primary key,
   batch_id          uuid not null,                    -- كل ضغطة «إرسال» دفعة واحدة
@@ -1456,7 +1498,8 @@ declare
   col_list      text;
   sel_list      text;
   set_list      text;
-  conflict_cols text;
+  where_list    text;
+  n_rows        bigint;
   c             text;
 begin
   select * into k from ops_change_kinds where kind = p_kind and active;
@@ -1474,6 +1517,11 @@ begin
   foreach c in array k.key_columns loop
     if not (p_key ? c) then
       raise exception 'عمود مفتاح ناقص في «%»: %', k.label, c;
+    end if;
+    -- قيمة مفتاح فاضية ما تطابق أي صف (null = null ترجّع unknown) فتنزلق
+    -- لمسار الإدراج وتبني صفاً ثانياً بصمت بدل ما تعدّل الموجود.
+    if jsonb_typeof(p_key -> c) = 'null' then
+      raise exception 'قيمة مفتاح فاضية في «%»: %', k.label, c;
     end if;
   end loop;
 
@@ -1500,19 +1548,36 @@ begin
     ) using p_patch;
 
   elsif k.strategy = 'upsert' then
-    all_cols := (select array_agg(key order by key) from jsonb_object_keys(p_key || p_patch) as t(key));
-    col_list := (select string_agg(quote_ident(x), ', ') from unnest(all_cols) x);
-    sel_list := (select string_agg('r.' || quote_ident(x), ', ') from unnest(all_cols) x);
-    conflict_cols := (select string_agg(quote_ident(x), ', ') from unnest(k.key_columns) x);
-    set_list := (select string_agg(quote_ident(key) || ' = excluded.' || quote_ident(key), ', ')
-                   from jsonb_object_keys(p_patch) as t(key));
+    -- تحديث أولاً، وإدراج فقط إذا ما كان الصف موجوداً.
+    --
+    -- ما نستخدم insert ... on conflict do update: هي تبني صفاً مقترحاً كاملاً
+    -- وتفحص قيود not null عليه قبل ما تكتشف التعارض. والتعديل هنا جزئي بطبعه
+    -- (سعر مكوّن بلا اسمه، حالة بند ISO بلا عنوانه) فيطيح الطلب على عمود ما
+    -- طلبنا تعديله أصلاً. التحديث ما يمسّ إلا أعمدة التعديل.
+    --
     -- jsonb_populate_record يحوّل كل حقل لنوع عموده من rowtype الجدول،
     -- فما نبني قيماً بالنص ولا نخمّن النوع.
+    set_list := (select string_agg(quote_ident(key) || ' = r.' || quote_ident(key), ', ')
+                   from jsonb_object_keys(p_patch) as t(key));
+    where_list := (select string_agg(format('t.%I = r.%I', x, x), ' and ') from unnest(k.key_columns) x);
     execute format(
-      'insert into public.%I (%s) select %s from jsonb_populate_record(null::public.%I, $1) r '
-      'on conflict (%s) do update set %s',
-      k.target_table, col_list, sel_list, k.target_table, conflict_cols, set_list
+      'update public.%I t set %s from jsonb_populate_record(null::public.%I, $1) r where %s',
+      k.target_table, set_list, k.target_table, where_list
     ) using (p_key || p_patch);
+
+    -- get diagnostics لا not found: execute ما يحدّث FOUND في PL/pgSQL (تبقى
+    -- على قيمة آخر select into قبلها) فلو قرأناها هنا، مسار الإدراج ما يشتغل
+    -- أبداً والدالّة ترجّع بلا ما تكتب شيئاً.
+    get diagnostics n_rows = row_count;
+    if n_rows = 0 then
+      all_cols := (select array_agg(key order by key) from jsonb_object_keys(p_key || p_patch) as t(key));
+      col_list := (select string_agg(quote_ident(x), ', ') from unnest(all_cols) x);
+      sel_list := (select string_agg('r.' || quote_ident(x), ', ') from unnest(all_cols) x);
+      execute format(
+        'insert into public.%I (%s) select %s from jsonb_populate_record(null::public.%I, $1) r',
+        k.target_table, col_list, sel_list, k.target_table
+      ) using (p_key || p_patch);
+    end if;
 
   else
     -- replace_lines: استبدال مجموعة صفوف تخص مفتاحاً واحداً (أسطر وصفة مثلاً).

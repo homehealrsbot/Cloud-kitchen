@@ -169,7 +169,7 @@ export const PERMISSION_ROWS: { label: string; view: Cap; edit?: Cap }[] = [
   { label: "إعدادات الحصص والتكلفة", view: "settings.edit", edit: "settings.edit" },
   { label: "هندسة المنيو (المبيعات)", view: "engineering.view", edit: "engineering.view" },
   { label: "سجل التعديلات", view: "audit.view" },
-  { label: "الفريق والصلاحيات", view: "team.manage", edit: "team.manage" },
+  { label: "الفريق: إضافة موظف ودوره وإيقافه", view: "team.manage", edit: "team.manage" },
   { label: "تعريف بوابات الاعتماد (إضافة/إيقاف/نقل ملكية)", view: "quality.view", edit: "gateDefs.manage" },
   { label: "خطة HACCP والحدود الحرجة", view: "safety.view", edit: "safety.plan" },
   { label: "سجل مراقبة النقاط الحرجة اليومي", view: "safety.view", edit: "safety.log" },
@@ -179,6 +179,7 @@ export const PERMISSION_ROWS: { label: string; view: Cap; edit?: Cap }[] = [
   { label: "لوحة قرار الإطلاق (GO / NO-GO)", view: "launch.view" },
   { label: "إرسال التعديلات كطلبات", view: "requests.view" },
   { label: "تعريف محاور الجاهزية", view: "launch.view", edit: "launchAxes.manage" },
+  { label: "قواعد الإرسال والاعتماد (مين يرسل ومين يعتمد)", view: "team.manage", edit: "team.manage" },
 ];
 
 /** صف صلاحية لبوابة اعتماد واحدة، مبني من تعريفها لا من الكود. */

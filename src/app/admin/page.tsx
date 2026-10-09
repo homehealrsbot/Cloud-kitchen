@@ -94,9 +94,9 @@ export default async function AdminHome() {
             <Users size={19} />
           </span>
           <span className="flex-1">
-            <span className="block text-sm font-bold">الفريق والصلاحيات</span>
+            <span className="block text-sm font-bold">القواعد والصلاحيات</span>
             <span className="block text-[11px] mt-0.5" style={{ color: T.inkSoft }}>
-              أضف موظفاً، أعطه دوراً، أو أوقفه
+              الموظفون وأدوارهم، ومين يختم، ومين يرسل ويعتمد
             </span>
           </span>
           <ArrowLeft size={16} style={{ color: T.inkSoft }} />
