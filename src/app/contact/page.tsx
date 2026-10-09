@@ -94,8 +94,8 @@ export default function ContactPage() {
               href={whatsappLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="w-full rounded-full py-3 flex items-center justify-center gap-2 text-sm font-bold text-white"
-              style={{ background: T.brandBright }}
+              className="w-full rounded-full py-3 flex items-center justify-center gap-2 text-sm font-bold"
+              style={{ background: T.brandBright, color: T.onBright }}
             >
               <Send size={15} />
               إرسال عبر واتساب

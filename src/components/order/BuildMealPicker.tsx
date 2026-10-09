@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { AlertTriangle, Beef, Check, ChevronRight, Flame, Search, Utensils } from "lucide-react";
+import { AlertTriangle, Beef, Check, Flame, Search } from "lucide-react";
 import { T } from "@/lib/kitchen-shared";
+import { BRAND } from "@/lib/brand";
+import AppShell, { AppHeader } from "@/components/order/AppShell";
 import type { IngType } from "@/lib/ops/engine";
 
 export interface PickerIngredient {
@@ -44,18 +46,8 @@ export default function BuildMealPicker({
   }
 
   return (
-    <div style={{ background: T.bg, color: T.ink }} className="min-h-screen w-full">
-      <div className="w-full border-b" style={{ borderColor: T.border, background: T.surface }}>
-        <div className="max-w-md mx-auto px-5 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Utensils size={18} style={{ color: T.brand }} />
-            <span className="font-bold text-sm" style={{ color: T.brand }}>ابنِ وجبتك</span>
-          </div>
-          <Link href="/order-app" className="flex items-center gap-1 text-xs font-bold" style={{ color: T.inkSoft }}>
-            رجوع <ChevronRight size={13} />
-          </Link>
-        </div>
-      </div>
+    <AppShell>
+      <AppHeader kicker="من قاعدة مكوّنات المطبخ" heading="ابنِ وجبتك" />
 
       <div className="max-w-md mx-auto px-5 py-6 pb-32">
         <div className="flex items-start gap-2 rounded-xl px-4 py-3 mb-4" style={{ background: T.brandTint }}>
@@ -118,7 +110,7 @@ export default function BuildMealPicker({
                 </div>
                 <span
                   className="rounded-full flex items-center justify-center shrink-0"
-                  style={{ width: 26, height: 26, background: on ? T.brandBright : T.brandTint, color: "#fff" }}
+                  style={{ width: 26, height: 26, background: on ? T.brandBright : T.brandTint, color: T.onBright }}
                 >
                   {on && <Check size={14} />}
                 </span>
@@ -132,11 +124,12 @@ export default function BuildMealPicker({
       </div>
 
       {chosen.length > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 border-t" style={{ background: T.surface, borderColor: T.border }}>
+        // فوق شريط التبويب مباشرة، لا تحته
+        <div className="fixed bottom-[60px] left-0 right-0 z-10 border-t" style={{ background: T.surface, borderColor: T.border }}>
           <div className="max-w-md mx-auto px-5 py-4">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-4 text-xs" style={{ color: T.inkSoft }}>
-                <span className="flex items-center gap-1"><Flame size={13} style={{ color: T.brandBright }} /> {totalKcal} سعرة</span>
+                <span className="flex items-center gap-1"><Flame size={13} style={{ color: BRAND.limeText }} /> {totalKcal} سعرة</span>
                 <span className="flex items-center gap-1"><Beef size={13} style={{ color: T.brand }} /> {totalProtein}غ بروتين</span>
               </div>
               <span className="text-xs font-bold" style={{ color: T.brand }}>{chosen.length} مكوّن</span>
@@ -147,6 +140,6 @@ export default function BuildMealPicker({
           </div>
         </div>
       )}
-    </div>
+    </AppShell>
   );
 }

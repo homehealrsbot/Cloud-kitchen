@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { useState, useTransition } from "react";
-import { ChevronRight, HeartPulse, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { GOAL_TAGS, HEALTH_CONDITIONS, T, type GoalTag } from "@/lib/kitchen-shared";
 import { saveHealthProfile, type CustomerProfile } from "@/app/order-app/profile-actions";
+import AppShell, { AppHeader } from "@/components/order/AppShell";
 
 // تقدير تقريبي للسعرات — لأغراض التوصية فقط، مو تشخيص طبي
 function bmiCategory(bmi: number) {
@@ -55,18 +55,8 @@ export default function HealthProfileForm({
   }
 
   return (
-    <div style={{ background: T.bg, color: T.ink }} className="min-h-screen w-full">
-      <div className="w-full border-b" style={{ borderColor: T.border, background: T.surface }}>
-        <div className="max-w-md mx-auto px-5 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <HeartPulse size={18} style={{ color: T.brand }} />
-            <span className="font-bold text-sm" style={{ color: T.brand }}>ملفك الصحي</span>
-          </div>
-          <Link href="/order-app" className="flex items-center gap-1 text-xs font-bold" style={{ color: T.inkSoft }}>
-            رجوع <ChevronRight size={13} />
-          </Link>
-        </div>
-      </div>
+    <AppShell>
+      <AppHeader kicker="حسابي" heading="ملفك الصحي" />
 
       <div className="max-w-md mx-auto px-5 py-6">
         <p className="text-xs mb-5 leading-relaxed" style={{ color: T.inkSoft }}>
@@ -113,7 +103,7 @@ export default function HealthProfileForm({
                   className="text-xs rounded-full px-3 py-1.5 font-semibold border transition-colors"
                   style={{
                     background: on ? T.brandBright : T.surface,
-                    color: on ? "#fff" : T.inkSoft,
+                    color: on ? T.onBright : T.inkSoft,
                     borderColor: on ? T.brandBright : T.border,
                   }}
                 >
@@ -131,7 +121,7 @@ export default function HealthProfileForm({
                 <button
                   key={c} onClick={() => toggle(conditions, setConditions, c)} aria-pressed={on}
                   className="text-xs rounded-full px-3 py-1.5 font-semibold border transition-colors"
-                  style={{ background: on ? T.brandBright : T.surface, color: on ? "#fff" : T.inkSoft, borderColor: on ? T.brandBright : T.border }}
+                  style={{ background: on ? T.brandBright : T.surface, color: on ? T.onBright : T.inkSoft, borderColor: on ? T.brandBright : T.border }}
                 >
                   {c}
                 </button>
@@ -171,6 +161,6 @@ export default function HealthProfileForm({
         {msg && <div className="text-xs font-bold text-center mt-3" style={{ color: T.good }}>{msg}</div>}
         {error && <div className="text-xs font-bold text-center mt-3" style={{ color: T.warn }}>{error}</div>}
       </div>
-    </div>
+    </AppShell>
   );
 }

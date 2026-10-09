@@ -329,8 +329,12 @@ function LimitRow({
           <button
             disabled={!canSubmit}
             onClick={submit}
-            className="rounded-lg px-4 py-1.5 text-xs font-bold text-white disabled:opacity-35"
-            style={{ background: preview === false ? T.warn : T.brandBright }}
+            className="rounded-lg px-4 py-1.5 text-xs font-bold disabled:opacity-35"
+            style={
+              preview === false
+                ? { background: T.warn, color: "#FFFFFF" }
+                : { background: T.brandBright, color: T.onBright }
+            }
           >
             {pending ? "..." : "سجّل"}
           </button>

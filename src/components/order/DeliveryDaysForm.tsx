@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { useState, useTransition } from "react";
-import { CalendarDays, Check, ChevronRight, Loader2 } from "lucide-react";
+import { Check, Loader2 } from "lucide-react";
 import { T, WEEK_DAYS } from "@/lib/kitchen-shared";
 import { saveDeliveryDays } from "@/app/order-app/profile-actions";
+import AppShell, { AppHeader } from "@/components/order/AppShell";
 
 export default function DeliveryDaysForm({ initial }: { initial: string[] }) {
   const [selected, setSelected] = useState<string[]>(initial);
@@ -29,18 +29,8 @@ export default function DeliveryDaysForm({ initial }: { initial: string[] }) {
   const dirty = JSON.stringify([...selected].sort()) !== JSON.stringify([...initial].sort());
 
   return (
-    <div style={{ background: T.bg, color: T.ink }} className="min-h-screen w-full">
-      <div className="w-full border-b" style={{ borderColor: T.border, background: T.surface }}>
-        <div className="max-w-md mx-auto px-5 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <CalendarDays size={18} style={{ color: T.brand }} />
-            <span className="font-bold text-sm" style={{ color: T.brand }}>أيام التوصيل</span>
-          </div>
-          <Link href="/order-app" className="flex items-center gap-1 text-xs font-bold" style={{ color: T.inkSoft }}>
-            رجوع <ChevronRight size={13} />
-          </Link>
-        </div>
-      </div>
+    <AppShell>
+      <AppHeader kicker="خطتي" heading="أيام التوصيل" />
 
       <div className="max-w-md mx-auto px-5 py-6">
         <p className="text-xs mb-5" style={{ color: T.inkSoft }}>
@@ -61,7 +51,7 @@ export default function DeliveryDaysForm({ initial }: { initial: string[] }) {
                 <span className="text-sm font-bold">{day}</span>
                 <span
                   className="rounded-full flex items-center justify-center shrink-0"
-                  style={{ width: 24, height: 24, background: on ? T.brandBright : T.brandTint, color: "#fff" }}
+                  style={{ width: 24, height: 24, background: on ? T.brandBright : T.brandTint, color: T.onBright }}
                 >
                   {on && <Check size={13} />}
                 </span>
@@ -89,6 +79,6 @@ export default function DeliveryDaysForm({ initial }: { initial: string[] }) {
         {msg && <div className="text-xs font-bold text-center mt-3" style={{ color: T.good }}>{msg}</div>}
         {error && <div className="text-xs font-bold text-center mt-3" style={{ color: T.warn }}>{error}</div>}
       </div>
-    </div>
+    </AppShell>
   );
 }

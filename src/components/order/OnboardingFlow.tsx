@@ -1,11 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { ArrowLeft, Check, ChevronRight, Loader2 } from "lucide-react";
+import { ArrowLeft, Check, Loader2 } from "lucide-react";
 import { CUISINES, GOAL_TAGS, T, type GoalTag } from "@/lib/kitchen-shared";
+import { BRAND } from "@/lib/brand";
 import { saveCuisines, saveHealthProfile, type CustomerProfile } from "@/app/order-app/profile-actions";
+import { AppHeader } from "@/components/order/AppShell";
 
 const GOAL_DESC: Record<GoalTag, string> = {
   "تنزيل وزن": "سعرات أقل مع بروتين كافٍ للحفاظ على العضل",
@@ -48,28 +49,23 @@ export default function OnboardingFlow({ profile }: { profile: CustomerProfile }
 
   return (
     <div style={{ background: T.bg, color: T.ink }} className="min-h-screen w-full">
-      <div className="w-full border-b" style={{ borderColor: T.border, background: T.surface }}>
-        <div className="max-w-md mx-auto px-5 py-4 flex items-center justify-between">
-          <span className="font-bold text-sm" style={{ color: T.brand }}>إعداد اشتراكك</span>
-          <Link href="/order-app" className="flex items-center gap-1 text-xs font-bold" style={{ color: T.inkSoft }}>
-            رجوع <ChevronRight size={13} />
-          </Link>
-        </div>
-        <div className="max-w-md mx-auto px-5 pb-3 flex items-center gap-2">
+      {/* بدون شريط تبويب: هذا مسار إعداد، والخروج منه في نصّه يخليه ناقصاً */}
+      <AppHeader kicker="ابدأ خطتك" heading="إعداد اشتراكك">
+        <div className="flex items-center gap-2">
           {stages.map((s, i) => (
             <div key={s} className="flex-1 flex items-center gap-2">
               <div
                 className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0"
-                style={{ background: i <= stage ? T.brandBright : T.brandTint, color: i <= stage ? "#fff" : T.brand }}
+                style={{ background: i <= stage ? BRAND.lime : "#FFFFFF1F", color: i <= stage ? T.onBright : BRAND.sage }}
               >
                 {i < stage ? <Check size={12} /> : i + 1}
               </div>
-              <span className="text-[10px] font-semibold" style={{ color: i <= stage ? T.brand : T.inkSoft }}>{s}</span>
-              {i < stages.length - 1 && <div className="flex-1 h-px" style={{ background: T.border }} />}
+              <span className="text-[10px] font-semibold" style={{ color: i <= stage ? "#FFFFFF" : BRAND.sage }}>{s}</span>
+              {i < stages.length - 1 && <div className="flex-1 h-px" style={{ background: "#FFFFFF26" }} />}
             </div>
           ))}
         </div>
-      </div>
+      </AppHeader>
 
       <div className="max-w-md mx-auto px-5 py-6">
         {stage === 0 && (
@@ -117,7 +113,7 @@ export default function OnboardingFlow({ profile }: { profile: CustomerProfile }
                     onClick={() => setCuisines((p) => (p.includes(c) ? p.filter((x) => x !== c) : [...p, c]))}
                     aria-pressed={on}
                     className="rounded-full px-4 py-2 text-sm font-bold border transition-colors"
-                    style={{ background: on ? T.brandBright : T.surface, color: on ? "#fff" : T.ink, borderColor: on ? T.brandBright : T.border }}
+                    style={{ background: on ? T.brandBright : T.surface, color: on ? T.onBright : T.ink, borderColor: on ? T.brandBright : T.border }}
                   >
                     {c}
                   </button>

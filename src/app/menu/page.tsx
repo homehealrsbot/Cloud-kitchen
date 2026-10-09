@@ -8,31 +8,15 @@ import SiteNav from "@/components/SiteNav";
 import SiteFooter from "@/components/SiteFooter";
 import Image from "next/image";
 import { T } from "@/lib/kitchen-shared";
-import { BRAND, MACRO } from "@/lib/brand";
+import { BRAND } from "@/lib/brand";
+import { MacroChip } from "@/components/brand/Macro";
+import { mealPhoto } from "@/lib/brand-photo";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
 import { computeMenu, type Ingredient, type MenuItem, type RecipeLine, type Settings } from "@/lib/ops/engine";
 import baseSettings from "@/data/ops/settings.json";
 
 export const dynamic = "force-dynamic";
-
-/**
- * شارة ماكرو بكود ألوان الهوية: البروتين ليموني، الكارب برتقالي، الدهون كريمي.
- * نفس الشكل في الموقع والتطبيق والملصق — الثبات هو اللي يخلي العميل يقرأ
- * الرقم بلمحة.
- */
-function MacroChip({ macro, value }: { macro: keyof typeof MACRO; value: number }) {
-  const m = MACRO[macro];
-  return (
-    <span
-      className="flex-1 rounded-lg px-2 py-1.5 text-center leading-none"
-      style={{ background: m.bg, color: m.fg, border: macro === "fat" ? `1px solid ${T.border}` : undefined }}
-    >
-      <span className="num block text-[13px] font-extrabold">{value}g</span>
-      <span className="block text-[9px] font-bold mt-0.5 opacity-80">{m.label}</span>
-    </span>
-  );
-}
 
 async function loadMenu() {
   if (!isSupabaseConfigured) return [];
@@ -126,7 +110,7 @@ export default async function MenuPage() {
               >
                 <div className="relative h-40" style={{ background: BRAND.forest }}>
                   <Image
-                    src="/brand/meal-chicken.jpg"
+                    src={mealPhoto(m.item.id)}
                     alt=""
                     fill
                     sizes="(max-width: 640px) 100vw, 33vw"
