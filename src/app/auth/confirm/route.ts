@@ -3,6 +3,7 @@
 
 import { type EmailOtpType } from "@supabase/supabase-js";
 import { redirect } from "next/navigation";
+import { safeNextPath } from "@/lib/safe-redirect";
 import type { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
@@ -25,5 +26,5 @@ export async function GET(request: NextRequest) {
     redirect("/login?error=" + encodeURIComponent("رابط التأكيد منتهي أو مستخدم — اطلب رابطاً جديداً"));
   }
 
-  redirect(next && next.startsWith("/") ? next : "/order-app");
+  redirect(safeNextPath(next, "/order-app"));
 }

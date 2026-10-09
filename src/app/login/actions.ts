@@ -4,6 +4,7 @@
 // في كود يشتغل بالمتصفح، والجلسة تُكتب في كوكي HttpOnly.
 
 import { redirect } from "next/navigation";
+import { safeNextPath } from "@/lib/safe-redirect";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
@@ -55,7 +56,7 @@ export async function signIn(_prev: AuthState, formData: FormData): Promise<Auth
 
   const next = String(formData.get("next") ?? "");
   revalidatePath("/", "layout");
-  redirect(next && next.startsWith("/") ? next : destination);
+  redirect(safeNextPath(next, destination));
 }
 
 export async function signUp(_prev: AuthState, formData: FormData): Promise<AuthState> {
