@@ -1615,47 +1615,62 @@ grant execute on function public.decide_change(bigint, boolean, text) to authent
 -- ============================================================================
 
 -- Supabase يمنح anon و authenticated كل الصلاحيات على أي جدول جديد في public
--- عبر default privileges، فنسحبها أولاً ثم نمنح اللي يحتاجه التطبيق فعلاً.
--- RLS هو الحاكم، وهذا طبقة ثانية: لو تعطّلت RLS بالغلط الزائر لسا ما يكتب.
+-- عبر default privileges. نسحبها عن الاثنين أولاً ثم نمنح ما يحتاجه التطبيق
+-- فعلاً — المنع هو الأصل، والمنح استثناء مكتوب باسمه.
+--
+-- كان هذا السحب يشمل anon وحده، فبقيت على authenticated صلاحيات كتابة
+-- موروثة من الافتراضيات على كل جدول تقريباً. RLS كانت تمسكها، لكن طبقة
+-- واحدة ما تكفي لشي بهذا الوزن.
 do $$
 declare t text;
 begin
   for t in select tablename from pg_tables where schemaname = 'public' loop
-    execute format('revoke insert, update, delete, truncate on public.%I from anon', t);
-    execute format('revoke truncate on public.%I from authenticated', t);
+    execute format('revoke insert, update, delete, truncate on public.%I from anon, authenticated', t);
   end loop;
 end $$;
 
-grant select on ops_ingredients to authenticated;
-grant update on ops_ingredients to authenticated;
+-- ---------- قراءة ----------
 grant select on
   ops_menu_items, ops_gates, ops_shelf_life, ops_gate_defs, ops_ing_approval_defs
   to anon;
-grant select, insert, update, delete on
-  ops_menu_items, ops_recipe_lines, ops_settings, ops_rotation, ops_rotation_meta,
-  ops_gates, ops_ing_approvals, ops_shelf_life, ops_production, ops_units_sold,
-  ops_gate_defs, ops_ing_approval_defs, ops_pilot_trials, ops_kitchen_gate,
-  ops_launch_axes, ops_change_kinds
-  to authenticated;
--- الطلبات: إدراج وقراءة فقط. التعديل عليها يمر من decide_change وحدها، فما
--- فيه سياسة update ولا منح update — يعني ما ينفع أحد يعلّم طلبه مقبولاً.
-grant select, insert on ops_change_requests to authenticated;
-grant usage, select on sequence ops_change_requests_id_seq to authenticated;
-grant select, insert on ops_audit to authenticated;
-grant select, insert, update, delete on
+
+grant select on
+  ops_ingredients, ops_menu_items, ops_recipe_lines, ops_settings,
+  ops_rotation, ops_rotation_meta, ops_gates, ops_ing_approvals, ops_shelf_life,
+  ops_production, ops_units_sold, ops_gate_defs, ops_ing_approval_defs,
+  ops_pilot_trials, ops_kitchen_gate, ops_launch_axes,
+  ops_change_kinds, ops_change_requests, ops_audit,
   safety_haccp_steps, safety_critical_limits, safety_ccp_log,
-  safety_prp_programs, safety_prp_log, safety_iso_clauses, safety_nonconformance
+  safety_prp_programs, safety_prp_log, safety_iso_clauses, safety_nonconformance,
+  safety_expiry_batches, customers, staff
   to authenticated;
-grant usage, select on sequence safety_critical_limits_id_seq to authenticated;
-grant usage, select on sequence safety_ccp_log_id_seq to authenticated;
-grant usage, select on sequence safety_prp_log_id_seq to authenticated;
-grant usage, select on sequence safety_nonconformance_id_seq to authenticated;
-grant select, insert, update on safety_expiry_batches to authenticated;
-grant usage, select on sequence safety_expiry_batches_id_seq to authenticated;
-grant usage, select on sequence ops_audit_id_seq to authenticated;
-grant usage, select on sequence ops_recipe_lines_id_seq to authenticated;
-grant select, update on customers to authenticated;
-grant select on staff to authenticated;
+
+-- ---------- كتابة ----------
+--
+-- ما فيه أي منح كتابة على جداول العمليات ولا على خطة السلامة. كل تعديل عليها
+-- يمر: مسوّدة ← إرسال ← اعتماد، والكتابة الفعلية من private.apply_change وهي
+-- SECURITY DEFINER يملكها postgres فما يمسّها السحب أعلاه. يعني تجاوز
+-- الاعتماد بنداء مباشر على الـAPI ما عاد ممكناً، لا بتعديل الواجهة ولا بغيره.
+--
+-- واللي بقي مفتوحاً وقائع لا تعديلات: قراءة مراقبة لازم تُسجَّل في حينها
+-- (ومحفّزها يرفع بلاغ عدم المطابقة فوراً لو خرجت عن الحد)، وبرنامج تمهيدي،
+-- ودفعة صلاحية، وبلاغ يُرفع ساعة اكتشافه. معالجة البلاغ وإغلاقه تمران
+-- بالاعتماد، ولهذا insert وحده على عدم المطابقة.
+grant insert on ops_audit            to authenticated;  -- السجل يُكتب ولا يُعدَّل
+grant insert on ops_change_requests  to authenticated;  -- الحالة من decide_change وحدها
+grant insert on safety_nonconformance to authenticated; -- الرفع فوري، المعالجة باعتماد
+grant insert, update on safety_ccp_log        to authenticated;
+grant insert, update on safety_prp_log        to authenticated;
+grant insert, update on safety_expiry_batches to authenticated;
+grant insert, update on staff                 to authenticated;  -- التنفيذي يضيف فريقه
+grant update on customers to authenticated;                      -- العميل يعدّل صفّه
+
+grant usage, select on sequence ops_audit_id_seq              to authenticated;
+grant usage, select on sequence ops_change_requests_id_seq    to authenticated;
+grant usage, select on sequence safety_ccp_log_id_seq         to authenticated;
+grant usage, select on sequence safety_prp_log_id_seq         to authenticated;
+grant usage, select on sequence safety_nonconformance_id_seq  to authenticated;
+grant usage, select on sequence safety_expiry_batches_id_seq  to authenticated;
 
 -- ============================================================================
 -- 13) إضافة حساب موظف (لا تُنفّذ من التطبيق أبداً)
