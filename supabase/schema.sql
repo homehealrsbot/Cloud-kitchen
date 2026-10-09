@@ -66,6 +66,124 @@ as $$
   select coalesce(private.current_staff_role() = any(allowed), false)
 $$;
 
+-- الإدارة التنفيذية أو لا شي. تُنادى من بداية كل دالّة تمسّ الفريق.
+create or replace function private.require_executive()
+returns void
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+begin
+  if not private.has_role(array['executive']::staff_role[]) then
+    raise exception 'هذا الإجراء من صلاحية الإدارة التنفيذية فقط';
+  end if;
+end;
+$$;
+
+-- ---------- قراءة الفريق وكتابته ----------
+-- جدول staff ما عليه أي سياسة كتابة في RLS بقصد: ولا عميل يرقّي نفسه، ولا
+-- حتى حساب تنفيذي يكتب فيه مباشرة عبر /rest/v1. الطريق الوحيد هاتان
+-- الدالّتان، وكل واحدة تفحص دور المنادي بنفسها قبل أي شي.
+--
+-- وهما security definer بالضرورة لا بالاختيار: تقرآن auth.users (وما هي
+-- مكشوفة لأحد) وتكتبان في جدول محجوب بـRLS. فالتنبيه عليهما في مدقّق
+-- Supabase متوقَّع — المقصود أن تكونا البابين الوحيدين.
+create or replace function public.staff_list()
+returns table (user_id uuid, email text, role staff_role, name text, active boolean, created_at timestamptz)
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+begin
+  perform private.require_executive();
+  return query
+    select s.user_id, u.email::text, s.role, s.name, s.active, s.created_at
+    from staff s
+    join auth.users u on u.id = s.user_id
+    order by s.active desc, s.role, s.name;
+end;
+$$;
+
+-- يضيف موظفاً بالإيميل أو يعدّل دوره أو يوقفه.
+--
+-- ما ننشئ حساباً هنا: الموظف لازم يكون له حساب في auth.users أولاً. لو
+-- أنشأناه من هنا، صار بإمكان التنفيذي يولّد حسابات بلا كلمة سر يملكها
+-- أصحابها — والإيميل المجهول أسوأ من الرفض.
+create or replace function public.staff_set(
+  p_email  text,
+  p_role   staff_role,
+  p_name   text default '',
+  p_active boolean default true
+)
+returns table (user_id uuid, email text, role staff_role, name text, active boolean)
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_id    uuid;
+  v_email text := lower(trim(p_email));
+begin
+  perform private.require_executive();
+
+  if v_email = '' then
+    raise exception 'الإيميل مطلوب';
+  end if;
+
+  select u.id into v_id from auth.users u where lower(u.email) = v_email;
+  if v_id is null then
+    raise exception 'ما فيه حساب بهذا الإيميل. يسجّل صاحبه من صفحة التسجيل أو تضيفه من لوحة Supabase، وبعدها تعطيه الدور من هنا.';
+  end if;
+
+  insert into staff as s (user_id, role, name, active)
+  values (v_id, p_role, coalesce(nullif(trim(p_name), ''), split_part(v_email, '@', 1)), p_active)
+  on conflict on constraint staff_pkey do update
+    set role = excluded.role, name = excluded.name, active = excluded.active;
+
+  return query
+    select s.user_id, v_email, s.role, s.name, s.active from staff s where s.user_id = v_id;
+end;
+$$;
+
+-- آخر تنفيذي نشط ما يُوقَف ولا يُحذف ولا يتغيّر دوره.
+--
+-- بلا هذا المحفّز، غلطة واحدة تقفل النظام على نفسه: ما بقي أحد يقدر يضيف
+-- موظفاً ولا يعتمد طلباً ولا يرجّع الصلاحية — ولا يُفتح إلا من لوحة Supabase.
+create or replace function private.protect_last_executive()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare others int;
+begin
+  select count(*) into others
+    from staff
+   where role = 'executive' and active and user_id <> old.user_id;
+
+  if tg_op = 'DELETE' then
+    if old.role = 'executive' and old.active and others = 0 then
+      raise exception 'ما يمكن حذف آخر حساب إدارة تنفيذية نشط — عيّن تنفيذياً آخر أولاً';
+    end if;
+    return old;
+  end if;
+
+  if old.role = 'executive' and old.active
+     and not (new.role = 'executive' and new.active)
+     and others = 0 then
+    raise exception 'ما يمكن إيقاف أو تغيير دور آخر حساب إدارة تنفيذية نشط — عيّن تنفيذياً آخر أولاً';
+  end if;
+
+  return new;
+end;
+$$;
+
+create trigger trg_protect_last_executive
+  before delete or update on staff
+  for each row execute function private.protect_last_executive();
+
 -- ============================================================================
 -- 2) العملاء
 -- ============================================================================
@@ -1727,8 +1845,13 @@ grant insert on safety_nonconformance to authenticated; -- الرفع فوري،
 grant insert, update on safety_ccp_log        to authenticated;
 grant insert, update on safety_prp_log        to authenticated;
 grant insert, update on safety_expiry_batches to authenticated;
-grant insert, update on staff                 to authenticated;  -- التنفيذي يضيف فريقه
 grant update on customers to authenticated;                      -- العميل يعدّل صفّه
+
+-- staff ما له منح كتابة بقصد: ولا insert ولا update ولا delete. الكتابة
+-- الوحيدة عبر public.staff_set وهي definer تفحص الدور. والمنح هنا كان
+-- ميتاً أصلاً (ما فيه سياسة كتابة في RLS) لكن بقاؤه يعني إن أي سياسة
+-- كتابة تُضاف يوماً تصير نافذة فوراً.
+revoke insert, update, delete on staff from anon, authenticated;
 
 grant usage, select on sequence ops_audit_id_seq              to authenticated;
 grant usage, select on sequence ops_change_requests_id_seq    to authenticated;
