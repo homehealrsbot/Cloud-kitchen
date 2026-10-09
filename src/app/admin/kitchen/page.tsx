@@ -1,359 +1,156 @@
-"use client";
+// لوحة المطبخ — حالة التشغيل الفعلية من قاعدة البيانات.
+//
+// قبل: كانت تولّد طلبات ومخزوناً عشوائياً كل 3.6 ثانية من مصفوفات تجريبية
+// (SIM_MEALS / NAMES / INVENTORY_INIT). انحذفت كلها. الصفحة الآن تعرض خطة الإنتاج
+// وقائمة المشتريات الحقيقية، وتوجّه لمركز العمليات للتفاصيل.
 
-import { useEffect, useRef, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
-import {
-  ChefHat,
-  Truck,
-  Radio,
-  Package,
-  ShoppingBag,
-  ChevronRight,
-  CalendarClock,
-  Thermometer,
-  Layers,
-} from "lucide-react";
-import {
-  T,
-  ZONES,
-  SIM_MEALS,
-  INVENTORY_INIT,
-  NAMES,
-  timeNow,
-  ProductionRow,
-  DeliveryRow,
-  InventoryRow,
-  StockEvent,
-  OrderRow,
-  Meal,
-  DEMO_MEALS,
-  PendingMeal,
-  loadPendingMeals,
-  savePendingMeals,
-  loadPublishedLocalMeals,
-} from "@/lib/kitchen-shared";
-import { createClient } from "@/lib/supabase";
-import { ClipboardList, Clock } from "lucide-react";
+import Image from "next/image";
+import { CalendarClock, ChefHat, ChevronRight, Layers, Package, ShoppingCart, Thermometer } from "lucide-react";
+import { T } from "@/lib/kitchen-shared";
+import { loadOpsSnapshot } from "@/lib/ops/server-data";
+import { computeMenu, computeProduction } from "@/lib/ops/engine";
 
-export default function KitchenDashboard() {
-  const [production, setProduction] = useState<ProductionRow[]>(SIM_MEALS.map((m) => ({ ...m, count: 0 })));
-  const [deliveries, setDeliveries] = useState<DeliveryRow[]>(ZONES.map((z) => ({ zone: z, count: 0 })));
-  const [inventory, setInventory] = useState<InventoryRow[]>(INVENTORY_INIT);
-  const [stockEvents, setStockEvents] = useState<StockEvent[]>([]);
-  const [todaysOrders, setTodaysOrders] = useState<OrderRow[]>([]);
-  const idRef = useRef(1);
-  const [tick, setTick] = useState(0);
+export const dynamic = "force-dynamic";
+export const metadata = { title: "لوحة المطبخ — Macro Meals" };
 
-  useEffect(() => {
-    const interval = setInterval(() => setTick((t) => t + 1), 3600);
-    return () => clearInterval(interval);
-  }, []);
+const SHORTCUTS = [
+  { href: "/admin/ops/production", label: "خطة الإنتاج والمشتريات", icon: ChefHat },
+  { href: "/admin/ops/kitchen-card", label: "بطاقة المطبخ", icon: Layers },
+  { href: "/admin/ops/recipes", label: "الوصفات", icon: Package },
+  { href: "/admin/ops/rotation", label: "جدول الدوران", icon: CalendarClock },
+  { href: "/admin/safety/ccp", label: "سجل مراقبة النقاط الحرجة", icon: Thermometer },
+  { href: "/admin/expiry", label: "صلاحية المكونات", icon: CalendarClock },
+];
 
-  useEffect(() => {
-    if (tick === 0) return;
-    const id = idRef.current++;
-    const roll = Math.random();
-    if (roll >= 0.75) return; // إيقاف مؤقت — ما يولّد طلب تحضير فعلي
-    const name = NAMES[Math.floor(Math.random() * NAMES.length)];
-    const zone = ZONES[Math.floor(Math.random() * ZONES.length)];
-    const meal = SIM_MEALS[Math.floor(Math.random() * SIM_MEALS.length)];
+export default async function KitchenDashboard() {
+  const snapshot = await loadOpsSnapshot();
+  const hasData = Boolean(snapshot.data.settings) && snapshot.data.menu.length > 0;
+  const computed = hasData ? computeMenu(snapshot.data) : [];
 
-    setTimeout(() => {
-      setProduction((prev) => prev.map((m) => (m.name === meal.name ? { ...m, count: m.count + 1 } : m)));
-      setDeliveries((prev) => prev.map((d) => (d.zone === zone ? { ...d, count: d.count + 1 } : d)));
-
-      const newStockEvents: StockEvent[] = [];
-      setInventory((prev) =>
-        prev.map((row) => {
-          const used = (meal.uses as unknown as Record<string, number>)[row.name];
-          if (!used) return row;
-          const before = row.stock;
-          const after = Math.max(row.stock - used, 0);
-          newStockEvents.push({
-            id: id * 100 + row.name.length,
-            meal: meal.name,
-            ingredient: row.name,
-            before,
-            after,
-            qty: used,
-            cost: Math.round(used * row.cost * 100) / 100,
-            time: timeNow(),
-          });
-          return { ...row, stock: after };
-        })
-      );
-      setStockEvents((prev) => [...newStockEvents, ...prev].slice(0, 8));
-
-      setTodaysOrders((prev) => [{ id, customer: name, meal: meal.name, amount: meal.price, zone, time: timeNow() }, ...prev].slice(0, 8));
-    }, 400);
-  }, [tick]);
-
-  // نموذج إضافة وجبة — يدخل قائمة انتظار الموافقة، ما ينشر مباشرة
-  const [meals, setMeals] = useState<Meal[]>(DEMO_MEALS);
-  const [usingDemo, setUsingDemo] = useState(true);
-  const [name, setName] = useState("");
-  const [price, setPrice] = useState("");
-  const [kcal, setKcal] = useState("");
-  const [formError, setFormError] = useState("");
-  const [pendingMeals, setPendingMeals] = useState<PendingMeal[]>([]);
-
-  useEffect(() => {
-    setPendingMeals(loadPendingMeals());
-    const localPublished = loadPublishedLocalMeals();
-    if (localPublished.length > 0) {
-      setMeals((prev) => [...localPublished, ...prev]);
+  // أقرب يوم فيه حصص مخططة
+  let activeDay = -1;
+  for (let d = 0; d < snapshot.data.rotation.days.length; d++) {
+    if (Object.keys(snapshot.production[String(d)] ?? {}).length > 0) {
+      activeDay = d;
+      break;
     }
-
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    if (!url) return;
-    const supabase = createClient();
-    supabase
-      .from("meals")
-      .select("id,name,price,kcal,available")
-      .then(({ data, error }) => {
-        if (!error && data) {
-          setMeals(data as Meal[]);
-          setUsingDemo(false);
-        }
-      });
-  }, []);
-
-  function submitForReview() {
-    if (!name || !price || !kcal) {
-      setFormError("عبّي الحقول الثلاثة كلها (الاسم، السعر، السعرات) قبل الإرسال");
-      return;
-    }
-    setFormError("");
-    const pending: PendingMeal = {
-      id: crypto.randomUUID(),
-      name,
-      price: Number(price),
-      kcal: Number(kcal),
-      submittedAt: timeNow(),
-      submittedBy: "لوحة المطبخ",
-    };
-    const updated = [pending, ...loadPendingMeals()];
-    savePendingMeals(updated);
-    setPendingMeals(updated);
-    setName("");
-    setPrice("");
-    setKcal("");
   }
+  const plan =
+    activeDay >= 0
+      ? computeProduction(
+          snapshot.data,
+          computed,
+          activeDay,
+          (snapshot.production[String(activeDay)] ?? {}) as Record<number, number>,
+        )
+      : null;
 
-  const totalMeals = production.reduce((a, m) => a + m.count, 0);
+  const holds = computed.filter((c) => (snapshot.gates[c.item.id] ?? []).includes("HOLD"));
 
   return (
     <div style={{ background: T.bg, color: T.ink }} className="min-h-screen w-full">
       <div className="w-full border-b" style={{ borderColor: T.border, background: T.surface }}>
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Image src="/logo-mark.png" alt="Food Style" width={40} height={40} className="rounded-xl" />
+            <Image src="/brand/logo-symbol.png" alt="Macro Meals" width={40} height={40} className="rounded-xl" />
             <div>
-              <div className="font-bold text-lg leading-none" style={{ color: T.brand }}>Food Style</div>
+              <div className="font-bold text-lg leading-none" style={{ color: T.brand }}>Macro Meals</div>
               <div className="text-xs mt-1" style={{ color: T.inkSoft }}>لوحة المطبخ</div>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <Link href="/admin" className="flex items-center gap-1 text-xs font-bold" style={{ color: T.inkSoft }}>
-              رجوع لاختيار اللوحة
-              <ChevronRight size={13} />
-            </Link>
-            <div className="text-xs flex items-center gap-1.5" style={{ color: T.good }}>
-              <Radio size={13} /> بيانات تجريبية حية
-            </div>
-          </div>
-        </div>
-        <div className="max-w-6xl mx-auto px-6 pb-3 flex items-center gap-2 flex-wrap">
-          <Link href="/admin/orders" className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold" style={{ background: T.brandTint, color: T.brand }}>
-            <ShoppingBag size={13} /> لوحة حالة الطلبات
-          </Link>
-          <Link href="/admin/plans" className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold" style={{ background: T.brandTint, color: T.brand }}>
-            <Layers size={13} /> برامج الاشتراك
-          </Link>
-          <Link href="/admin/process" className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold" style={{ background: T.brandTint, color: T.brand }}>
-            <ChefHat size={13} /> خريطة تحضير الوجبات
-          </Link>
-          <Link href="/admin/expiry" className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold" style={{ background: T.brandTint, color: T.brand }}>
-            <CalendarClock size={13} /> صلاحية المكونات
-          </Link>
-          <Link href="/admin/temperature-log" className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold" style={{ background: T.brandTint, color: T.brand }}>
-            <Thermometer size={13} /> سجل درجات الحرارة
+          <Link href="/admin" className="flex items-center gap-1 text-xs font-bold" style={{ color: T.inkSoft }}>
+            لوحات التحكم <ChevronRight size={13} />
           </Link>
         </div>
       </div>
 
       <div className="max-w-6xl mx-auto px-6 py-8">
-        {/* خطة الإنتاج + طلبات اليوم */}
-        <div className="grid grid-cols-2 gap-6 mb-6">
-          <div className="rounded-2xl p-5" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
-            <div className="flex items-center gap-2 mb-4">
-              <ChefHat size={17} style={{ color: T.brand }} />
-              <div className="font-semibold text-sm">خطة إنتاج الغد</div>
-            </div>
-            <div className="space-y-3">
-              {production.map((m) => {
-                const pct = totalMeals > 0 ? (m.count / Math.max(totalMeals, 1)) * 100 : 0;
-                return (
-                  <div key={m.name}>
-                    <div className="flex items-center justify-between text-xs mb-1">
-                      <span className="font-bold" style={{ color: T.brand }}>{m.count} وجبة</span>
-                      <span className="font-medium">{m.name}</span>
-                    </div>
-                    <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: T.bg }}>
-                      <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, background: T.brandBright }} />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+        {holds.length > 0 && (
+          <div className="rounded-xl px-4 py-3 mb-6 text-[12px] font-bold" style={{ background: T.warnTint, color: T.warn }}>
+            {holds.length} صنف موقوف من الجودة — ما يدخل خطة الإنتاج:{" "}
+            {holds.slice(0, 4).map((c) => c.item.name).join("، ")}
+            {holds.length > 4 ? "…" : ""}
           </div>
+        )}
 
-          <div className="rounded-2xl p-5" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
-            <div className="flex items-center gap-2 mb-4">
-              <ShoppingBag size={17} style={{ color: T.brand }} />
-              <div className="font-semibold text-sm">طلبات اليوم</div>
-            </div>
-            <div className="space-y-2 min-h-[180px]">
-              {todaysOrders.length === 0 && <div className="text-xs py-10 text-center" style={{ color: T.inkSoft }}>بانتظار أول طلب…</div>}
-              {todaysOrders.map((o) => (
-                <div key={o.id} className="flex items-center justify-between rounded-xl px-3 py-2.5" style={{ background: T.bg }}>
-                  <div>
-                    <div className="text-sm font-medium">{o.customer} — {o.meal}</div>
-                    <div className="text-[11px] mt-0.5" style={{ color: T.inkSoft }}>{o.zone} · {o.time}</div>
-                  </div>
-                  <span className="text-sm font-bold" style={{ color: T.brand }}>{o.amount} ﷼</span>
+        {plan ? (
+          <>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+              <div className="rounded-2xl p-5" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
+                <div className="text-xs mb-1.5" style={{ color: T.inkSoft }}>
+                  حصص {snapshot.data.rotation.days[activeDay]?.label ?? ""}
                 </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* المخزون + التوصيل */}
-        <div className="grid grid-cols-2 gap-6 mb-6">
-          <div className="rounded-2xl p-5" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
-            <div className="flex items-center gap-2 mb-4">
-              <Package size={17} style={{ color: T.brand }} />
-              <div className="font-semibold text-sm">المخزون اللحظي</div>
-            </div>
-            <div className="space-y-3">
-              {inventory.map((row) => {
-                const pct = Math.max(0, Math.min(100, (row.stock / row.cap) * 100));
-                const isLow = row.stock <= row.low;
-                return (
-                  <div key={row.name}>
-                    <div className="flex items-center justify-between text-xs mb-1">
-                      <span style={{ color: isLow ? T.warn : T.inkSoft }}>{row.stock} {row.unit}</span>
-                      <span className="font-medium">{row.name}</span>
-                    </div>
-                    <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: T.bg }}>
-                      <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, background: isLow ? T.warn : T.brandBright }} />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="rounded-2xl p-5" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
-            <div className="flex items-center gap-2 mb-4">
-              <Truck size={17} style={{ color: T.brand }} />
-              <div className="font-semibold text-sm">جدولة التوصيل حسب الحي</div>
-            </div>
-            <div className="space-y-3">
-              {deliveries.map((d) => (
-                <div key={d.zone} className="flex items-center justify-between rounded-xl px-3 py-2.5" style={{ background: T.bg }}>
-                  <span className="text-sm font-medium">{d.zone}</span>
-                  <span className="text-sm font-bold" style={{ color: T.brand }}>{d.count} توصيلة</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* سجل المخزون قبل/بعد */}
-        <div className="rounded-2xl p-5 mb-6" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
-          <div className="flex items-center gap-2 mb-4">
-            <Package size={17} style={{ color: T.brand }} />
-            <div className="font-semibold text-sm">سجل المخزون — قبل وبعد كل عملية طبخ</div>
-          </div>
-          <div className="space-y-2 min-h-[100px]">
-            {stockEvents.length === 0 && <div className="text-xs py-8 text-center" style={{ color: T.inkSoft }}>بانتظار أول عملية طبخ…</div>}
-            {stockEvents.map((e) => (
-              <div key={e.id} className="flex items-center justify-between rounded-xl px-3 py-2.5" style={{ background: T.bg }}>
-                <div>
-                  <div className="text-sm font-medium">{e.ingredient} — {e.meal}</div>
-                  <div className="text-[11px] mt-0.5" style={{ color: T.inkSoft }}>{e.before} ← {e.after} ({e.qty}−) · {e.time}</div>
-                </div>
-                <span className="text-sm font-bold" style={{ color: T.warn }}>{e.cost} ﷼</span>
+                <div className="text-2xl font-extrabold" style={{ color: T.brand }}>{plan.totals.portions}</div>
               </div>
-            ))}
-          </div>
-        </div>
-
-        {/* إدارة القائمة */}
-        <div className="rounded-2xl p-5 mb-4" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
-          <div className="text-sm font-bold mb-1">إضافة وجبة جديدة</div>
-          <p className="text-xs mb-4" style={{ color: T.inkSoft }}>
-            الوجبة ما تُنشر مباشرة — تدخل قائمة انتظار موافقة قسم الجودة/المتابعة أولاً
-          </p>
-          <div className="grid grid-cols-3 gap-2 mb-3">
-            <input placeholder="اسم الوجبة" value={name} onChange={(e) => setName(e.target.value)} className="col-span-3 rounded-lg border px-3 py-2 text-sm" style={{ borderColor: T.border }} />
-            <input placeholder="السعر" value={price} onChange={(e) => setPrice(e.target.value)} className="rounded-lg border px-3 py-2 text-sm" style={{ borderColor: T.border }} />
-            <input placeholder="السعرات" value={kcal} onChange={(e) => setKcal(e.target.value)} className="col-span-2 rounded-lg border px-3 py-2 text-sm" style={{ borderColor: T.border }} />
-          </div>
-          <button onClick={submitForReview} className="flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-bold text-white" style={{ background: T.brandBright }}>
-            <ClipboardList size={15} /> إرسال لمراجعة الجودة
-          </button>
-          {formError && <div className="text-xs font-bold mt-2" style={{ color: T.warn }}>{formError}</div>}
-
-          <div className="text-xs font-bold mt-6 mb-2" style={{ color: T.inkSoft }}>الوجبات المنشورة حالياً</div>
-          <div className="space-y-2">
-            {meals.map((m) => (
-              <div key={m.id} className="flex items-center justify-between rounded-xl px-4 py-3 border" style={{ borderColor: T.border, background: T.surface }}>
-                <div>
-                  <div className="text-sm font-bold">{m.name}</div>
-                  <div className="text-xs" style={{ color: T.inkSoft }}>{m.kcal} سعرة · {m.price} ﷼</div>
+              <div className="rounded-2xl p-5" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
+                <div className="text-xs mb-1.5" style={{ color: T.inkSoft }}>أصناف مخططة</div>
+                <div className="text-2xl font-extrabold" style={{ color: T.brand }}>
+                  {plan.rows.filter((r) => r.portions > 0).length}
                 </div>
-                <span className="text-[11px] rounded-full px-2.5 py-1" style={{ background: m.available ? T.goodTint : T.warnTint, color: m.available ? T.good : T.warn }}>
-                  {m.available ? "متاح" : "غير متاح"}
-                </span>
               </div>
-            ))}
-          </div>
-        </div>
-
-        {/* قائمة انتظار الموافقة */}
-        <div className="rounded-2xl p-5 mb-6" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <Clock size={17} style={{ color: T.warn }} />
-              <div className="font-semibold text-sm">بانتظار موافقة الجودة/المتابعة ({pendingMeals.length})</div>
+              <div className="rounded-2xl p-5" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
+                <div className="text-xs mb-1.5" style={{ color: T.inkSoft }}>مكوّنات مطلوبة للشراء</div>
+                <div className="text-2xl font-extrabold" style={{ color: T.brand }}>{plan.shopping.length}</div>
+              </div>
             </div>
-            <Link href="/admin/approvals" className="text-xs font-bold" style={{ color: T.brand }}>
-              فتح لوحة الموافقة ←
+
+            <div className="rounded-2xl p-5 mb-6" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <ShoppingCart size={17} style={{ color: T.brand }} />
+                  <div className="font-semibold text-sm">أعلى المكوّنات المطلوبة</div>
+                </div>
+                <Link href="/admin/ops/production" className="text-xs font-bold" style={{ color: T.brand }}>
+                  القائمة كاملة ←
+                </Link>
+              </div>
+              <div className="space-y-2">
+                {[...plan.shopping].sort((a, b) => b.buyKg - a.buyKg).slice(0, 6).map((s) => (
+                  <div key={s.key} className="flex items-center justify-between rounded-xl px-3 py-2.5" style={{ background: T.bg }}>
+                    <span className="text-sm font-medium">{s.name}</span>
+                    <span className="text-sm font-bold" style={{ color: T.brand }}>
+                      {s.buyKg.toFixed(2)} كجم
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="rounded-2xl p-10 text-center mb-6" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
+            <ChefHat size={32} style={{ color: T.inkSoft }} className="mx-auto mb-3" />
+            <div className="text-sm font-bold mb-1">
+              {hasData ? "ما فيه حصص مخططة بعد" : "بيانات العمليات غير محمّلة"}
+            </div>
+            <p className="text-xs leading-relaxed max-w-md mx-auto" style={{ color: T.inkSoft }}>
+              {hasData
+                ? "اختر يوم الدوران وأدخل عدد الحصص، وتطلع قائمة المشتريات تلقائياً."
+                : "نفّذ supabase/seed.sql على قاعدة البيانات لتحميل المنيو والمكوّنات والوصفات."}
+            </p>
+            {hasData && (
+              <Link href="/admin/ops/production" className="inline-block mt-4 rounded-lg px-4 py-2 text-xs font-bold text-[#0B1410]" style={{ background: T.brandBright }}>
+                فتح خطة الإنتاج
+              </Link>
+            )}
+          </div>
+        )}
+
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          {SHORTCUTS.map((s) => (
+            <Link
+              key={s.href}
+              href={s.href}
+              className="flex items-center gap-2 rounded-xl px-4 py-3 text-xs font-bold"
+              style={{ background: T.surface, border: `1px solid ${T.border}`, color: T.ink }}
+            >
+              <s.icon size={14} style={{ color: T.brand }} /> {s.label}
             </Link>
-          </div>
-          {pendingMeals.length === 0 && <div className="text-xs py-4 text-center" style={{ color: T.inkSoft }}>ما فيه وجبات بانتظار المراجعة حالياً</div>}
-          <div className="space-y-2">
-            {pendingMeals.map((p) => (
-              <div key={p.id} className="flex items-center justify-between rounded-xl px-4 py-3" style={{ background: T.warnTint }}>
-                <div>
-                  <div className="text-sm font-bold">{p.name}</div>
-                  <div className="text-[11px] mt-0.5" style={{ color: T.inkSoft }}>{p.kcal} سعرة · {p.price} ﷼ · أرسلت {p.submittedAt}</div>
-                </div>
-                <span className="text-[11px] font-bold rounded-full px-2.5 py-1" style={{ background: T.warn, color: "#fff" }}>قيد المراجعة</span>
-              </div>
-            ))}
-          </div>
+          ))}
         </div>
-
-        <Link href="/admin/executive" className="block rounded-2xl py-3.5 text-center text-sm font-bold" style={{ background: T.brandTint, color: T.brand }}>
-          الانتقال للوحة الإدارة التنفيذية
-        </Link>
 
         <div className="text-center text-[11px] mt-8 pb-4" style={{ color: T.inkSoft }}>
-          لوحة المطبخ — تركز على التشغيل اليومي فقط، بدون الأرقام المالية الحساسة
+          لوحة المطبخ — تشغيل يومي فقط، بدون الأرقام المالية
         </div>
       </div>
     </div>

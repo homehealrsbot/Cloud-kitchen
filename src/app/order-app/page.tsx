@@ -1,153 +1,80 @@
-"use client";
+// تطبيق العميل — المنيو يجي من قاعدة البيانات.
+//
+// ما يظهر هنا إلا الأصناف المعتمدة من كل بوابة نشطة. الفلترة تفرضها سياسة
+// RLS في قاعدة البيانات نفسها، مو كود الواجهة — يعني ما ينفع تجاوزها من المتصفح.
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase";
+import { UtensilsCrossed } from "lucide-react";
+import { T } from "@/lib/kitchen-shared";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { getCurrentUser } from "@/lib/supabase/auth";
+import MenuList from "@/components/order/MenuList";
+import AppShell, { AppHeader } from "@/components/order/AppShell";
+import NotConfigured from "@/components/auth/NotConfigured";
+import { loadCustomerMenu } from "./menu-data";
+import { getProfile } from "./profile-actions";
 
-type Meal = {
-  id: string;
-  name: string;
-  price: number;
-  kcal: number;
-  available: boolean;
-};
+export const dynamic = "force-dynamic";
 
-const DEMO_MEALS: Meal[] = [
-  { id: "1", name: "صدر دجاج مشوي + أرز بني", price: 32, kcal: 420, available: true },
-  { id: "2", name: "سلمون مشوي + كينوا", price: 42, kcal: 460, available: true },
-  { id: "3", name: "شوفان بروتين + فواكه", price: 22, kcal: 380, available: true },
+const LINKS = [
+  { href: "/order-app/delivery-days", label: "أيام التوصيل" },
+  { href: "/order-app/wallet", label: "باقتي" },
+  { href: "/order-app/progress", label: "تتبع تقدمي" },
+  { href: "/order-app/consultation", label: "استشارة تغذية" },
 ];
 
-export default function OrderApp() {
-  const [meals, setMeals] = useState<Meal[]>(DEMO_MEALS);
-  const [cart, setCart] = useState<Record<string, boolean>>({});
+export default async function OrderApp() {
+  if (!isSupabaseConfigured) return <NotConfigured />;
 
-  useEffect(() => {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    if (!url) return;
+  const [user, meals, profile] = await Promise.all([getCurrentUser(), loadCustomerMenu(), getProfile()]);
 
-    const supabase = createClient();
-    supabase
-      .from("meals")
-      .select("id,name,price,kcal,available")
-      .eq("available", true)
-      .then(({ data, error }) => {
-        if (!error && data) setMeals(data as Meal[]);
-      });
-  }, []);
-
-  const cartCount = Object.values(cart).filter(Boolean).length;
+  // التحية من صف العميل نفسه — ما نخترع اسماً ولا هدفاً ما سجّله
+  const name = (profile?.fullName ?? "").trim();
+  const kicker = profile?.healthGoal ? `هدفك: ${profile.healthGoal}` : undefined;
 
   return (
-    <main className="max-w-md mx-auto px-5 py-8">
-      <div className="flex items-center justify-between mb-1">
-        <h1 className="text-lg font-extrabold">اختر وجبتك</h1>
-        {cartCount > 0 && (
-          <span
-            className="text-xs font-bold rounded-full px-3 py-1 text-white"
-            style={{ background: "#D67A4F" }}
+    <AppShell>
+      {meals.length === 0 ? (
+        <>
+          <AppHeader kicker={kicker ?? "أكل حقيقي.. ماكروز محسوبة."} heading={name || "ماكرو ميلز"} />
+          <main className="max-w-md mx-auto px-5 pt-6">
+            <div className="rounded-2xl p-8 text-center" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
+              <UtensilsCrossed size={32} style={{ color: T.inkSoft }} className="mx-auto mb-3" />
+              <div className="text-sm font-bold mb-1">القائمة قيد التجهيز</div>
+              <p className="text-xs leading-relaxed" style={{ color: T.inkSoft }}>
+                ما ينشر أي صنف للعميل إلا بعد اعتماده من كل بوابات الجودة النشطة.
+              </p>
+            </div>
+          </main>
+        </>
+      ) : (
+        <MenuList meals={meals} greetingName={name || "ماكرو ميلز"} kicker={kicker} signedIn={!!user} />
+      )}
+
+      <div className="max-w-md mx-auto px-5 pt-6">
+        {!user ? (
+          <Link
+            href="/login"
+            className="block text-center rounded-2xl py-3.5 text-sm font-extrabold"
+            style={{ background: T.brandBright, color: T.onBright }}
           >
-            السلة: {cartCount}
-          </span>
+            سجّل دخولك عشان تبدأ خطتك
+          </Link>
+        ) : (
+          <div className="grid grid-cols-2 gap-2.5">
+            {LINKS.map((l) => (
+              <Link
+                key={l.href}
+                href={l.href}
+                className="rounded-2xl py-3 text-center text-xs font-bold"
+                style={{ background: T.surface, color: T.brand, border: `1px solid ${T.border}` }}
+              >
+                {l.label}
+              </Link>
+            ))}
+          </div>
         )}
       </div>
-      <p className="text-xs mb-3" style={{ color: "#7A6153" }}>
-        مطابقة لهدفك: تنزيل وزن
-      </p>
-      <Link
-        href="/order-app/health-profile"
-        className="inline-block text-xs font-bold rounded-full px-3 py-1.5 mb-3"
-        style={{ background: "#FBEEE6", color: "#A84F2E" }}
-      >
-        عبّي ملفك الصحي عشان نطابق وجباتك تلقائياً ←
-      </Link>
-
-      <div className="flex gap-2 flex-wrap mb-5">
-        <Link
-          href="/order-app/build-meal"
-          className="text-[11px] font-bold rounded-full px-3 py-1.5"
-          style={{ background: "white", color: "#A84F2E", border: "1px solid #F0DFD3" }}
-        >
-          ابنِ وجبتك
-        </Link>
-        <Link
-          href="/order-app/delivery-days"
-          className="text-[11px] font-bold rounded-full px-3 py-1.5"
-          style={{ background: "white", color: "#A84F2E", border: "1px solid #F0DFD3" }}
-        >
-          أيام التوصيل
-        </Link>
-        <Link
-          href="/order-app/wallet"
-          className="text-[11px] font-bold rounded-full px-3 py-1.5"
-          style={{ background: "white", color: "#A84F2E", border: "1px solid #F0DFD3" }}
-        >
-          محفظتي
-        </Link>
-        <Link
-          href="/order-app/onboarding"
-          className="text-[11px] font-bold rounded-full px-3 py-1.5"
-          style={{ background: "white", color: "#A84F2E", border: "1px solid #F0DFD3" }}
-        >
-          اختر خطتك
-        </Link>
-        <Link
-          href="/order-app/progress"
-          className="text-[11px] font-bold rounded-full px-3 py-1.5"
-          style={{ background: "white", color: "#A84F2E", border: "1px solid #F0DFD3" }}
-        >
-          تتبع تقدمي
-        </Link>
-        <Link
-          href="/order-app/subscription"
-          className="text-[11px] font-bold rounded-full px-3 py-1.5"
-          style={{ background: "white", color: "#A84F2E", border: "1px solid #F0DFD3" }}
-        >
-          إدارة اشتراكي
-        </Link>
-        <Link
-          href="/order-app/consultation"
-          className="text-[11px] font-bold rounded-full px-3 py-1.5"
-          style={{ background: "white", color: "#A84F2E", border: "1px solid #F0DFD3" }}
-        >
-          احجز استشارة تغذية
-        </Link>
-        <Link
-          href="/order-app/delivery-proof"
-          className="text-[11px] font-bold rounded-full px-3 py-1.5"
-          style={{ background: "white", color: "#A84F2E", border: "1px solid #F0DFD3" }}
-        >
-          تأكيد تسليم (تجربة)
-        </Link>
-      </div>
-
-      <div className="space-y-2.5">
-        {meals.map((m) => (
-          <div
-            key={m.id}
-            className="flex items-center gap-3 rounded-2xl p-3 border"
-            style={{ borderColor: "#F0DFD3", background: "white" }}
-          >
-            <div
-              className="w-12 h-12 rounded-xl shrink-0"
-              style={{ background: "#FBEEE6" }}
-            />
-            <div className="flex-1">
-              <div className="text-sm font-bold">{m.name}</div>
-              <div className="text-xs" style={{ color: "#7A6153" }}>
-                {m.kcal} سعرة · {m.price} ﷼
-              </div>
-            </div>
-            <button
-              onClick={() => setCart((c) => ({ ...c, [m.id]: !c[m.id] }))}
-              className="rounded-full w-8 h-8 flex items-center justify-center text-white text-lg font-bold transition-colors"
-              style={{ background: cart[m.id] ? "#2E9E6D" : "#D67A4F" }}
-            >
-              {cart[m.id] ? "✓" : "+"}
-            </button>
-          </div>
-        ))}
-      </div>
-    </main>
+    </AppShell>
   );
 }
