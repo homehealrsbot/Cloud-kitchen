@@ -90,8 +90,11 @@ where scheduled_for = current_date
   and status != 'cancelled'
 group by zone;
 
--- ملاحظة: فعّل Row Level Security (RLS) قبل الإطلاق الفعلي، وأضف policies
--- تسمح للعميل يشوف بياناته هو بس، ولوحة التحكم (service role) تشوف كل شي.
--- alter table customers enable row level security;
--- alter table orders enable row level security;
--- ... إلخ
+-- مهم: هذا الملف ينشئ الجداول فقط، وبدون RLS كل الجداول مفتوحة للقراءة والكتابة
+-- لأي شخص يملك مفتاح anon — وهو موجود داخل حزمة المتصفح.
+-- شغّل `supabase/02-security.sql` بعد هذا الملف مباشرة. فيه:
+--   • تفعيل Row Level Security على كل الجداول + سياسات الوصول
+--   • جدول admin_users وصلاحيات لوحة التحكم
+--   • security_invoker على الـ views فوق (وإلا تتجاوز RLS)
+--
+-- IMPORTANT: run supabase/02-security.sql immediately after this file.
