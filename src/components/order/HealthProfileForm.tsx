@@ -161,7 +161,7 @@ export default function HealthProfileForm({
         <button
           onClick={save}
           disabled={pending}
-          className="w-full rounded-xl py-3 flex items-center justify-center gap-2 text-sm font-extrabold text-white disabled:opacity-60"
+          className="w-full rounded-xl py-3 flex items-center justify-center gap-2 text-sm font-extrabold text-[#0B1410] disabled:opacity-60"
           style={{ background: T.brandBright }}
         >
           {pending ? <Loader2 size={16} className="animate-spin" /> : null}

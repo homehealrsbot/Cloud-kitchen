@@ -79,7 +79,7 @@ export default function DeliveryDaysForm({ initial }: { initial: string[] }) {
         <button
           onClick={save}
           disabled={pending || selected.length === 0 || !dirty}
-          className="w-full rounded-2xl py-3.5 flex items-center justify-center gap-2 text-sm font-bold text-white disabled:opacity-40"
+          className="w-full rounded-2xl py-3.5 flex items-center justify-center gap-2 text-sm font-bold text-[#0B1410] disabled:opacity-40"
           style={{ background: T.brandBright }}
         >
           {pending ? <Loader2 size={16} className="animate-spin" /> : null}

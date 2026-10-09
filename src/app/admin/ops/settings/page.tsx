@@ -174,7 +174,7 @@ export default function SettingsPage() {
       </Card>
 
       <div className="flex items-center gap-3 flex-wrap">
-        <button onClick={save} disabled={!dirty} className="flex items-center gap-1.5 rounded-lg px-5 py-2.5 text-sm font-bold text-white disabled:opacity-40" style={{ background: T.brandBright }}>
+        <button onClick={save} disabled={!dirty} className="flex items-center gap-1.5 rounded-lg px-5 py-2.5 text-sm font-bold text-[#0B1410] disabled:opacity-40" style={{ background: T.brandBright }}>
           <Save size={15} /> حفظ الإعدادات
         </button>
         {dirty && (

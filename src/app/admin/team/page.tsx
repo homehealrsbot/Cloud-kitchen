@@ -11,7 +11,7 @@ import PermissionMatrix from "@/components/admin/PermissionMatrix";
 import { listApprovalDefs, listTeam } from "./actions";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "الفريق والصلاحيات — Macro meals" };
+export const metadata = { title: "الفريق والصلاحيات — Macro Meals" };
 
 export default async function TeamPage() {
   if (!isSupabaseConfigured) return <NotConfigured />;
@@ -28,9 +28,9 @@ export default async function TeamPage() {
       <div className="w-full border-b" style={{ borderColor: T.border, background: T.surface }}>
         <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Image src="/logo-mark.png" alt="Macro meals" width={40} height={40} className="rounded-xl" />
+            <Image src="/brand/logo-symbol.png" alt="Macro Meals" width={40} height={40} className="rounded-xl" />
             <div>
-              <div className="font-bold text-lg leading-none" style={{ color: T.brand }}>Macro meals</div>
+              <div className="font-bold text-lg leading-none" style={{ color: T.brand }}>Macro Meals</div>
               <div className="text-xs mt-1" style={{ color: T.inkSoft }}>الفريق والصلاحيات</div>
             </div>
           </div>

@@ -1,6 +1,6 @@
 import ComingSoon from "@/components/order/ComingSoon";
 
-export const metadata = { title: "تأكيد التسليم — Macro meals" };
+export const metadata = { title: "تأكيد التسليم — Macro Meals" };
 
 // قبل: طلب ثابت "#A1042 — شوفان بروتين + فواكه" مع عنوان مكتوب في الكود.
 export default function DeliveryProofPage() {

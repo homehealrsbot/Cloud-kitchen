@@ -26,7 +26,7 @@ import { AccessNote, Card, CardTitle, Kpi, Note, SafetyShell, T, useSafety } fro
 type Filter = "open" | "all" | "closed";
 
 const SEVERITY_TONE: Record<NcrSeverity, { background: string; color: string }> = {
-  minor: { background: "#FBF1DC", color: "#B7791F" },
+  minor: { background: "#FBF1DC", color: T.accentText },
   major: { background: T.warnTint, color: T.warn },
   critical: { background: "#fdecea", color: "#a32019" },
 };
@@ -169,7 +169,7 @@ export default function NcrPage() {
                     "رُفع البلاغ",
                   )
                 }
-                className="rounded-xl px-5 py-2 text-sm font-bold text-white disabled:opacity-45"
+                className="rounded-xl px-5 py-2 text-sm font-bold text-[#0B1410] disabled:opacity-45"
                 style={{ background: T.brandBright }}
               >
                 {pending ? "..." : "ارفع"}

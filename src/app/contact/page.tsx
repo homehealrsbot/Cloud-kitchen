@@ -104,7 +104,7 @@ export default function ContactPage() {
             <button
               type="button"
               disabled
-              className="w-full rounded-full py-3 flex items-center justify-center gap-2 text-sm font-bold text-white opacity-50"
+              className="w-full rounded-full py-3 flex items-center justify-center gap-2 text-sm font-bold text-[#0B1410] opacity-50"
               style={{ background: T.brandBright }}
             >
               <Send size={15} />

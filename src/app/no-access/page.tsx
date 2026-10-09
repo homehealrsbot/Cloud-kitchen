@@ -3,7 +3,7 @@ import { ShieldAlert } from "lucide-react";
 import { T } from "@/lib/kitchen-shared";
 import { signOut } from "../login/actions";
 
-export const metadata = { title: "لا توجد صلاحية — Macro meals" };
+export const metadata = { title: "لا توجد صلاحية — Macro Meals" };
 
 // يوصل هنا مستخدم مسجّل دخوله لكنه مو موظف وحاول يفتح /admin
 export default function NoAccessPage() {

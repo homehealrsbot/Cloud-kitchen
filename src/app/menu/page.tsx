@@ -3,10 +3,12 @@
 // قبل: 4 أصناف مكتوبة في الكود مع وسوم مثل "الأكثر طلباً" ما لها أساس في أي بيانات.
 
 import Link from "next/link";
-import { Beef, Flame, UtensilsCrossed } from "lucide-react";
+import { Flame, UtensilsCrossed } from "lucide-react";
 import SiteNav from "@/components/SiteNav";
 import SiteFooter from "@/components/SiteFooter";
+import Image from "next/image";
 import { T } from "@/lib/kitchen-shared";
+import { BRAND, MACRO } from "@/lib/brand";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
 import { computeMenu, type Ingredient, type MenuItem, type RecipeLine, type Settings } from "@/lib/ops/engine";
@@ -14,15 +16,21 @@ import baseSettings from "@/data/ops/settings.json";
 
 export const dynamic = "force-dynamic";
 
-function MealIcon() {
+/**
+ * شارة ماكرو بكود ألوان الهوية: البروتين ليموني، الكارب برتقالي، الدهون كريمي.
+ * نفس الشكل في الموقع والتطبيق والملصق — الثبات هو اللي يخلي العميل يقرأ
+ * الرقم بلمحة.
+ */
+function MacroChip({ macro, value }: { macro: keyof typeof MACRO; value: number }) {
+  const m = MACRO[macro];
   return (
-    <div className="w-full rounded-2xl flex items-center justify-center" style={{ height: 120, background: `linear-gradient(135deg, ${T.brandTint}, ${T.bg})` }}>
-      <svg width="48" height="48" viewBox="0 0 100 100" fill="none" aria-hidden="true">
-        <circle cx="50" cy="50" r="34" fill={T.brandBright} opacity="0.18" />
-        <circle cx="50" cy="50" r="24" stroke={T.brand} strokeWidth="4" fill="none" />
-        <path d="M38 50 L46 58 L64 40" stroke={T.brand} strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-      </svg>
-    </div>
+    <span
+      className="flex-1 rounded-lg px-2 py-1.5 text-center leading-none"
+      style={{ background: m.bg, color: m.fg, border: macro === "fat" ? `1px solid ${T.border}` : undefined }}
+    >
+      <span className="num block text-[13px] font-extrabold">{value}g</span>
+      <span className="block text-[9px] font-bold mt-0.5 opacity-80">{m.label}</span>
+    </span>
   );
 }
 
@@ -65,51 +73,104 @@ export default async function MenuPage() {
     <div style={{ background: T.bg, color: T.ink }} className="min-h-screen w-full">
       <SiteNav />
 
-      <div className="max-w-5xl mx-auto px-6 py-14 text-center">
-        <h1 className="text-2xl md:text-3xl font-extrabold mb-3" style={{ color: T.brand }}>القائمة</h1>
-        <p className="text-sm max-w-lg mx-auto" style={{ color: T.inkSoft }}>
-          {meals.length > 0
-            ? "أصنافنا المعتمدة — القيم الغذائية محسوبة من الوصفة الفعلية لكل صنف"
-            : "القائمة قيد التجهيز"}
-        </p>
-      </div>
+      {/* بنر المنيو — نفس بنية بنر الهوية: نص يمين وصورة يسار */}
+      <section style={{ background: BRAND.forest }}>
+        <div className="max-w-6xl mx-auto px-5 sm:px-6 grid grid-cols-1 lg:grid-cols-2 items-center gap-8 py-10 lg:py-0">
+          <div className="lg:py-16 order-2 lg:order-1">
+            <span
+              className="inline-block rounded-full px-3 py-1 text-[10px] font-bold mb-5"
+              style={{ border: `1px solid ${BRAND.lime}55`, color: BRAND.lime }}
+            >
+              منيو الأسبوع
+            </span>
+            <h1 className="text-3xl sm:text-4xl font-extrabold leading-tight mb-4">
+              <span style={{ color: "#FFFFFF" }}>منيو جديد..</span>
+              <br />
+              <span style={{ color: BRAND.lime }}>كل أسبوع.</span>
+            </h1>
+            <p className="text-sm leading-relaxed max-w-md" style={{ color: BRAND.mist }}>
+              {meals.length > 0
+                ? `${meals.length} طبق معتمد، والقيم الغذائية محسوبة من الوصفة الفعلية لكل صنف — لا تقديرات.`
+                : "المنيو قيد التجهيز."}
+            </p>
+          </div>
+          <div className="relative h-48 sm:h-64 lg:h-[340px] order-1 lg:order-2 lg:-mx-10">
+            <Image
+              src="/brand/menu-bowl.jpg"
+              alt="أطباق ماكرو ميلز"
+              fill
+              priority
+              sizes="(max-width: 1024px) 100vw, 50vw"
+              className="object-cover lg:object-contain"
+            />
+          </div>
+        </div>
+      </section>
 
-      <div className="max-w-5xl mx-auto px-6 pb-20">
+      <div className="max-w-6xl mx-auto px-5 sm:px-6 py-14">
         {meals.length === 0 ? (
           <div className="rounded-2xl p-10 text-center max-w-md mx-auto" style={{ background: "white", border: `1px solid ${T.border}` }}>
             <UtensilsCrossed size={30} style={{ color: T.inkSoft }} className="mx-auto mb-3" />
             <div className="text-sm font-bold mb-1">ما فيه أصناف معتمدة للنشر حالياً</div>
             <p className="text-xs leading-relaxed" style={{ color: T.inkSoft }}>
-              ما ينشر أي صنف إلا بعد اعتماد بوابات الجودة الثمانية كاملة.
+              ما ينشر أي صنف إلا بعد اعتماد كل بوابات الجودة النشطة.
             </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {meals.map((m) => (
-              <div key={m.item.id} className="rounded-2xl p-4" style={{ background: "white", border: `1px solid ${T.border}` }}>
-                <MealIcon />
-                <div className="flex items-start justify-between gap-2 mt-3 mb-1">
-                  <div className="text-sm font-bold">{m.item.name}</div>
-                  <span className="text-[10px] font-bold rounded-full px-2 py-1 shrink-0" style={{ background: T.brandTint, color: T.brand }}>
+              <div
+                key={m.item.id}
+                className="rounded-3xl overflow-hidden flex flex-col"
+                style={{ background: "white", border: `1px solid ${T.border}` }}
+              >
+                <div className="relative h-40" style={{ background: BRAND.forest }}>
+                  <Image
+                    src="/brand/meal-chicken.jpg"
+                    alt=""
+                    fill
+                    sizes="(max-width: 640px) 100vw, 33vw"
+                    className="object-cover opacity-95"
+                  />
+                  <span
+                    className="absolute top-3 right-3 text-[10px] font-bold rounded-full px-2.5 py-1"
+                    style={{ background: BRAND.cream, color: BRAND.ink }}
+                  >
                     {m.item.section}
                   </span>
                 </div>
-                <div className="flex items-center gap-4 mb-2">
-                  <div className="flex items-center gap-1 text-xs" style={{ color: T.inkSoft }}>
-                    <Flame size={13} style={{ color: T.brandBright }} /> {Math.round(m.kcal)} سعرة
+
+                <div className="p-4 flex flex-col flex-1">
+                  <div className="text-sm font-extrabold leading-snug">{m.item.name}</div>
+                  {m.item.nameEn && (
+                    <div className="text-[11px] mt-0.5" dir="ltr" style={{ color: T.inkSoft }}>{m.item.nameEn}</div>
+                  )}
+
+                  <div className="flex items-center gap-1.5 text-xs mt-2.5 mb-3" style={{ color: T.inkSoft }}>
+                    <Flame size={13} style={{ color: BRAND.orange }} />
+                    <span className="num font-bold">{Math.round(m.kcal)}</span> سعرة
                   </div>
-                  <div className="flex items-center gap-1 text-xs" style={{ color: T.inkSoft }}>
-                    <Beef size={13} style={{ color: T.brand }} /> {Math.round(m.protein)}غ بروتين
+
+                  <div className="flex gap-1.5">
+                    <MacroChip macro="protein" value={Math.round(m.protein)} />
+                    <MacroChip macro="carbs" value={Math.round(m.carb)} />
+                    <MacroChip macro="fat" value={Math.round(m.fat)} />
                   </div>
-                </div>
-                {m.allergens !== "لا يوجد" && (
-                  <div className="text-[11px] mb-2" style={{ color: T.warn }}>يحتوي: {m.allergens}</div>
-                )}
-                <div className="flex items-center justify-between mt-3">
-                  <span className="text-sm font-extrabold" style={{ color: T.brand }}>{m.price} ﷼</span>
-                  <Link href="/signup" className="text-xs font-bold rounded-full px-4 py-2 text-white" style={{ background: T.brandBright }}>
-                    ابدأ اشتراكك
-                  </Link>
+
+                  {m.allergens !== "لا يوجد" && (
+                    <div className="text-[11px] mt-3" style={{ color: T.warn }}>يحتوي: {m.allergens}</div>
+                  )}
+
+                  <div className="flex items-center justify-between mt-auto pt-4">
+                    <span className="num text-base font-extrabold" style={{ color: T.brand }}>{m.price} ﷼</span>
+                    <Link
+                      href="/order-app/onboarding"
+                      className="text-xs font-extrabold rounded-full px-4 py-2"
+                      style={{ background: T.brandBright, color: T.onBright }}
+                    >
+                      اطلب الآن
+                    </Link>
+                  </div>
                 </div>
               </div>
             ))}

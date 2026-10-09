@@ -49,7 +49,7 @@ export function SafetyShell({
       <div className="w-full border-b print:hidden" style={{ borderColor: T.border, background: T.surface }}>
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-3">
-            <Image src="/logo-mark.png" alt="Macro meals" width={40} height={40} className="rounded-xl" />
+            <Image src="/brand/logo-symbol.png" alt="Macro Meals" width={40} height={40} className="rounded-xl" />
             <div>
               <div className="font-bold text-lg leading-none" style={{ color: T.brand }}>{title}</div>
               {subtitle && <div className="text-xs mt-1.5" style={{ color: T.inkSoft }}>{subtitle}</div>}
@@ -110,7 +110,7 @@ export function CardTitle({ icon, children, aside }: { icon?: ReactNode; childre
 }
 
 export function Kpi({ label, value, tone, hint }: { label: string; value: ReactNode; tone?: "good" | "warn" | "hold"; hint?: string }) {
-  const color = tone === "good" ? T.good : tone === "warn" ? "#B7791F" : tone === "hold" ? T.warn : T.brand;
+  const color = tone === "good" ? T.good : tone === "warn" ? T.accentText : tone === "hold" ? T.warn : T.brand;
   return (
     <div className="rounded-2xl px-4 py-3.5" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
       <div className="text-[11px] mb-1" style={{ color: T.inkSoft }}>{label}</div>

@@ -3,7 +3,7 @@ import { signIn } from "./actions";
 import NotConfigured from "@/components/auth/NotConfigured";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 
-export const metadata = { title: "تسجيل الدخول — Macro meals" };
+export const metadata = { title: "تسجيل الدخول — Macro Meals" };
 
 export default async function LoginPage({
   searchParams,

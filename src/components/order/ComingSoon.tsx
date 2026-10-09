@@ -42,7 +42,7 @@ export default function ComingSoon({
           </div>
           <Link
             href="/order-app"
-            className="inline-block mt-5 rounded-full px-5 py-2.5 text-xs font-bold text-white"
+            className="inline-block mt-5 rounded-full px-5 py-2.5 text-xs font-bold text-[#0B1410]"
             style={{ background: T.brandBright }}
           >
             رجوع للقائمة

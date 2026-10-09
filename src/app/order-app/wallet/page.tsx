@@ -1,6 +1,6 @@
 import ComingSoon from "@/components/order/ComingSoon";
 
-export const metadata = { title: "باقتي — Macro meals" };
+export const metadata = { title: "باقتي — Macro Meals" };
 
 // قبل: رصيد 30 يوم مع 6 أيام مستخدمة و3 عمليات خصم مكتوبة في الكود.
 // نظام الاشتراكات والمحفظة بالأيام يحتاج جداول subscriptions و wallet_ledger.

@@ -116,7 +116,7 @@ export default function ProductionPage() {
       </div>
 
       {nonReadyPlanned > 0 && (
-        <div className="flex items-start gap-2 rounded-xl px-4 py-3 mb-5" style={{ background: "#FBF1DC", color: "#B7791F" }}>
+        <div className="flex items-start gap-2 rounded-xl px-4 py-3 mb-5" style={{ background: "#FBF1DC", color: T.accentText }}>
           <AlertTriangle size={15} className="mt-0.5 shrink-0" />
           <p className="text-[12px] leading-relaxed">
             {nonReadyPlanned} صنف في الخطة غير معتمد للبيع بعد — إنتاجه للتجربة الداخلية فقط لحد ما تكمل بوابات الجودة.

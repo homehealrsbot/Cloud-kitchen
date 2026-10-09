@@ -280,7 +280,7 @@ function IsoRow({
       ? { background: T.goodTint, color: T.good }
       : clause.status === "not_applicable"
         ? { background: T.surface, color: T.inkSoft }
-        : { background: "#FBF1DC", color: "#B7791F" };
+        : { background: "#FBF1DC", color: T.accentText };
 
   return (
     <div className="rounded-lg px-3 py-2" style={{ background: T.bg }}>

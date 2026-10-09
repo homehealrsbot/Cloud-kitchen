@@ -15,7 +15,7 @@ import { loadOpsSnapshot } from "@/lib/ops/server-data";
 import { computeMenu, computeProduction, deriveSkuQuality } from "@/lib/ops/engine";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "الإدارة التنفيذية — Macro meals" };
+export const metadata = { title: "الإدارة التنفيذية — Macro Meals" };
 
 function Kpi({ label, value, hint, tone }: { label: string; value: string; hint?: string; tone?: "good" | "warn" }) {
   const color = tone === "good" ? T.good : tone === "warn" ? T.warn : T.brand;
@@ -81,9 +81,9 @@ export default async function ExecutiveDashboard() {
       <div className="w-full border-b" style={{ borderColor: T.border, background: T.surface }}>
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Image src="/logo-mark.png" alt="Macro meals" width={40} height={40} className="rounded-xl" />
+            <Image src="/brand/logo-symbol.png" alt="Macro Meals" width={40} height={40} className="rounded-xl" />
             <div>
-              <div className="font-bold text-lg leading-none" style={{ color: T.brand }}>Macro meals</div>
+              <div className="font-bold text-lg leading-none" style={{ color: T.brand }}>Macro Meals</div>
               <div className="text-xs mt-1" style={{ color: T.inkSoft }}>لوحة الإدارة التنفيذية</div>
             </div>
           </div>
@@ -120,7 +120,7 @@ export default async function ExecutiveDashboard() {
               أرقام الإيراد والتكلفة تُحسب من خطة الإنتاج الفعلية. أدخل عدد الحصص في
               صفحة الإنتاج وتظهر هنا تلقائياً.
             </p>
-            <Link href="/admin/ops/production" className="inline-block mt-4 rounded-lg px-4 py-2 text-xs font-bold text-white" style={{ background: T.brandBright }}>
+            <Link href="/admin/ops/production" className="inline-block mt-4 rounded-lg px-4 py-2 text-xs font-bold text-[#0B1410]" style={{ background: T.brandBright }}>
               فتح خطة الإنتاج
             </Link>
           </div>
@@ -151,7 +151,7 @@ export default async function ExecutiveDashboard() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          <Link href="/admin/ops" className="rounded-2xl py-3.5 text-center text-sm font-bold text-white" style={{ background: T.brandBright }}>
+          <Link href="/admin/ops" className="rounded-2xl py-3.5 text-center text-sm font-bold text-[#0B1410]" style={{ background: T.brandBright }}>
             <ShoppingBag size={15} className="inline ml-1.5" /> مركز العمليات
           </Link>
           <Link href="/admin/ops/engineering" className="rounded-2xl py-3.5 text-center text-sm font-bold" style={{ background: T.brandTint, color: T.brand }}>

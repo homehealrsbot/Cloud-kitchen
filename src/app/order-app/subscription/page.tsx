@@ -1,6 +1,6 @@
 import ComingSoon from "@/components/order/ComingSoon";
 
-export const metadata = { title: "اشتراكي — Macro meals" };
+export const metadata = { title: "اشتراكي — Macro Meals" };
 
 // قبل: خطة ثابتة "تنزيل وزن — أسبوعية" مع حالة (نشط/متوقف/ملغى) في الذاكرة فقط،
 // تضيع عند تحديث الصفحة. إيقاف اشتراك ما يُحفظ في أي مكان أسوأ من عدم وجود الزر.

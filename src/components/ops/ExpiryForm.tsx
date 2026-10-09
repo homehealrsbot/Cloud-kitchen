@@ -35,7 +35,7 @@ export default function ExpiryForm() {
       </div>
       <button
         type="submit" disabled={pending}
-        className="mt-3 flex items-center gap-1.5 rounded-lg px-4 py-2 text-xs font-bold text-white disabled:opacity-60"
+        className="mt-3 flex items-center gap-1.5 rounded-lg px-4 py-2 text-xs font-bold text-[#0B1410] disabled:opacity-60"
         style={{ background: T.brandBright }}
       >
         {pending ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}

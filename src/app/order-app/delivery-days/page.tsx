@@ -5,7 +5,7 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 import NotConfigured from "@/components/auth/NotConfigured";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "أيام التوصيل — Macro meals" };
+export const metadata = { title: "أيام التوصيل — Macro Meals" };
 
 export default async function DeliveryDaysPage() {
   if (!isSupabaseConfigured) return <NotConfigured />;

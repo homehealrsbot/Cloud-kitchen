@@ -235,7 +235,7 @@ export default function GateDefManager({
                     "أُضيفت البوابة — صارت شرطاً للنشر",
                   )
                 }
-                className="rounded-xl px-5 py-2.5 text-sm font-bold text-white disabled:opacity-45"
+                className="rounded-xl px-5 py-2.5 text-sm font-bold text-[#0B1410] disabled:opacity-45"
                 style={{ background: T.brandBright }}
               >
                 {pending ? "..." : "أضف"}

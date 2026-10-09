@@ -330,7 +330,7 @@ function TrialRow({
                 notes: draft.notes,
               })
             }
-            className="rounded-lg px-2.5 py-1 text-[10px] font-bold text-white disabled:opacity-35"
+            className="rounded-lg px-2.5 py-1 text-[10px] font-bold text-[#0B1410] disabled:opacity-35"
             style={{ background: T.brandBright }}
           >
             حفظ

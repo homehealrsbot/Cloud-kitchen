@@ -85,7 +85,7 @@ export default function TeamManager({ team, myEmail }: { team: TeamMember[]; myE
           <button
             onClick={() => submit({ email, role, name, active: true }, true)}
             disabled={pending || !email.trim()}
-            className="rounded-xl px-5 py-2.5 text-sm font-bold text-white disabled:opacity-45"
+            className="rounded-xl px-5 py-2.5 text-sm font-bold text-[#0B1410] disabled:opacity-45"
             style={{ background: T.brandBright }}
           >
             {pending ? "..." : "حفظ"}

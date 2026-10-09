@@ -15,7 +15,7 @@ import NotConfigured from "@/components/auth/NotConfigured";
 import ExpiryForm from "@/components/ops/ExpiryForm";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "صلاحية المكوّنات — Macro meals" };
+export const metadata = { title: "صلاحية المكوّنات — Macro Meals" };
 
 function startOfLocalDay(d: Date): Date {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate());
@@ -51,9 +51,9 @@ export default async function ExpiryPage() {
       <div className="w-full border-b" style={{ borderColor: T.border, background: T.surface }}>
         <div className="max-w-3xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Image src="/logo-mark.png" alt="Macro meals" width={40} height={40} className="rounded-xl" />
+            <Image src="/brand/logo-symbol.png" alt="Macro Meals" width={40} height={40} className="rounded-xl" />
             <div>
-              <div className="font-bold text-lg leading-none" style={{ color: T.brand }}>Macro meals</div>
+              <div className="font-bold text-lg leading-none" style={{ color: T.brand }}>Macro Meals</div>
               <div className="text-xs mt-1" style={{ color: T.inkSoft }}>تتبع صلاحية المكوّنات</div>
             </div>
           </div>

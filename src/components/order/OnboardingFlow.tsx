@@ -96,7 +96,7 @@ export default function OnboardingFlow({ profile }: { profile: CustomerProfile }
             <button
               onClick={() => setStage(1)}
               disabled={!goal}
-              className="w-full rounded-2xl py-3.5 text-sm font-bold text-white disabled:opacity-40"
+              className="w-full rounded-2xl py-3.5 text-sm font-bold text-[#0B1410] disabled:opacity-40"
               style={{ background: T.brandBright }}
             >
               التالي
@@ -128,7 +128,7 @@ export default function OnboardingFlow({ profile }: { profile: CustomerProfile }
               <button onClick={() => setStage(0)} className="rounded-2xl py-3.5 px-5 text-sm font-bold flex items-center gap-1.5" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
                 <ArrowLeft size={15} /> السابق
               </button>
-              <button onClick={() => setStage(2)} className="flex-1 rounded-2xl py-3.5 text-sm font-bold text-white" style={{ background: T.brandBright }}>
+              <button onClick={() => setStage(2)} className="flex-1 rounded-2xl py-3.5 text-sm font-bold text-[#0B1410]" style={{ background: T.brandBright }}>
                 التالي
               </button>
             </div>

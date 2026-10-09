@@ -1,6 +1,6 @@
 "use client";
 
-// مكوّنات واجهة مشتركة لصفحات عمليات المطبخ — بنفس هوية Macro meals الحالية.
+// مكوّنات واجهة مشتركة لصفحات عمليات المطبخ — بنفس هوية Macro Meals الحالية.
 
 import Link from "next/link";
 import Image from "next/image";
@@ -50,7 +50,7 @@ export function OpsShell({
       <div className="w-full border-b print:hidden" style={{ borderColor: T.border, background: T.surface }}>
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-3">
-            <Image src="/logo-mark.png" alt="Macro meals" width={40} height={40} className="rounded-xl" />
+            <Image src="/brand/logo-symbol.png" alt="Macro Meals" width={40} height={40} className="rounded-xl" />
             <div>
               <div className="font-bold text-lg leading-none" style={{ color: T.brand }}>{title}</div>
               {subtitle && <div className="text-xs mt-1.5" style={{ color: T.inkSoft }}>{subtitle}</div>}
@@ -126,7 +126,7 @@ export function Kpi({ label, value, tone }: { label: string; value: ReactNode; t
   );
 }
 
-export const PENDING_COLOR = "#B7791F";
+export const PENDING_COLOR = "#A05D0E";
 export const PENDING_TINT = "#FBF1DC";
 
 export function statusColors(status: SkuStatus | GateStatus) {

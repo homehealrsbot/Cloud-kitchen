@@ -124,7 +124,7 @@ export default function QualityPage() {
                     {v.quality.blocker && (
                       <>
                         <span>·</span>
-                        <span style={{ color: v.quality.status === "HOLD" ? T.warn : "#B7791F" }}>العائق: {v.quality.blocker}</span>
+                        <span style={{ color: v.quality.status === "HOLD" ? T.warn : T.accentText }}>العائق: {v.quality.blocker}</span>
                       </>
                     )}
                   </div>

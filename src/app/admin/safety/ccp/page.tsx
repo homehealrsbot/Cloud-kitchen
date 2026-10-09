@@ -251,7 +251,7 @@ function LimitRow({
                 <button
                   disabled={pending}
                   onClick={() => onRun(() => actions.verifyCcpReading(e.id), "اعتُمدت القراءة")}
-                  className="rounded-lg px-2.5 py-1 text-[10px] font-bold text-white disabled:opacity-45"
+                  className="rounded-lg px-2.5 py-1 text-[10px] font-bold text-[#0B1410] disabled:opacity-45"
                   style={{ background: T.brandBright }}
                 >
                   <ShieldCheck size={11} className="inline ml-1" /> اعتماد

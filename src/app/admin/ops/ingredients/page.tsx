@@ -116,7 +116,7 @@ export default function IngredientsPage() {
                             <span key={a.key} className="text-[10px] font-bold rounded-full px-2 py-0.5" style={{ background: T.warnTint, color: T.warn }}>{a.label}</span>
                           ))}
                           {ing.hidden && (
-                            <span className="text-[10px] rounded-full px-2 py-0.5" style={{ background: "#FBF1DC", color: "#B7791F" }}>خفي: {ing.hidden}</span>
+                            <span className="text-[10px] rounded-full px-2 py-0.5" style={{ background: "#FBF1DC", color: T.accentText }}>خفي: {ing.hidden}</span>
                           )}
                         </div>
                       )}
@@ -292,7 +292,7 @@ function Editor({
                 onError(r.ok ? "" : r.error);
                 setSavedMsg(r.ok ? "تم الحفظ — ينعكس فوراً على كل الوصفات اللي تستخدم المكوّن" : "");
               }}
-              className="flex items-center gap-1.5 rounded-lg px-4 py-2 text-xs font-bold text-white mt-3"
+              className="flex items-center gap-1.5 rounded-lg px-4 py-2 text-xs font-bold text-[#0B1410] mt-3"
               style={{ background: T.brandBright }}
             >
               <Save size={13} /> حفظ القيم

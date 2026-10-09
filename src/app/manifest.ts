@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { BRAND } from "@/lib/brand";
 
 // يخلي تطبيق العميل قابل للتثبيت على الجوال فعلياً (Add to Home Screen) ويفتح بشكل
 // تطبيق مستقل بدون شريط المتصفح. هذا اللي كان ناقص رغم إن README يوعد به.
@@ -6,20 +7,20 @@ import type { MetadataRoute } from "next";
 // وهو خارج نطاق هذا التحديث — راجع README.
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Macro meals — اشتراك وجبات صحية",
-    short_name: "Macro meals",
-    description: "اشتراك وجبات يومي مبني على هدفك الصحي — تحضير طازج ومطابقة غذائية موثّقة",
+    name: "Macro Meals — أكل حقيقي.. ماكروز محسوبة",
+    short_name: "Macro Meals",
+    description: "وجبات يطبخها شيفاتنا طازجة كل يوم، والماكروز محسوبة على هدفك.",
     lang: "ar",
     dir: "rtl",
     start_url: "/order-app",
     scope: "/",
     display: "standalone",
     orientation: "portrait",
-    background_color: "#FCF6F2",
-    theme_color: "#A84F2E",
+    background_color: BRAND.cream,
+    theme_color: BRAND.forest,
     icons: [
-      { src: "/logo-mark.png", sizes: "512x512", type: "image/png", purpose: "any" },
-      { src: "/logo-mark.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+      { src: "/brand/app-icon.png", sizes: "1024x1024", type: "image/png", purpose: "any" },
+      { src: "/brand/app-icon.png", sizes: "1024x1024", type: "image/png", purpose: "maskable" },
     ],
   };
 }

@@ -24,8 +24,8 @@ export default function AuthForm({
   return (
     <div style={{ background: T.bg, color: T.ink }} className="min-h-screen w-full flex flex-col items-center justify-center px-6 py-12">
       <Link href="/" className="flex flex-col items-center mb-7">
-        <Image src="/logo-mark.png" alt="Macro meals" width={60} height={60} className="rounded-2xl mb-3" />
-        <span className="font-extrabold text-lg" style={{ color: T.brand }}>Macro meals</span>
+        <Image src="/brand/logo-symbol.png" alt="Macro Meals" width={60} height={60} className="rounded-2xl mb-3" />
+        <span className="font-extrabold text-lg" style={{ color: T.brand }}>Macro Meals</span>
       </Link>
 
       <div className="w-full max-w-sm rounded-2xl p-6" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
@@ -102,7 +102,7 @@ export default function AuthForm({
           <button
             type="submit"
             disabled={pending}
-            className="w-full rounded-xl py-3 flex items-center justify-center gap-2 text-sm font-bold text-white disabled:opacity-60"
+            className="w-full rounded-xl py-3 flex items-center justify-center gap-2 text-sm font-bold text-[#0B1410] disabled:opacity-60"
             style={{ background: T.brandBright }}
           >
             {pending ? <Loader2 size={16} className="animate-spin" /> : isSignup ? <UserPlus size={16} /> : <LogIn size={16} />}

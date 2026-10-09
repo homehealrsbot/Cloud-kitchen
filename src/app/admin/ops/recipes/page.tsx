@@ -270,7 +270,7 @@ export default function RecipesPage() {
                 <button
                   onClick={save}
                   disabled={!dirty}
-                  className="flex items-center gap-1.5 rounded-lg px-4 py-2 text-xs font-bold text-white disabled:opacity-40"
+                  className="flex items-center gap-1.5 rounded-lg px-4 py-2 text-xs font-bold text-[#0B1410] disabled:opacity-40"
                   style={{ background: T.brandBright }}
                 >
                   <Save size={13} /> حفظ الوصفة
@@ -287,7 +287,7 @@ export default function RecipesPage() {
               </div>
             )}
             {canEdit && dirty && readyGatesAffected.length > 0 && (
-              <div className="text-[11px] mt-3 font-bold" style={{ color: "#B7791F" }}>
+              <div className="text-[11px] mt-3 font-bold" style={{ color: T.accentText }}>
                 تنبيه: الحفظ يرجّع هذي البوابات المعتمدة للمراجعة: {readyGatesAffected.join("، ")} — والصنف يطلع من «جاهز للبيع» لحد ما تعتمده الجودة من جديد.
               </div>
             )}
