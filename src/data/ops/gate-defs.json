@@ -1,0 +1,24 @@
+{
+  "_note": "تعريفات بوابات الاعتماد واعتمادات المكوّن. هذي قيم البداية لمشروع جديد — بعد التشغيل تملكها الإدارة التنفيذية وتعدّلها من شاشة «الفريق والصلاحيات»، فما نعيد تنفيذ seed.sql فوق تعديلاتها.",
+  "_kinds": {
+    "standard": "بوابة عامة",
+    "kitchen_pilot": "محسوبة من تجارب Pilot وقرار الشيف — owner_role لازم null",
+    "shelf": "بوابة الصلاحية، يربطها المحرك بتنبيه الصلاحية الطويلة",
+    "price": "بوابة السعر والهامش"
+  },
+  "gates": [
+    { "index": 0, "label": "مطبخ + Pilot", "kind": "kitchen_pilot", "ownerRole": null, "resetsOnRecipeChange": true, "note": "تُحسب آلياً: تجارب ناجحة بالعدد المطلوب + قرار الشيف" },
+    { "index": 1, "label": "مكوّنات وموردون", "kind": "standard", "ownerRole": "quality", "resetsOnRecipeChange": false, "note": "كل مكوّن له مورد معتمد وسعر موثّق" },
+    { "index": 2, "label": "حساسية", "kind": "standard", "ownerRole": "quality", "resetsOnRecipeChange": true, "note": "إقرار مسببات الحساسية والمواد الخفية" },
+    { "index": 3, "label": "تغذية", "kind": "standard", "ownerRole": "quality", "resetsOnRecipeChange": true, "note": "القيم الغذائية واتساقها مع الماكروز" },
+    { "index": 4, "label": "سلامة الغذاء", "kind": "standard", "ownerRole": "quality", "resetsOnRecipeChange": false, "note": "HACCP والحدود الحرجة" },
+    { "index": 5, "label": "صلاحية", "kind": "shelf", "ownerRole": "quality", "resetsOnRecipeChange": false, "note": "الصلاحية المعلنة مدعومة باختبار" },
+    { "index": 6, "label": "ملصق", "kind": "standard", "ownerRole": "quality", "resetsOnRecipeChange": true, "note": "الملصق يطابق الوصفة والقيم" },
+    { "index": 7, "label": "سعر وهامش", "kind": "price", "ownerRole": "executive", "resetsOnRecipeChange": true, "note": "السعر يغطي التكلفة الكاملة بهامش مقبول" }
+  ],
+  "ingredientApprovals": [
+    { "index": 0, "label": "اعتماد المورد", "kind": "supplier", "ownerRole": "quality", "note": "مورد معروف وشهاداته سارية" },
+    { "index": 1, "label": "إقرار الحساسية", "kind": "allergen", "ownerRole": "quality", "note": "مسببات الحساسية والمواد الخفية موثّقة" },
+    { "index": 2, "label": "سعر موثّق", "kind": "price", "ownerRole": "executive", "note": "عرض سعر محدّث من المورد" }
+  ]
+}

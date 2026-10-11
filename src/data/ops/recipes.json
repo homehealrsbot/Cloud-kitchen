@@ -1,0 +1,2744 @@
+[
+ {
+  "sku": "C01",
+  "type": "P",
+  "ing": "chicken_breast",
+  "grams": 160
+ },
+ {
+  "sku": "C01",
+  "type": "C",
+  "ing": "basmati",
+  "grams": 60
+ },
+ {
+  "sku": "C01",
+  "type": "V",
+  "ing": "tomato",
+  "grams": 40
+ },
+ {
+  "sku": "C01",
+  "type": "V",
+  "ing": "onion",
+  "grams": 30
+ },
+ {
+  "sku": "C01",
+  "type": "V",
+  "ing": "carrot",
+  "grams": 25
+ },
+ {
+  "sku": "C01",
+  "type": "V",
+  "ing": "garlic",
+  "grams": 5
+ },
+ {
+  "sku": "C01",
+  "type": "S",
+  "ing": "olive_oil",
+  "grams": 5
+ },
+ {
+  "sku": "C01",
+  "type": "S",
+  "ing": "tomato_paste",
+  "grams": 10
+ },
+ {
+  "sku": "C01",
+  "type": "S",
+  "ing": "spice",
+  "grams": 6
+ },
+ {
+  "sku": "C01",
+  "type": "S",
+  "ing": "chicken_stock",
+  "grams": 120
+ },
+ {
+  "sku": "C01",
+  "type": "S",
+  "ing": "almonds",
+  "grams": 5
+ },
+ {
+  "sku": "C02",
+  "type": "P",
+  "ing": "chicken_breast",
+  "grams": 160
+ },
+ {
+  "sku": "C02",
+  "type": "C",
+  "ing": "basmati",
+  "grams": 60
+ },
+ {
+  "sku": "C02",
+  "type": "V",
+  "ing": "onion",
+  "grams": 45
+ },
+ {
+  "sku": "C02",
+  "type": "V",
+  "ing": "tomato",
+  "grams": 40
+ },
+ {
+  "sku": "C02",
+  "type": "V",
+  "ing": "garlic",
+  "grams": 5
+ },
+ {
+  "sku": "C02",
+  "type": "S",
+  "ing": "olive_oil",
+  "grams": 5
+ },
+ {
+  "sku": "C02",
+  "type": "S",
+  "ing": "tomato_paste",
+  "grams": 8
+ },
+ {
+  "sku": "C02",
+  "type": "S",
+  "ing": "spice",
+  "grams": 6
+ },
+ {
+  "sku": "C02",
+  "type": "S",
+  "ing": "chicken_stock",
+  "grams": 120
+ },
+ {
+  "sku": "C02",
+  "type": "S",
+  "ing": "lemon_juice",
+  "grams": 5
+ },
+ {
+  "sku": "C03",
+  "type": "P",
+  "ing": "chicken_breast",
+  "grams": 110
+ },
+ {
+  "sku": "C03",
+  "type": "P",
+  "ing": "chicken_thigh",
+  "grams": 50
+ },
+ {
+  "sku": "C03",
+  "type": "C",
+  "ing": "basmati",
+  "grams": 55
+ },
+ {
+  "sku": "C03",
+  "type": "V",
+  "ing": "cucumber",
+  "grams": 50
+ },
+ {
+  "sku": "C03",
+  "type": "V",
+  "ing": "tomato",
+  "grams": 50
+ },
+ {
+  "sku": "C03",
+  "type": "V",
+  "ing": "romaine",
+  "grams": 30
+ },
+ {
+  "sku": "C03",
+  "type": "S",
+  "ing": "yogurt_low",
+  "grams": 40
+ },
+ {
+  "sku": "C03",
+  "type": "S",
+  "ing": "garlic",
+  "grams": 4
+ },
+ {
+  "sku": "C03",
+  "type": "S",
+  "ing": "lemon_juice",
+  "grams": 10
+ },
+ {
+  "sku": "C03",
+  "type": "S",
+  "ing": "olive_oil",
+  "grams": 5
+ },
+ {
+  "sku": "C03",
+  "type": "S",
+  "ing": "spice",
+  "grams": 5
+ },
+ {
+  "sku": "C04",
+  "type": "P",
+  "ing": "chicken_breast",
+  "grams": 160
+ },
+ {
+  "sku": "C04",
+  "type": "S",
+  "ing": "yogurt_low",
+  "grams": 40
+ },
+ {
+  "sku": "C04",
+  "type": "S",
+  "ing": "lemon_juice",
+  "grams": 12
+ },
+ {
+  "sku": "C04",
+  "type": "S",
+  "ing": "garlic",
+  "grams": 5
+ },
+ {
+  "sku": "C04",
+  "type": "S",
+  "ing": "olive_oil",
+  "grams": 5
+ },
+ {
+  "sku": "C04",
+  "type": "S",
+  "ing": "spice",
+  "grams": 4
+ },
+ {
+  "sku": "C04",
+  "type": "S",
+  "ing": "tomato_paste",
+  "grams": 8
+ },
+ {
+  "sku": "C04",
+  "type": "C",
+  "ing": "basmati",
+  "grams": 50
+ },
+ {
+  "sku": "C04",
+  "type": "C",
+  "ing": "vermicelli",
+  "grams": 10
+ },
+ {
+  "sku": "C04",
+  "type": "V",
+  "ing": "bell_pepper",
+  "grams": 60
+ },
+ {
+  "sku": "C04",
+  "type": "V",
+  "ing": "onion",
+  "grams": 40
+ },
+ {
+  "sku": "C04",
+  "type": "V",
+  "ing": "tomato",
+  "grams": 40
+ },
+ {
+  "sku": "C05",
+  "type": "P",
+  "ing": "chicken_breast",
+  "grams": 160
+ },
+ {
+  "sku": "C05",
+  "type": "C",
+  "ing": "basmati",
+  "grams": 50
+ },
+ {
+  "sku": "C05",
+  "type": "S",
+  "ing": "greek_yogurt",
+  "grams": 50
+ },
+ {
+  "sku": "C05",
+  "type": "S",
+  "ing": "tomato_crushed",
+  "grams": 90
+ },
+ {
+  "sku": "C05",
+  "type": "V",
+  "ing": "onion",
+  "grams": 50
+ },
+ {
+  "sku": "C05",
+  "type": "S",
+  "ing": "garlic",
+  "grams": 5
+ },
+ {
+  "sku": "C05",
+  "type": "S",
+  "ing": "ginger",
+  "grams": 5
+ },
+ {
+  "sku": "C05",
+  "type": "S",
+  "ing": "coconut_milk",
+  "grams": 20
+ },
+ {
+  "sku": "C05",
+  "type": "S",
+  "ing": "olive_oil",
+  "grams": 3
+ },
+ {
+  "sku": "C05",
+  "type": "S",
+  "ing": "spice",
+  "grams": 6
+ },
+ {
+  "sku": "C05",
+  "type": "V",
+  "ing": "cauliflower",
+  "grams": 60
+ },
+ {
+  "sku": "C06",
+  "type": "P",
+  "ing": "chicken_breast",
+  "grams": 160
+ },
+ {
+  "sku": "C06",
+  "type": "C",
+  "ing": "basmati",
+  "grams": 60
+ },
+ {
+  "sku": "C06",
+  "type": "S",
+  "ing": "greek_yogurt",
+  "grams": 40
+ },
+ {
+  "sku": "C06",
+  "type": "V",
+  "ing": "onion",
+  "grams": 50
+ },
+ {
+  "sku": "C06",
+  "type": "V",
+  "ing": "tomato",
+  "grams": 30
+ },
+ {
+  "sku": "C06",
+  "type": "S",
+  "ing": "garlic",
+  "grams": 4
+ },
+ {
+  "sku": "C06",
+  "type": "S",
+  "ing": "ginger",
+  "grams": 4
+ },
+ {
+  "sku": "C06",
+  "type": "S",
+  "ing": "olive_oil",
+  "grams": 6
+ },
+ {
+  "sku": "C06",
+  "type": "S",
+  "ing": "spice",
+  "grams": 7
+ },
+ {
+  "sku": "C06",
+  "type": "V",
+  "ing": "carrot",
+  "grams": 30
+ },
+ {
+  "sku": "C06",
+  "type": "S",
+  "ing": "chicken_stock",
+  "grams": 80
+ },
+ {
+  "sku": "C06",
+  "type": "S",
+  "ing": "herbs",
+  "grams": 8
+ },
+ {
+  "sku": "C07",
+  "type": "P",
+  "ing": "chicken_breast",
+  "grams": 160
+ },
+ {
+  "sku": "C07",
+  "type": "C",
+  "ing": "brown_rice",
+  "grams": 55
+ },
+ {
+  "sku": "C07",
+  "type": "V",
+  "ing": "broccoli",
+  "grams": 90
+ },
+ {
+  "sku": "C07",
+  "type": "V",
+  "ing": "carrot",
+  "grams": 30
+ },
+ {
+  "sku": "C07",
+  "type": "S",
+  "ing": "soy_sauce",
+  "grams": 12
+ },
+ {
+  "sku": "C07",
+  "type": "S",
+  "ing": "honey",
+  "grams": 8
+ },
+ {
+  "sku": "C07",
+  "type": "S",
+  "ing": "garlic",
+  "grams": 4
+ },
+ {
+  "sku": "C07",
+  "type": "S",
+  "ing": "ginger",
+  "grams": 4
+ },
+ {
+  "sku": "C07",
+  "type": "S",
+  "ing": "sesame",
+  "grams": 3
+ },
+ {
+  "sku": "C07",
+  "type": "S",
+  "ing": "olive_oil",
+  "grams": 4
+ },
+ {
+  "sku": "C08",
+  "type": "P",
+  "ing": "chicken_breast",
+  "grams": 160
+ },
+ {
+  "sku": "C08",
+  "type": "C",
+  "ing": "brown_rice",
+  "grams": 45
+ },
+ {
+  "sku": "C08",
+  "type": "C",
+  "ing": "black_beans",
+  "grams": 40
+ },
+ {
+  "sku": "C08",
+  "type": "V",
+  "ing": "bell_pepper",
+  "grams": 80
+ },
+ {
+  "sku": "C08",
+  "type": "V",
+  "ing": "onion",
+  "grams": 50
+ },
+ {
+  "sku": "C08",
+  "type": "V",
+  "ing": "tomato",
+  "grams": 40
+ },
+ {
+  "sku": "C08",
+  "type": "S",
+  "ing": "avocado",
+  "grams": 15
+ },
+ {
+  "sku": "C08",
+  "type": "S",
+  "ing": "lemon_juice",
+  "grams": 10
+ },
+ {
+  "sku": "C08",
+  "type": "S",
+  "ing": "spice",
+  "grams": 5
+ },
+ {
+  "sku": "C08",
+  "type": "S",
+  "ing": "olive_oil",
+  "grams": 6
+ },
+ {
+  "sku": "C08",
+  "type": "S",
+  "ing": "greek_yogurt",
+  "grams": 20
+ },
+ {
+  "sku": "C09",
+  "type": "P",
+  "ing": "chicken_breast",
+  "grams": 160
+ },
+ {
+  "sku": "C09",
+  "type": "C",
+  "ing": "potato",
+  "grams": 180
+ },
+ {
+  "sku": "C09",
+  "type": "V",
+  "ing": "zucchini",
+  "grams": 80
+ },
+ {
+  "sku": "C09",
+  "type": "V",
+  "ing": "green_beans",
+  "grams": 60
+ },
+ {
+  "sku": "C09",
+  "type": "S",
+  "ing": "olive_oil",
+  "grams": 8
+ },
+ {
+  "sku": "C09",
+  "type": "S",
+  "ing": "lemon_juice",
+  "grams": 15
+ },
+ {
+  "sku": "C09",
+  "type": "S",
+  "ing": "garlic",
+  "grams": 4
+ },
+ {
+  "sku": "C09",
+  "type": "S",
+  "ing": "herbs",
+  "grams": 6
+ },
+ {
+  "sku": "C09",
+  "type": "S",
+  "ing": "spice",
+  "grams": 2
+ },
+ {
+  "sku": "C10",
+  "type": "P",
+  "ing": "chicken_breast",
+  "grams": 110
+ },
+ {
+  "sku": "C10",
+  "type": "P",
+  "ing": "chicken_thigh",
+  "grams": 50
+ },
+ {
+  "sku": "C10",
+  "type": "C",
+  "ing": "ww_pasta",
+  "grams": 55
+ },
+ {
+  "sku": "C10",
+  "type": "V",
+  "ing": "bell_pepper",
+  "grams": 50
+ },
+ {
+  "sku": "C10",
+  "type": "V",
+  "ing": "mushroom",
+  "grams": 50
+ },
+ {
+  "sku": "C10",
+  "type": "V",
+  "ing": "onion",
+  "grams": 40
+ },
+ {
+  "sku": "C10",
+  "type": "S",
+  "ing": "tomato_crushed",
+  "grams": 120
+ },
+ {
+  "sku": "C10",
+  "type": "S",
+  "ing": "olives",
+  "grams": 10
+ },
+ {
+  "sku": "C10",
+  "type": "S",
+  "ing": "olive_oil",
+  "grams": 6
+ },
+ {
+  "sku": "C10",
+  "type": "S",
+  "ing": "garlic",
+  "grams": 4
+ },
+ {
+  "sku": "C10",
+  "type": "S",
+  "ing": "herbs",
+  "grams": 3
+ },
+ {
+  "sku": "C11",
+  "type": "P",
+  "ing": "chicken_breast",
+  "grams": 160
+ },
+ {
+  "sku": "C11",
+  "type": "C",
+  "ing": "sweet_potato",
+  "grams": 160
+ },
+ {
+  "sku": "C11",
+  "type": "V",
+  "ing": "corn",
+  "grams": 50
+ },
+ {
+  "sku": "C11",
+  "type": "V",
+  "ing": "bell_pepper",
+  "grams": 50
+ },
+ {
+  "sku": "C11",
+  "type": "S",
+  "ing": "tomato_paste",
+  "grams": 20
+ },
+ {
+  "sku": "C11",
+  "type": "S",
+  "ing": "honey",
+  "grams": 6
+ },
+ {
+  "sku": "C11",
+  "type": "S",
+  "ing": "balsamic",
+  "grams": 8
+ },
+ {
+  "sku": "C11",
+  "type": "S",
+  "ing": "spice",
+  "grams": 4
+ },
+ {
+  "sku": "C11",
+  "type": "S",
+  "ing": "olive_oil",
+  "grams": 5
+ },
+ {
+  "sku": "C11",
+  "type": "S",
+  "ing": "garlic",
+  "grams": 3
+ },
+ {
+  "sku": "C12",
+  "type": "P",
+  "ing": "chicken_breast",
+  "grams": 160
+ },
+ {
+  "sku": "C12",
+  "type": "C",
+  "ing": "jareesh",
+  "grams": 55
+ },
+ {
+  "sku": "C12",
+  "type": "V",
+  "ing": "onion",
+  "grams": 50
+ },
+ {
+  "sku": "C12",
+  "type": "V",
+  "ing": "carrot",
+  "grams": 30
+ },
+ {
+  "sku": "C12",
+  "type": "V",
+  "ing": "tomato",
+  "grams": 30
+ },
+ {
+  "sku": "C12",
+  "type": "S",
+  "ing": "yogurt_low",
+  "grams": 50
+ },
+ {
+  "sku": "C12",
+  "type": "S",
+  "ing": "olive_oil",
+  "grams": 5
+ },
+ {
+  "sku": "C12",
+  "type": "S",
+  "ing": "spice",
+  "grams": 4
+ },
+ {
+  "sku": "C12",
+  "type": "S",
+  "ing": "chicken_stock",
+  "grams": 150
+ },
+ {
+  "sku": "C12",
+  "type": "V",
+  "ing": "garlic",
+  "grams": 4
+ },
+ {
+  "sku": "C12",
+  "type": "S",
+  "ing": "ghee",
+  "grams": 3
+ },
+ {
+  "sku": "M01",
+  "type": "P",
+  "ing": "lamb_leg",
+  "grams": 160
+ },
+ {
+  "sku": "M01",
+  "type": "C",
+  "ing": "basmati",
+  "grams": 60
+ },
+ {
+  "sku": "M01",
+  "type": "V",
+  "ing": "onion",
+  "grams": 40
+ },
+ {
+  "sku": "M01",
+  "type": "V",
+  "ing": "tomato",
+  "grams": 40
+ },
+ {
+  "sku": "M01",
+  "type": "S",
+  "ing": "ghee",
+  "grams": 3
+ },
+ {
+  "sku": "M01",
+  "type": "S",
+  "ing": "spice",
+  "grams": 6
+ },
+ {
+  "sku": "M01",
+  "type": "S",
+  "ing": "chicken_stock",
+  "grams": 100
+ },
+ {
+  "sku": "M01",
+  "type": "V",
+  "ing": "cucumber",
+  "grams": 30
+ },
+ {
+  "sku": "M02",
+  "type": "P",
+  "ing": "beef_sirloin",
+  "grams": 150
+ },
+ {
+  "sku": "M02",
+  "type": "C",
+  "ing": "basmati",
+  "grams": 55
+ },
+ {
+  "sku": "M02",
+  "type": "V",
+  "ing": "tomato",
+  "grams": 80
+ },
+ {
+  "sku": "M02",
+  "type": "V",
+  "ing": "onion",
+  "grams": 50
+ },
+ {
+  "sku": "M02",
+  "type": "V",
+  "ing": "bell_pepper",
+  "grams": 50
+ },
+ {
+  "sku": "M02",
+  "type": "S",
+  "ing": "garlic",
+  "grams": 5
+ },
+ {
+  "sku": "M02",
+  "type": "S",
+  "ing": "olive_oil",
+  "grams": 6
+ },
+ {
+  "sku": "M02",
+  "type": "S",
+  "ing": "spice",
+  "grams": 4
+ },
+ {
+  "sku": "M02",
+  "type": "S",
+  "ing": "tomato_paste",
+  "grams": 8
+ },
+ {
+  "sku": "M03",
+  "type": "P",
+  "ing": "beef_mince",
+  "grams": 130
+ },
+ {
+  "sku": "M03",
+  "type": "C",
+  "ing": "ww_pasta",
+  "grams": 40
+ },
+ {
+  "sku": "M03",
+  "type": "V",
+  "ing": "zucchini",
+  "grams": 80
+ },
+ {
+  "sku": "M03",
+  "type": "V",
+  "ing": "onion",
+  "grams": 30
+ },
+ {
+  "sku": "M03",
+  "type": "V",
+  "ing": "spinach",
+  "grams": 40
+ },
+ {
+  "sku": "M03",
+  "type": "S",
+  "ing": "tomato_crushed",
+  "grams": 120
+ },
+ {
+  "sku": "M03",
+  "type": "S",
+  "ing": "mozzarella",
+  "grams": 25
+ },
+ {
+  "sku": "M03",
+  "type": "S",
+  "ing": "milk_low",
+  "grams": 60
+ },
+ {
+  "sku": "M03",
+  "type": "S",
+  "ing": "ww_flour",
+  "grams": 6
+ },
+ {
+  "sku": "M03",
+  "type": "S",
+  "ing": "olive_oil",
+  "grams": 4
+ },
+ {
+  "sku": "M03",
+  "type": "S",
+  "ing": "garlic",
+  "grams": 3
+ },
+ {
+  "sku": "M03",
+  "type": "S",
+  "ing": "herbs",
+  "grams": 2
+ },
+ {
+  "sku": "M03",
+  "type": "S",
+  "ing": "parmesan",
+  "grams": 3
+ },
+ {
+  "sku": "M04",
+  "type": "P",
+  "ing": "beef_sirloin",
+  "grams": 150
+ },
+ {
+  "sku": "M04",
+  "type": "C",
+  "ing": "brown_rice",
+  "grams": 55
+ },
+ {
+  "sku": "M04",
+  "type": "V",
+  "ing": "broccoli",
+  "grams": 140
+ },
+ {
+  "sku": "M04",
+  "type": "V",
+  "ing": "carrot",
+  "grams": 30
+ },
+ {
+  "sku": "M04",
+  "type": "S",
+  "ing": "soy_sauce",
+  "grams": 12
+ },
+ {
+  "sku": "M04",
+  "type": "S",
+  "ing": "honey",
+  "grams": 5
+ },
+ {
+  "sku": "M04",
+  "type": "S",
+  "ing": "garlic",
+  "grams": 4
+ },
+ {
+  "sku": "M04",
+  "type": "S",
+  "ing": "ginger",
+  "grams": 5
+ },
+ {
+  "sku": "M04",
+  "type": "S",
+  "ing": "olive_oil",
+  "grams": 5
+ },
+ {
+  "sku": "M04",
+  "type": "S",
+  "ing": "sesame",
+  "grams": 3
+ },
+ {
+  "sku": "M05",
+  "type": "P",
+  "ing": "beef_mince",
+  "grams": 150
+ },
+ {
+  "sku": "M05",
+  "type": "C",
+  "ing": "potato",
+  "grams": 140
+ },
+ {
+  "sku": "M05",
+  "type": "V",
+  "ing": "romaine",
+  "grams": 50
+ },
+ {
+  "sku": "M05",
+  "type": "V",
+  "ing": "tomato",
+  "grams": 50
+ },
+ {
+  "sku": "M05",
+  "type": "V",
+  "ing": "onion",
+  "grams": 20
+ },
+ {
+  "sku": "M05",
+  "type": "V",
+  "ing": "cucumber",
+  "grams": 30
+ },
+ {
+  "sku": "M05",
+  "type": "S",
+  "ing": "mozzarella",
+  "grams": 15
+ },
+ {
+  "sku": "M05",
+  "type": "S",
+  "ing": "greek_yogurt",
+  "grams": 25
+ },
+ {
+  "sku": "M05",
+  "type": "S",
+  "ing": "tomato_paste",
+  "grams": 8
+ },
+ {
+  "sku": "M05",
+  "type": "S",
+  "ing": "olive_oil",
+  "grams": 4
+ },
+ {
+  "sku": "M05",
+  "type": "S",
+  "ing": "spice",
+  "grams": 3
+ },
+ {
+  "sku": "M06",
+  "type": "P",
+  "ing": "beef_mince",
+  "grams": 150
+ },
+ {
+  "sku": "M06",
+  "type": "V",
+  "ing": "onion",
+  "grams": 20
+ },
+ {
+  "sku": "M06",
+  "type": "S",
+  "ing": "herbs",
+  "grams": 10
+ },
+ {
+  "sku": "M06",
+  "type": "S",
+  "ing": "spice",
+  "grams": 4
+ },
+ {
+  "sku": "M06",
+  "type": "C",
+  "ing": "bulgur",
+  "grams": 50
+ },
+ {
+  "sku": "M06",
+  "type": "V",
+  "ing": "tomato",
+  "grams": 60
+ },
+ {
+  "sku": "M06",
+  "type": "V",
+  "ing": "cucumber",
+  "grams": 50
+ },
+ {
+  "sku": "M06",
+  "type": "S",
+  "ing": "tahini",
+  "grams": 12
+ },
+ {
+  "sku": "M06",
+  "type": "S",
+  "ing": "lemon_juice",
+  "grams": 10
+ },
+ {
+  "sku": "M06",
+  "type": "S",
+  "ing": "olive_oil",
+  "grams": 3
+ },
+ {
+  "sku": "F01",
+  "type": "P",
+  "ing": "hammour",
+  "grams": 170
+ },
+ {
+  "sku": "F01",
+  "type": "C",
+  "ing": "basmati",
+  "grams": 55
+ },
+ {
+  "sku": "F01",
+  "type": "V",
+  "ing": "onion",
+  "grams": 70
+ },
+ {
+  "sku": "F01",
+  "type": "V",
+  "ing": "tomato",
+  "grams": 30
+ },
+ {
+  "sku": "F01",
+  "type": "S",
+  "ing": "olive_oil",
+  "grams": 7
+ },
+ {
+  "sku": "F01",
+  "type": "S",
+  "ing": "spice",
+  "grams": 5
+ },
+ {
+  "sku": "F01",
+  "type": "S",
+  "ing": "garlic",
+  "grams": 4
+ },
+ {
+  "sku": "F01",
+  "type": "S",
+  "ing": "lemon_juice",
+  "grams": 8
+ },
+ {
+  "sku": "F02",
+  "type": "P",
+  "ing": "shrimp",
+  "grams": 180
+ },
+ {
+  "sku": "F02",
+  "type": "C",
+  "ing": "basmati",
+  "grams": 55
+ },
+ {
+  "sku": "F02",
+  "type": "V",
+  "ing": "onion",
+  "grams": 40
+ },
+ {
+  "sku": "F02",
+  "type": "V",
+  "ing": "tomato",
+  "grams": 40
+ },
+ {
+  "sku": "F02",
+  "type": "V",
+  "ing": "garlic",
+  "grams": 4
+ },
+ {
+  "sku": "F02",
+  "type": "S",
+  "ing": "olive_oil",
+  "grams": 6
+ },
+ {
+  "sku": "F02",
+  "type": "S",
+  "ing": "tomato_paste",
+  "grams": 8
+ },
+ {
+  "sku": "F02",
+  "type": "S",
+  "ing": "spice",
+  "grams": 6
+ },
+ {
+  "sku": "F02",
+  "type": "S",
+  "ing": "lemon_juice",
+  "grams": 6
+ },
+ {
+  "sku": "F03",
+  "type": "P",
+  "ing": "salmon",
+  "grams": 130
+ },
+ {
+  "sku": "F03",
+  "type": "C",
+  "ing": "quinoa",
+  "grams": 45
+ },
+ {
+  "sku": "F03",
+  "type": "V",
+  "ing": "broccoli",
+  "grams": 100
+ },
+ {
+  "sku": "F03",
+  "type": "V",
+  "ing": "green_beans",
+  "grams": 70
+ },
+ {
+  "sku": "F03",
+  "type": "S",
+  "ing": "greek_yogurt",
+  "grams": 35
+ },
+ {
+  "sku": "F03",
+  "type": "S",
+  "ing": "lemon_juice",
+  "grams": 12
+ },
+ {
+  "sku": "F03",
+  "type": "S",
+  "ing": "herbs",
+  "grams": 6
+ },
+ {
+  "sku": "F03",
+  "type": "S",
+  "ing": "olive_oil",
+  "grams": 3
+ },
+ {
+  "sku": "F03",
+  "type": "S",
+  "ing": "garlic",
+  "grams": 3
+ },
+ {
+  "sku": "F04",
+  "type": "P",
+  "ing": "white_fish",
+  "grams": 170
+ },
+ {
+  "sku": "F04",
+  "type": "C",
+  "ing": "basmati",
+  "grams": 55
+ },
+ {
+  "sku": "F04",
+  "type": "S",
+  "ing": "coconut_milk",
+  "grams": 45
+ },
+ {
+  "sku": "F04",
+  "type": "S",
+  "ing": "tomato_crushed",
+  "grams": 80
+ },
+ {
+  "sku": "F04",
+  "type": "V",
+  "ing": "onion",
+  "grams": 50
+ },
+ {
+  "sku": "F04",
+  "type": "V",
+  "ing": "spinach",
+  "grams": 50
+ },
+ {
+  "sku": "F04",
+  "type": "S",
+  "ing": "garlic",
+  "grams": 4
+ },
+ {
+  "sku": "F04",
+  "type": "S",
+  "ing": "ginger",
+  "grams": 5
+ },
+ {
+  "sku": "F04",
+  "type": "S",
+  "ing": "olive_oil",
+  "grams": 4
+ },
+ {
+  "sku": "F04",
+  "type": "S",
+  "ing": "spice",
+  "grams": 6
+ },
+ {
+  "sku": "F05",
+  "type": "P",
+  "ing": "white_fish",
+  "grams": 170
+ },
+ {
+  "sku": "F05",
+  "type": "C",
+  "ing": "potato",
+  "grams": 120
+ },
+ {
+  "sku": "F05",
+  "type": "V",
+  "ing": "tomato",
+  "grams": 100
+ },
+ {
+  "sku": "F05",
+  "type": "V",
+  "ing": "bell_pepper",
+  "grams": 50
+ },
+ {
+  "sku": "F05",
+  "type": "V",
+  "ing": "zucchini",
+  "grams": 60
+ },
+ {
+  "sku": "F05",
+  "type": "V",
+  "ing": "onion",
+  "grams": 40
+ },
+ {
+  "sku": "F05",
+  "type": "S",
+  "ing": "olive_oil",
+  "grams": 6
+ },
+ {
+  "sku": "F05",
+  "type": "S",
+  "ing": "spice",
+  "grams": 5
+ },
+ {
+  "sku": "F05",
+  "type": "S",
+  "ing": "garlic",
+  "grams": 4
+ },
+ {
+  "sku": "F05",
+  "type": "S",
+  "ing": "lemon_juice",
+  "grams": 8
+ },
+ {
+  "sku": "F05",
+  "type": "S",
+  "ing": "olives",
+  "grams": 10
+ },
+ {
+  "sku": "F05",
+  "type": "S",
+  "ing": "herbs",
+  "grams": 6
+ },
+ {
+  "sku": "F06",
+  "type": "P",
+  "ing": "shrimp",
+  "grams": 160
+ },
+ {
+  "sku": "F06",
+  "type": "P",
+  "ing": "egg_whole",
+  "grams": 50
+ },
+ {
+  "sku": "F06",
+  "type": "C",
+  "ing": "brown_rice",
+  "grams": 55
+ },
+ {
+  "sku": "F06",
+  "type": "V",
+  "ing": "carrot",
+  "grams": 30
+ },
+ {
+  "sku": "F06",
+  "type": "V",
+  "ing": "peas",
+  "grams": 30
+ },
+ {
+  "sku": "F06",
+  "type": "V",
+  "ing": "onion",
+  "grams": 30
+ },
+ {
+  "sku": "F06",
+  "type": "V",
+  "ing": "cabbage",
+  "grams": 40
+ },
+ {
+  "sku": "F06",
+  "type": "S",
+  "ing": "soy_sauce",
+  "grams": 10
+ },
+ {
+  "sku": "F06",
+  "type": "S",
+  "ing": "olive_oil",
+  "grams": 6
+ },
+ {
+  "sku": "F06",
+  "type": "S",
+  "ing": "garlic",
+  "grams": 4
+ },
+ {
+  "sku": "F06",
+  "type": "S",
+  "ing": "ginger",
+  "grams": 3
+ },
+ {
+  "sku": "F06",
+  "type": "S",
+  "ing": "sesame",
+  "grams": 2
+ },
+ {
+  "sku": "B01",
+  "type": "P",
+  "ing": "egg_whole",
+  "grams": 100
+ },
+ {
+  "sku": "B01",
+  "type": "S",
+  "ing": "tomato_crushed",
+  "grams": 130
+ },
+ {
+  "sku": "B01",
+  "type": "V",
+  "ing": "bell_pepper",
+  "grams": 50
+ },
+ {
+  "sku": "B01",
+  "type": "V",
+  "ing": "onion",
+  "grams": 40
+ },
+ {
+  "sku": "B01",
+  "type": "V",
+  "ing": "spinach",
+  "grams": 30
+ },
+ {
+  "sku": "B01",
+  "type": "S",
+  "ing": "olive_oil",
+  "grams": 5
+ },
+ {
+  "sku": "B01",
+  "type": "S",
+  "ing": "garlic",
+  "grams": 3
+ },
+ {
+  "sku": "B01",
+  "type": "S",
+  "ing": "spice",
+  "grams": 3
+ },
+ {
+  "sku": "B01",
+  "type": "C",
+  "ing": "ww_bread",
+  "grams": 50
+ },
+ {
+  "sku": "B01",
+  "type": "S",
+  "ing": "feta",
+  "grams": 15
+ },
+ {
+  "sku": "B02",
+  "type": "P",
+  "ing": "egg_whole",
+  "grams": 100
+ },
+ {
+  "sku": "B02",
+  "type": "P",
+  "ing": "egg_white",
+  "grams": 60
+ },
+ {
+  "sku": "B02",
+  "type": "C",
+  "ing": "sweet_potato",
+  "grams": 100
+ },
+ {
+  "sku": "B02",
+  "type": "V",
+  "ing": "spinach",
+  "grams": 40
+ },
+ {
+  "sku": "B02",
+  "type": "V",
+  "ing": "tomato",
+  "grams": 50
+ },
+ {
+  "sku": "B02",
+  "type": "S",
+  "ing": "avocado",
+  "grams": 40
+ },
+ {
+  "sku": "B02",
+  "type": "S",
+  "ing": "olive_oil",
+  "grams": 3
+ },
+ {
+  "sku": "B02",
+  "type": "S",
+  "ing": "spice",
+  "grams": 2
+ },
+ {
+  "sku": "B03",
+  "type": "P",
+  "ing": "fava_cooked",
+  "grams": 200
+ },
+ {
+  "sku": "B03",
+  "type": "P",
+  "ing": "egg_whole",
+  "grams": 50
+ },
+ {
+  "sku": "B03",
+  "type": "V",
+  "ing": "tomato",
+  "grams": 50
+ },
+ {
+  "sku": "B03",
+  "type": "V",
+  "ing": "onion",
+  "grams": 20
+ },
+ {
+  "sku": "B03",
+  "type": "S",
+  "ing": "lemon_juice",
+  "grams": 12
+ },
+ {
+  "sku": "B03",
+  "type": "S",
+  "ing": "olive_oil",
+  "grams": 6
+ },
+ {
+  "sku": "B03",
+  "type": "S",
+  "ing": "spice",
+  "grams": 2
+ },
+ {
+  "sku": "B03",
+  "type": "C",
+  "ing": "ww_bread",
+  "grams": 30
+ },
+ {
+  "sku": "B04",
+  "type": "C",
+  "ing": "vermicelli",
+  "grams": 45
+ },
+ {
+  "sku": "B04",
+  "type": "S",
+  "ing": "honey",
+  "grams": 8
+ },
+ {
+  "sku": "B04",
+  "type": "S",
+  "ing": "spice",
+  "grams": 2
+ },
+ {
+  "sku": "B04",
+  "type": "P",
+  "ing": "egg_whole",
+  "grams": 100
+ },
+ {
+  "sku": "B04",
+  "type": "P",
+  "ing": "egg_white",
+  "grams": 30
+ },
+ {
+  "sku": "B04",
+  "type": "S",
+  "ing": "olive_oil",
+  "grams": 3
+ },
+ {
+  "sku": "B05",
+  "type": "C",
+  "ing": "oats",
+  "grams": 40
+ },
+ {
+  "sku": "B05",
+  "type": "S",
+  "ing": "milk_low",
+  "grams": 120
+ },
+ {
+  "sku": "B05",
+  "type": "P",
+  "ing": "greek_yogurt",
+  "grams": 80
+ },
+ {
+  "sku": "B05",
+  "type": "S",
+  "ing": "dates",
+  "grams": 25
+ },
+ {
+  "sku": "B05",
+  "type": "S",
+  "ing": "chia",
+  "grams": 8
+ },
+ {
+  "sku": "B05",
+  "type": "S",
+  "ing": "almonds",
+  "grams": 8
+ },
+ {
+  "sku": "B06",
+  "type": "P",
+  "ing": "egg_whole",
+  "grams": 150
+ },
+ {
+  "sku": "B06",
+  "type": "P",
+  "ing": "egg_white",
+  "grams": 30
+ },
+ {
+  "sku": "B06",
+  "type": "V",
+  "ing": "onion",
+  "grams": 30
+ },
+ {
+  "sku": "B06",
+  "type": "V",
+  "ing": "tomato",
+  "grams": 40
+ },
+ {
+  "sku": "B06",
+  "type": "V",
+  "ing": "bell_pepper",
+  "grams": 30
+ },
+ {
+  "sku": "B06",
+  "type": "V",
+  "ing": "spinach",
+  "grams": 20
+ },
+ {
+  "sku": "B06",
+  "type": "S",
+  "ing": "olive_oil",
+  "grams": 5
+ },
+ {
+  "sku": "B06",
+  "type": "S",
+  "ing": "spice",
+  "grams": 2
+ },
+ {
+  "sku": "B06",
+  "type": "C",
+  "ing": "ww_bread",
+  "grams": 40
+ },
+ {
+  "sku": "B07",
+  "type": "P",
+  "ing": "egg_whole",
+  "grams": 150
+ },
+ {
+  "sku": "B07",
+  "type": "P",
+  "ing": "egg_white",
+  "grams": 30
+ },
+ {
+  "sku": "B07",
+  "type": "C",
+  "ing": "potato",
+  "grams": 120
+ },
+ {
+  "sku": "B07",
+  "type": "V",
+  "ing": "onion",
+  "grams": 40
+ },
+ {
+  "sku": "B07",
+  "type": "S",
+  "ing": "olive_oil",
+  "grams": 8
+ },
+ {
+  "sku": "B07",
+  "type": "V",
+  "ing": "tomato",
+  "grams": 60
+ },
+ {
+  "sku": "B08",
+  "type": "P",
+  "ing": "chicken_breast",
+  "grams": 100
+ },
+ {
+  "sku": "B08",
+  "type": "C",
+  "ing": "basmati",
+  "grams": 45
+ },
+ {
+  "sku": "B08",
+  "type": "S",
+  "ing": "ginger",
+  "grams": 6
+ },
+ {
+  "sku": "B08",
+  "type": "V",
+  "ing": "carrot",
+  "grams": 30
+ },
+ {
+  "sku": "B08",
+  "type": "S",
+  "ing": "soy_sauce",
+  "grams": 6
+ },
+ {
+  "sku": "B08",
+  "type": "S",
+  "ing": "sesame",
+  "grams": 2
+ },
+ {
+  "sku": "B08",
+  "type": "P",
+  "ing": "egg_whole",
+  "grams": 50
+ },
+ {
+  "sku": "B08",
+  "type": "V",
+  "ing": "spinach",
+  "grams": 30
+ },
+ {
+  "sku": "B08",
+  "type": "S",
+  "ing": "chicken_stock",
+  "grams": 300
+ },
+ {
+  "sku": "S01",
+  "type": "C",
+  "ing": "oats",
+  "grams": 20
+ },
+ {
+  "sku": "S01",
+  "type": "S",
+  "ing": "dates",
+  "grams": 25
+ },
+ {
+  "sku": "S01",
+  "type": "S",
+  "ing": "peanut_butter",
+  "grams": 10
+ },
+ {
+  "sku": "S01",
+  "type": "S",
+  "ing": "cocoa",
+  "grams": 3
+ },
+ {
+  "sku": "S02",
+  "type": "C",
+  "ing": "chickpea_cooked",
+  "grams": 100
+ },
+ {
+  "sku": "S02",
+  "type": "S",
+  "ing": "olive_oil",
+  "grams": 3
+ },
+ {
+  "sku": "S02",
+  "type": "S",
+  "ing": "spice",
+  "grams": 2
+ },
+ {
+  "sku": "S03",
+  "type": "P",
+  "ing": "greek_yogurt",
+  "grams": 170
+ },
+ {
+  "sku": "S03",
+  "type": "C",
+  "ing": "oats",
+  "grams": 20
+ },
+ {
+  "sku": "S03",
+  "type": "S",
+  "ing": "almonds",
+  "grams": 8
+ },
+ {
+  "sku": "S03",
+  "type": "S",
+  "ing": "honey",
+  "grams": 6
+ },
+ {
+  "sku": "S03",
+  "type": "S",
+  "ing": "berries",
+  "grams": 40
+ },
+ {
+  "sku": "S04",
+  "type": "P",
+  "ing": "turkey_slices",
+  "grams": 70
+ },
+ {
+  "sku": "S04",
+  "type": "S",
+  "ing": "mozzarella",
+  "grams": 20
+ },
+ {
+  "sku": "S04",
+  "type": "V",
+  "ing": "cucumber",
+  "grams": 50
+ },
+ {
+  "sku": "S04",
+  "type": "V",
+  "ing": "romaine",
+  "grams": 30
+ },
+ {
+  "sku": "S05",
+  "type": "P",
+  "ing": "edamame",
+  "grams": 120
+ },
+ {
+  "sku": "S05",
+  "type": "S",
+  "ing": "sesame",
+  "grams": 2
+ },
+ {
+  "sku": "S05",
+  "type": "S",
+  "ing": "spice",
+  "grams": 1
+ },
+ {
+  "sku": "S06",
+  "type": "P",
+  "ing": "chicken_breast",
+  "grams": 100
+ },
+ {
+  "sku": "S06",
+  "type": "S",
+  "ing": "yogurt_low",
+  "grams": 20
+ },
+ {
+  "sku": "S06",
+  "type": "S",
+  "ing": "lemon_juice",
+  "grams": 5
+ },
+ {
+  "sku": "S06",
+  "type": "S",
+  "ing": "spice",
+  "grams": 2
+ },
+ {
+  "sku": "S06",
+  "type": "S",
+  "ing": "olive_oil",
+  "grams": 2
+ },
+ {
+  "sku": "S06",
+  "type": "V",
+  "ing": "bell_pepper",
+  "grams": 40
+ },
+ {
+  "sku": "S07",
+  "type": "C",
+  "ing": "chickpea_cooked",
+  "grams": 70
+ },
+ {
+  "sku": "S07",
+  "type": "S",
+  "ing": "tahini",
+  "grams": 8
+ },
+ {
+  "sku": "S07",
+  "type": "S",
+  "ing": "lemon_juice",
+  "grams": 10
+ },
+ {
+  "sku": "S07",
+  "type": "S",
+  "ing": "garlic",
+  "grams": 2
+ },
+ {
+  "sku": "S07",
+  "type": "V",
+  "ing": "carrot",
+  "grams": 50
+ },
+ {
+  "sku": "S07",
+  "type": "V",
+  "ing": "cucumber",
+  "grams": 60
+ },
+ {
+  "sku": "S07",
+  "type": "V",
+  "ing": "bell_pepper",
+  "grams": 40
+ },
+ {
+  "sku": "S08",
+  "type": "P",
+  "ing": "tuna",
+  "grams": 80
+ },
+ {
+  "sku": "S08",
+  "type": "S",
+  "ing": "greek_yogurt",
+  "grams": 25
+ },
+ {
+  "sku": "S08",
+  "type": "V",
+  "ing": "cucumber",
+  "grams": 120
+ },
+ {
+  "sku": "S08",
+  "type": "S",
+  "ing": "lemon_juice",
+  "grams": 5
+ },
+ {
+  "sku": "S08",
+  "type": "V",
+  "ing": "onion",
+  "grams": 10
+ },
+ {
+  "sku": "S08",
+  "type": "S",
+  "ing": "herbs",
+  "grams": 3
+ },
+ {
+  "sku": "S08",
+  "type": "S",
+  "ing": "spice",
+  "grams": 1
+ },
+ {
+  "sku": "SP01",
+  "type": "C",
+  "ing": "lentil_dry",
+  "grams": 40
+ },
+ {
+  "sku": "SP01",
+  "type": "V",
+  "ing": "carrot",
+  "grams": 40
+ },
+ {
+  "sku": "SP01",
+  "type": "V",
+  "ing": "onion",
+  "grams": 40
+ },
+ {
+  "sku": "SP01",
+  "type": "S",
+  "ing": "garlic",
+  "grams": 3
+ },
+ {
+  "sku": "SP01",
+  "type": "S",
+  "ing": "olive_oil",
+  "grams": 4
+ },
+ {
+  "sku": "SP01",
+  "type": "S",
+  "ing": "spice",
+  "grams": 2
+ },
+ {
+  "sku": "SP01",
+  "type": "S",
+  "ing": "lemon_juice",
+  "grams": 8
+ },
+ {
+  "sku": "SP01",
+  "type": "S",
+  "ing": "chicken_stock",
+  "grams": 250
+ },
+ {
+  "sku": "SP02",
+  "type": "P",
+  "ing": "chicken_breast",
+  "grams": 60
+ },
+ {
+  "sku": "SP02",
+  "type": "C",
+  "ing": "oats",
+  "grams": 25
+ },
+ {
+  "sku": "SP02",
+  "type": "V",
+  "ing": "carrot",
+  "grams": 30
+ },
+ {
+  "sku": "SP02",
+  "type": "V",
+  "ing": "celery",
+  "grams": 20
+ },
+ {
+  "sku": "SP02",
+  "type": "V",
+  "ing": "onion",
+  "grams": 30
+ },
+ {
+  "sku": "SP02",
+  "type": "S",
+  "ing": "olive_oil",
+  "grams": 3
+ },
+ {
+  "sku": "SP02",
+  "type": "S",
+  "ing": "chicken_stock",
+  "grams": 250
+ },
+ {
+  "sku": "SP02",
+  "type": "S",
+  "ing": "milk_low",
+  "grams": 50
+ },
+ {
+  "sku": "SP02",
+  "type": "S",
+  "ing": "spice",
+  "grams": 1
+ },
+ {
+  "sku": "SP03",
+  "type": "V",
+  "ing": "pumpkin",
+  "grams": 150
+ },
+ {
+  "sku": "SP03",
+  "type": "V",
+  "ing": "carrot",
+  "grams": 60
+ },
+ {
+  "sku": "SP03",
+  "type": "V",
+  "ing": "onion",
+  "grams": 30
+ },
+ {
+  "sku": "SP03",
+  "type": "S",
+  "ing": "ginger",
+  "grams": 4
+ },
+ {
+  "sku": "SP03",
+  "type": "S",
+  "ing": "olive_oil",
+  "grams": 4
+ },
+ {
+  "sku": "SP03",
+  "type": "S",
+  "ing": "coconut_milk",
+  "grams": 15
+ },
+ {
+  "sku": "SP03",
+  "type": "S",
+  "ing": "chicken_stock",
+  "grams": 200
+ },
+ {
+  "sku": "SP04",
+  "type": "C",
+  "ing": "chickpea_cooked",
+  "grams": 40
+ },
+ {
+  "sku": "SP04",
+  "type": "C",
+  "ing": "lentil_dry",
+  "grams": 20
+ },
+ {
+  "sku": "SP04",
+  "type": "V",
+  "ing": "tomato",
+  "grams": 100
+ },
+ {
+  "sku": "SP04",
+  "type": "V",
+  "ing": "onion",
+  "grams": 30
+ },
+ {
+  "sku": "SP04",
+  "type": "V",
+  "ing": "celery",
+  "grams": 20
+ },
+ {
+  "sku": "SP04",
+  "type": "S",
+  "ing": "tomato_paste",
+  "grams": 10
+ },
+ {
+  "sku": "SP04",
+  "type": "S",
+  "ing": "herbs",
+  "grams": 10
+ },
+ {
+  "sku": "SP04",
+  "type": "S",
+  "ing": "spice",
+  "grams": 3
+ },
+ {
+  "sku": "SP04",
+  "type": "P",
+  "ing": "chicken_breast",
+  "grams": 50
+ },
+ {
+  "sku": "SP04",
+  "type": "S",
+  "ing": "olive_oil",
+  "grams": 4
+ },
+ {
+  "sku": "SP04",
+  "type": "S",
+  "ing": "chicken_stock",
+  "grams": 200
+ },
+ {
+  "sku": "SP04",
+  "type": "S",
+  "ing": "ww_flour",
+  "grams": 6
+ },
+ {
+  "sku": "SL01",
+  "type": "P",
+  "ing": "chicken_breast",
+  "grams": 120
+ },
+ {
+  "sku": "SL01",
+  "type": "C",
+  "ing": "quinoa",
+  "grams": 35
+ },
+ {
+  "sku": "SL01",
+  "type": "V",
+  "ing": "romaine",
+  "grams": 60
+ },
+ {
+  "sku": "SL01",
+  "type": "V",
+  "ing": "cucumber",
+  "grams": 50
+ },
+ {
+  "sku": "SL01",
+  "type": "V",
+  "ing": "tomato",
+  "grams": 60
+ },
+ {
+  "sku": "SL01",
+  "type": "S",
+  "ing": "avocado",
+  "grams": 40
+ },
+ {
+  "sku": "SL01",
+  "type": "S",
+  "ing": "olive_oil",
+  "grams": 6
+ },
+ {
+  "sku": "SL01",
+  "type": "S",
+  "ing": "lemon_juice",
+  "grams": 12
+ },
+ {
+  "sku": "SL01",
+  "type": "S",
+  "ing": "herbs",
+  "grams": 3
+ },
+ {
+  "sku": "SL02",
+  "type": "P",
+  "ing": "tuna",
+  "grams": 90
+ },
+ {
+  "sku": "SL02",
+  "type": "P",
+  "ing": "egg_whole",
+  "grams": 50
+ },
+ {
+  "sku": "SL02",
+  "type": "C",
+  "ing": "potato",
+  "grams": 100
+ },
+ {
+  "sku": "SL02",
+  "type": "V",
+  "ing": "green_beans",
+  "grams": 70
+ },
+ {
+  "sku": "SL02",
+  "type": "V",
+  "ing": "tomato",
+  "grams": 60
+ },
+ {
+  "sku": "SL02",
+  "type": "S",
+  "ing": "olives",
+  "grams": 15
+ },
+ {
+  "sku": "SL02",
+  "type": "V",
+  "ing": "onion",
+  "grams": 15
+ },
+ {
+  "sku": "SL02",
+  "type": "V",
+  "ing": "romaine",
+  "grams": 40
+ },
+ {
+  "sku": "SL02",
+  "type": "S",
+  "ing": "olive_oil",
+  "grams": 6
+ },
+ {
+  "sku": "SL02",
+  "type": "S",
+  "ing": "balsamic",
+  "grams": 8
+ },
+ {
+  "sku": "SL02",
+  "type": "S",
+  "ing": "herbs",
+  "grams": 2
+ },
+ {
+  "sku": "SL03",
+  "type": "P",
+  "ing": "chicken_breast",
+  "grams": 80
+ },
+ {
+  "sku": "SL03",
+  "type": "C",
+  "ing": "chickpea_cooked",
+  "grams": 60
+ },
+ {
+  "sku": "SL03",
+  "type": "S",
+  "ing": "feta",
+  "grams": 40
+ },
+ {
+  "sku": "SL03",
+  "type": "V",
+  "ing": "cucumber",
+  "grams": 80
+ },
+ {
+  "sku": "SL03",
+  "type": "V",
+  "ing": "tomato",
+  "grams": 80
+ },
+ {
+  "sku": "SL03",
+  "type": "V",
+  "ing": "bell_pepper",
+  "grams": 40
+ },
+ {
+  "sku": "SL03",
+  "type": "V",
+  "ing": "onion",
+  "grams": 25
+ },
+ {
+  "sku": "SL03",
+  "type": "S",
+  "ing": "olives",
+  "grams": 20
+ },
+ {
+  "sku": "SL03",
+  "type": "S",
+  "ing": "olive_oil",
+  "grams": 7
+ },
+ {
+  "sku": "SL03",
+  "type": "S",
+  "ing": "lemon_juice",
+  "grams": 10
+ },
+ {
+  "sku": "SL04",
+  "type": "P",
+  "ing": "salmon",
+  "grams": 110
+ },
+ {
+  "sku": "SL04",
+  "type": "V",
+  "ing": "arugula",
+  "grams": 50
+ },
+ {
+  "sku": "SL04",
+  "type": "V",
+  "ing": "romaine",
+  "grams": 40
+ },
+ {
+  "sku": "SL04",
+  "type": "C",
+  "ing": "sweet_potato",
+  "grams": 80
+ },
+ {
+  "sku": "SL04",
+  "type": "S",
+  "ing": "pumpkin_seeds",
+  "grams": 8
+ },
+ {
+  "sku": "SL04",
+  "type": "S",
+  "ing": "lemon_juice",
+  "grams": 12
+ },
+ {
+  "sku": "SL04",
+  "type": "S",
+  "ing": "olive_oil",
+  "grams": 4
+ },
+ {
+  "sku": "SL04",
+  "type": "S",
+  "ing": "greek_yogurt",
+  "grams": 20
+ },
+ {
+  "sku": "SL05",
+  "type": "P",
+  "ing": "shrimp",
+  "grams": 130
+ },
+ {
+  "sku": "SL05",
+  "type": "V",
+  "ing": "romaine",
+  "grams": 100
+ },
+ {
+  "sku": "SL05",
+  "type": "C",
+  "ing": "ww_bread",
+  "grams": 25
+ },
+ {
+  "sku": "SL05",
+  "type": "S",
+  "ing": "parmesan",
+  "grams": 10
+ },
+ {
+  "sku": "SL05",
+  "type": "S",
+  "ing": "greek_yogurt",
+  "grams": 40
+ },
+ {
+  "sku": "SL05",
+  "type": "S",
+  "ing": "lemon_juice",
+  "grams": 10
+ },
+ {
+  "sku": "SL05",
+  "type": "S",
+  "ing": "garlic",
+  "grams": 3
+ },
+ {
+  "sku": "SL05",
+  "type": "S",
+  "ing": "olive_oil",
+  "grams": 4
+ },
+ {
+  "sku": "D01",
+  "type": "S",
+  "ing": "dates",
+  "grams": 30
+ },
+ {
+  "sku": "D01",
+  "type": "C",
+  "ing": "ww_flour",
+  "grams": 20
+ },
+ {
+  "sku": "D01",
+  "type": "S",
+  "ing": "egg_whole",
+  "grams": 25
+ },
+ {
+  "sku": "D01",
+  "type": "S",
+  "ing": "greek_yogurt",
+  "grams": 30
+ },
+ {
+  "sku": "D01",
+  "type": "S",
+  "ing": "milk_low",
+  "grams": 20
+ },
+ {
+  "sku": "D01",
+  "type": "S",
+  "ing": "olive_oil",
+  "grams": 4
+ },
+ {
+  "sku": "D02",
+  "type": "C",
+  "ing": "millet_flour",
+  "grams": 25
+ },
+ {
+  "sku": "D02",
+  "type": "S",
+  "ing": "dates",
+  "grams": 20
+ },
+ {
+  "sku": "D02",
+  "type": "S",
+  "ing": "egg_whole",
+  "grams": 25
+ },
+ {
+  "sku": "D02",
+  "type": "S",
+  "ing": "greek_yogurt",
+  "grams": 30
+ },
+ {
+  "sku": "D02",
+  "type": "S",
+  "ing": "almonds",
+  "grams": 6
+ },
+ {
+  "sku": "D02",
+  "type": "S",
+  "ing": "olive_oil",
+  "grams": 3
+ },
+ {
+  "sku": "D03",
+  "type": "S",
+  "ing": "black_beans",
+  "grams": 50
+ },
+ {
+  "sku": "D03",
+  "type": "S",
+  "ing": "cocoa",
+  "grams": 8
+ },
+ {
+  "sku": "D03",
+  "type": "S",
+  "ing": "dates",
+  "grams": 20
+ },
+ {
+  "sku": "D03",
+  "type": "S",
+  "ing": "egg_whole",
+  "grams": 40
+ },
+ {
+  "sku": "D03",
+  "type": "C",
+  "ing": "oats",
+  "grams": 10
+ },
+ {
+  "sku": "D03",
+  "type": "S",
+  "ing": "greek_yogurt",
+  "grams": 25
+ },
+ {
+  "sku": "D04",
+  "type": "S",
+  "ing": "greek_yogurt",
+  "grams": 130
+ },
+ {
+  "sku": "D04",
+  "type": "S",
+  "ing": "egg_whole",
+  "grams": 30
+ },
+ {
+  "sku": "D04",
+  "type": "S",
+  "ing": "honey",
+  "grams": 8
+ },
+ {
+  "sku": "D04",
+  "type": "C",
+  "ing": "oats",
+  "grams": 15
+ },
+ {
+  "sku": "D04",
+  "type": "S",
+  "ing": "dates",
+  "grams": 10
+ },
+ {
+  "sku": "D04",
+  "type": "S",
+  "ing": "berries",
+  "grams": 40
+ }
+]

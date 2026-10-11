@@ -1,275 +1,175 @@
-"use client";
+// لوحة الإدارة التنفيذية — أرقام حقيقية من قاعدة البيانات.
+//
+// قبل: كانت تولّد اشتراكات وإيرادات عشوائية كل 3.6 ثانية وتبدأ من أرقام مخترعة
+// (184 مشترك، 21 تجديد، 6 إيقاف). انحذفت بالكامل. الأرقام الآن من الجداول،
+// وإذا الجدول فاضي تظهر حالة فاضية صريحة بدل رقم يوحي بنشاط ما صار.
 
-import { useEffect, useRef, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  ResponsiveContainer,
-  Tooltip,
-  CartesianGrid,
-} from "recharts";
-import {
-  UserPlus,
-  ChefHat,
-  Truck,
-  RefreshCw,
-  Radio,
-  Users,
-  TrendingUp,
-  Wallet,
-  ShoppingBag,
-  Package,
-  ChevronRight,
-} from "lucide-react";
-import { T, ZONES, SIM_MEALS, NAMES, timeNow, FeedEvent, DeliveryRow } from "@/lib/kitchen-shared";
+import Image from "next/image";
+import { ChefHat, ChevronRight, Package, Rocket, ShieldCheck, ShoppingBag, TrendingUp, Users, Wallet } from "lucide-react";
+import { T } from "@/lib/kitchen-shared";
+import { createClient } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
+import NotConfigured from "@/components/auth/NotConfigured";
+import { loadOpsSnapshot } from "@/lib/ops/server-data";
+import { computeMenu, computeProduction, deriveSkuQuality } from "@/lib/ops/engine";
 
-export default function ExecutiveDashboard() {
-  const [pulseStage, setPulseStage] = useState(-1);
-  const [feed, setFeed] = useState<FeedEvent[]>([]);
-  const [deliveries, setDeliveries] = useState<DeliveryRow[]>(ZONES.map((z) => ({ zone: z, count: 0 })));
-  const [activeSubs, setActiveSubs] = useState(184);
-  const [renewedToday, setRenewedToday] = useState(21);
-  const [paused, setPaused] = useState(6);
-  const [revenueToday, setRevenueToday] = useState(0);
-  const [costToday, setCostToday] = useState(0);
-  const [orderCount, setOrderCount] = useState(0);
-  const [weekly, setWeekly] = useState([
-    { d: "السبت", n: 26 },
-    { d: "الأحد", n: 31 },
-    { d: "الاثنين", n: 29 },
-    { d: "الثلاثاء", n: 34 },
-    { d: "الأربعاء", n: 30 },
-    { d: "الخميس", n: 22 },
+export const dynamic = "force-dynamic";
+export const metadata = { title: "الإدارة التنفيذية — Macro Meals" };
+
+function Kpi({ label, value, hint, tone }: { label: string; value: string; hint?: string; tone?: "good" | "warn" }) {
+  const color = tone === "good" ? T.good : tone === "warn" ? T.warn : T.brand;
+  return (
+    <div className="rounded-2xl p-5" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
+      <div className="text-xs mb-1.5" style={{ color: T.inkSoft }}>{label}</div>
+      <div className="text-2xl font-extrabold leading-none" style={{ color }}>{value}</div>
+      {hint && <div className="text-[11px] mt-1.5" style={{ color: T.inkSoft }}>{hint}</div>}
+    </div>
+  );
+}
+
+export default async function ExecutiveDashboard() {
+  if (!isSupabaseConfigured) return <NotConfigured />;
+  const supabase = await createClient();
+  const snapshot = await loadOpsSnapshot();
+
+  const [{ count: customerCount }, { count: staffCount }] = await Promise.all([
+    supabase.from("customers").select("*", { count: "exact", head: true }),
+    supabase.from("staff").select("*", { count: "exact", head: true }),
   ]);
-  const idRef = useRef(1);
-  const [tick, setTick] = useState(0);
 
-  useEffect(() => {
-    const interval = setInterval(() => setTick((t) => t + 1), 3600);
-    return () => clearInterval(interval);
-  }, []);
+  const computed = snapshot.data.settings ? computeMenu(snapshot.data) : [];
 
-  useEffect(() => {
-    if (tick === 0) return;
-    const id = idRef.current++;
-    const roll = Math.random();
-    const name = NAMES[Math.floor(Math.random() * NAMES.length)];
-    const zone = ZONES[Math.floor(Math.random() * ZONES.length)];
-    const meal = SIM_MEALS[Math.floor(Math.random() * SIM_MEALS.length)];
+  // «جاهز للبيع» = نفس حكم المحرك ونفس حكم سياسة النشر في القاعدة. كان هنا
+  // شرط مكتوب بيده (gates.length === 8) — رقم ثاني يتقادم لوحده، وينكسر صامتاً
+  // أول ما تضيف الأقسام بوابة أو توقف واحدة.
+  const quality = computed.map((c) =>
+    deriveSkuQuality(
+      snapshot.gates[c.item.id] ?? [],
+      c.item.shelfLifeH,
+      snapshot.data.settings,
+      snapshot.data.gateDefs,
+    ),
+  );
+  const ready = quality.filter((q) => q.status === "READY");
+  const held = quality.filter((q) => q.status === "HOLD");
+  const activeGateCount = snapshot.data.gateDefs.filter((d) => d.active).length;
+  const avgContribution = computed.length
+    ? computed.reduce((a, c) => a + c.contributionPct, 0) / computed.length
+    : 0;
+  const underMargin = computed.filter((c) => c.marginAlert).length;
 
-    [0, 1, 2, 3, 4].forEach((stage, i) => setTimeout(() => setPulseStage(stage), i * 220));
-    setTimeout(() => setPulseStage(-1), 5 * 220 + 500);
-
-    let eventText = "";
-    let eventType: FeedEvent["type"] = "new";
-    if (roll < 0.45) {
-      eventText = `اشتراك جديد: ${name} — ${zone}`;
-      eventType = "new";
-      setActiveSubs((s) => s + 1);
-    } else if (roll < 0.75) {
-      eventText = `تجديد اشتراك: ${name}`;
-      eventType = "renew";
-      setRenewedToday((r) => r + 1);
-    } else {
-      eventText = `إيقاف مؤقت: ${name}`;
-      eventType = "pause";
-      setPaused((p) => p + 1);
-      setActiveSubs((s) => Math.max(s - 1, 0));
+  // قيمة خطة الإنتاج المسجّلة فعلياً عبر الأيام الـ14
+  let plannedPortions = 0;
+  let plannedRevenue = 0;
+  let plannedCost = 0;
+  if (snapshot.data.settings && snapshot.data.rotation.days.length > 0) {
+    for (let d = 0; d < snapshot.data.rotation.days.length; d++) {
+      const portions = snapshot.production[String(d)] ?? {};
+      if (Object.keys(portions).length === 0) continue;
+      const plan = computeProduction(snapshot.data, computed, d, portions as Record<number, number>);
+      plannedPortions += plan.totals.portions;
+      plannedRevenue += plan.totals.revenue;
+      plannedCost += plan.totals.cost;
     }
-
-    setFeed((prev) => [{ id, text: eventText, type: eventType, meal: meal.name, time: timeNow() }, ...prev].slice(0, 6));
-
-    if (eventType !== "pause") {
-      setTimeout(() => {
-        setDeliveries((prev) => prev.map((d) => (d.zone === zone ? { ...d, count: d.count + 1 } : d)));
-        const mealCost = Object.entries(meal.uses).reduce((sum, [ing, qty]) => {
-          const costMap: Record<string, number> = { "صدر دجاج": 6, "أرز": 1.2, "سلمون": 12, "كينوا": 3, "شوفان": 1, "فواكه": 2.5, "حمص": 2 };
-          return sum + (costMap[ing] || 0) * (qty as number);
-        }, 0);
-        setRevenueToday((r) => r + meal.price);
-        setCostToday((c) => Math.round((c + mealCost) * 100) / 100);
-        setOrderCount((o) => o + 1);
-        setWeekly((prev) => {
-          const next = [...prev];
-          next[next.length - 1] = { ...next[next.length - 1], n: next[next.length - 1].n + 1 };
-          return next;
-        });
-      }, 500);
-    }
-  }, [tick]);
-
-  const netProfit = Math.round((revenueToday - costToday) * 100) / 100;
+  }
+  const plannedMargin = plannedRevenue - plannedCost;
+  const fmt = (n: number) => Math.round(n).toLocaleString("en-US");
 
   return (
     <div style={{ background: T.bg, color: T.ink }} className="min-h-screen w-full">
       <div className="w-full border-b" style={{ borderColor: T.border, background: T.surface }}>
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Image src="/logo-mark.png" alt="Food Style" width={40} height={40} className="rounded-xl" />
+            <Image src="/brand/logo-symbol.png" alt="Macro Meals" width={40} height={40} className="rounded-xl" />
             <div>
-              <div className="font-bold text-lg leading-none" style={{ color: T.brand }}>Food Style</div>
+              <div className="font-bold text-lg leading-none" style={{ color: T.brand }}>Macro Meals</div>
               <div className="text-xs mt-1" style={{ color: T.inkSoft }}>لوحة الإدارة التنفيذية</div>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <Link href="/admin" className="flex items-center gap-1 text-xs font-bold" style={{ color: T.inkSoft }}>
-              رجوع لاختيار اللوحة
-              <ChevronRight size={13} />
-            </Link>
-            <div className="text-xs flex items-center gap-1.5" style={{ color: T.good }}>
-              <Radio size={13} /> بيانات تجريبية حية
-            </div>
-          </div>
+          <Link href="/admin" className="flex items-center gap-1 text-xs font-bold" style={{ color: T.inkSoft }}>
+            لوحات التحكم <ChevronRight size={13} />
+          </Link>
         </div>
       </div>
 
       <div className="max-w-6xl mx-auto px-6 py-8">
-        {/* مسار الأتمتة */}
-        <div className="rounded-2xl p-6 mb-8" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
-          <div className="text-sm font-semibold mb-1">دورة النظام الكاملة</div>
-          <div className="text-xs mb-6" style={{ color: T.inkSoft }}>نظرة تنفيذية على مسار كل اشتراك من التسجيل للتحديث</div>
-          <div className="flex items-center justify-between">
-            {[
-              { icon: UserPlus, label: "تسجيل / تجديد" },
-              { icon: Users, label: "مطابقة الوجبة" },
-              { icon: ChefHat, label: "تخطيط الإنتاج" },
-              { icon: Truck, label: "جدولة التوصيل" },
-              { icon: RefreshCw, label: "تحديث الاشتراك" },
-            ].map((s, i, arr) => (
-              <div key={i} className="flex items-center" style={{ flex: i < arr.length - 1 ? 1 : "none" }}>
-                <div className="flex flex-col items-center gap-2" style={{ minWidth: 84 }}>
-                  <div
-                    className="rounded-full flex items-center justify-center transition-all duration-300"
-                    style={{ width: 46, height: 46, background: pulseStage === i ? T.brandBright : T.brandTint, color: pulseStage === i ? "#fff" : T.brand }}
-                  >
-                    <s.icon size={20} />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <Kpi label="عملاء مسجّلون" value={fmt(customerCount ?? 0)} hint="حسابات أنشأها العملاء بأنفسهم" />
+          <Kpi label="فريق العمل" value={fmt(staffCount ?? 0)} hint="حسابات بأدوار" />
+          <Kpi
+            label="أصناف جاهزة للبيع"
+            value={`${ready.length} / ${computed.length}`}
+            tone="good"
+            hint={`معتمدة من كل البوابات النشطة (${activeGateCount})${held.length ? ` · ${held.length} متوقف` : ""}`}
+          />
+          <Kpi label="أصناف تحت حد الهامش" value={fmt(underMargin)} tone={underMargin > 0 ? "warn" : undefined} hint={`الحد ${Math.round((snapshot.data.settings?.marginWarnPct ?? 0) * 100)}%`} />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <Kpi label="متوسط هامش المساهمة" value={`${(avgContribution * 100).toFixed(1)}%`} hint="على كل أصناف المنيو" />
+          <Kpi label="حصص مخططة (14 يوم)" value={fmt(plannedPortions)} hint="المسجّل في خطة الإنتاج" />
+          <Kpi label="هامش الخطة المسجّلة" value={`${fmt(plannedMargin)} ر.س`} tone={plannedMargin >= 0 ? "good" : "warn"} hint={`إيراد ${fmt(plannedRevenue)} − تكلفة ${fmt(plannedCost)}`} />
+        </div>
+
+        {plannedPortions === 0 && (
+          <div className="rounded-2xl p-8 text-center mb-6" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
+            <ChefHat size={30} style={{ color: T.inkSoft }} className="mx-auto mb-3" />
+            <div className="text-sm font-bold mb-1">ما فيه حصص مخططة بعد</div>
+            <p className="text-xs leading-relaxed max-w-md mx-auto" style={{ color: T.inkSoft }}>
+              أرقام الإيراد والتكلفة تُحسب من خطة الإنتاج الفعلية. أدخل عدد الحصص في
+              صفحة الإنتاج وتظهر هنا تلقائياً.
+            </p>
+            <Link href="/admin/ops/production" className="inline-block mt-4 rounded-lg px-4 py-2 text-xs font-bold text-[#0B1410]" style={{ background: T.brandBright }}>
+              فتح خطة الإنتاج
+            </Link>
+          </div>
+        )}
+
+        <div className="rounded-2xl p-5 mb-6" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
+          <div className="flex items-center gap-2 mb-4">
+            <TrendingUp size={17} style={{ color: T.brand }} />
+            <div className="font-semibold text-sm">سجل آخر التعديلات</div>
+          </div>
+          {snapshot.audit.length === 0 ? (
+            <div className="text-xs py-6 text-center" style={{ color: T.inkSoft }}>ما فيه تعديلات مسجّلة بعد</div>
+          ) : (
+            <div className="space-y-2">
+              {snapshot.audit.slice(0, 8).map((a) => (
+                <div key={a.id} className="flex items-start justify-between gap-3 rounded-xl px-3 py-2.5" style={{ background: T.bg }}>
+                  <div className="min-w-0">
+                    <div className="text-xs font-medium">{a.text}</div>
+                    <div className="text-[11px] mt-0.5" style={{ color: T.inkSoft }}>{a.area} · {a.role} · {a.by}</div>
                   </div>
-                  <div className="text-[11px] text-center" style={{ color: T.inkSoft, maxWidth: 84 }}>{s.label}</div>
-                </div>
-                {i < arr.length - 1 && (
-                  <div className="flex-1 h-px mx-1 relative" style={{ background: T.border }}>
-                    <div
-                      className="absolute top-1/2 -translate-y-1/2 h-1.5 w-1.5 rounded-full transition-all duration-300"
-                      style={{ background: T.brandBright, right: pulseStage > i ? "0%" : pulseStage === i ? "50%" : "100%", opacity: pulseStage >= i ? 1 : 0 }}
-                    />
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* مؤشرات الاشتراكات */}
-        <div className="grid grid-cols-4 gap-4 mb-6">
-          <div className="rounded-2xl p-5" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
-            <div className="text-xs mb-1" style={{ color: T.inkSoft }}>مشتركين نشطين</div>
-            <div className="text-2xl font-extrabold">{activeSubs}</div>
-          </div>
-          <div className="rounded-2xl p-5" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
-            <div className="text-xs mb-1" style={{ color: T.inkSoft }}>تجديدات اليوم</div>
-            <div className="text-2xl font-extrabold" style={{ color: T.good }}>{renewedToday}</div>
-          </div>
-          <div className="rounded-2xl p-5" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
-            <div className="text-xs mb-1" style={{ color: T.inkSoft }}>إيقاف مؤقت</div>
-            <div className="text-2xl font-extrabold" style={{ color: T.warn }}>{paused}</div>
-          </div>
-          <div className="rounded-2xl p-5" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
-            <div className="text-xs mb-1" style={{ color: T.inkSoft }}>طلبات اليوم</div>
-            <div className="text-2xl font-extrabold">{orderCount}</div>
-          </div>
-        </div>
-
-        {/* الملخص المالي */}
-        <div className="grid grid-cols-3 gap-4 mb-6">
-          <div className="rounded-2xl p-5" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
-            <div className="flex items-center gap-1.5 text-xs mb-1" style={{ color: T.inkSoft }}>
-              <Wallet size={13} /> قيمة مسحوبة من المحافظ
-            </div>
-            <div className="text-2xl font-extrabold" style={{ color: T.good }}>{revenueToday.toLocaleString("ar-SA")} ﷼</div>
-          </div>
-          <div className="rounded-2xl p-5" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
-            <div className="flex items-center gap-1.5 text-xs mb-1" style={{ color: T.inkSoft }}>
-              <Package size={13} /> تكلفة المكونات الفعلية
-            </div>
-            <div className="text-2xl font-extrabold" style={{ color: T.warn }}>{costToday.toLocaleString("ar-SA")} ﷼</div>
-          </div>
-          <div className="rounded-2xl p-5" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
-            <div className="flex items-center gap-1.5 text-xs mb-1" style={{ color: T.inkSoft }}>
-              <TrendingUp size={13} /> صافي الربح التقديري
-            </div>
-            <div className="text-2xl font-extrabold" style={{ color: T.good }}>{netProfit.toLocaleString("ar-SA")} ﷼</div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-6 mb-6">
-          {/* سجل الاشتراكات */}
-          <div className="rounded-2xl p-5" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
-            <div className="flex items-center gap-2 mb-4">
-              <UserPlus size={17} style={{ color: T.brand }} />
-              <div className="font-semibold text-sm">سجل أحداث الاشتراك</div>
-            </div>
-            <div className="space-y-2 min-h-[240px]">
-              {feed.length === 0 && <div className="text-xs py-10 text-center" style={{ color: T.inkSoft }}>بانتظار أول حدث…</div>}
-              {feed.map((e) => (
-                <div key={e.id} className="rounded-xl px-3 py-2.5" style={{ background: e.type === "pause" ? T.warnTint : e.type === "new" ? T.goodTint : T.bg }}>
-                  <div className="flex items-center justify-between">
-                    <div className="text-sm font-medium" style={{ color: e.type === "pause" ? "#9A4B1C" : e.type === "new" ? "#1E7A50" : T.ink }}>{e.text}</div>
-                    <div className="text-[11px]" style={{ color: T.inkSoft }}>{e.time}</div>
+                  <div className="text-[11px] shrink-0" dir="ltr" style={{ color: T.inkSoft }}>
+                    {new Date(a.ts).toLocaleString("ar-SA", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
                   </div>
                 </div>
               ))}
             </div>
-          </div>
-
-          {/* رسم بياني أسبوعي */}
-          <div className="rounded-2xl p-5" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
-            <div className="flex items-center gap-2 mb-4">
-              <TrendingUp size={17} style={{ color: T.brand }} />
-              <div className="font-semibold text-sm">اشتراكات جديدة هذا الأسبوع</div>
-            </div>
-            <div style={{ width: "100%", height: 240 }}>
-              <ResponsiveContainer>
-                <BarChart data={weekly} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={T.border} vertical={false} />
-                  <XAxis dataKey="d" tick={{ fontSize: 11, fill: T.inkSoft }} axisLine={{ stroke: T.border }} tickLine={false} />
-                  <YAxis tick={{ fontSize: 11, fill: T.inkSoft }} axisLine={false} tickLine={false} />
-                  <Tooltip contentStyle={{ fontSize: 12, borderRadius: 10, border: `1px solid ${T.border}` }} labelStyle={{ color: T.ink }} />
-                  <Bar dataKey="n" fill={T.brandBright} radius={[6, 6, 0, 0]} name="اشتراكات جديدة" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
+          )}
         </div>
 
-        {/* التوصيل حسب الحي */}
-        <div className="rounded-2xl p-5 mb-6" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
-          <div className="flex items-center gap-2 mb-4">
-            <Truck size={17} style={{ color: T.brand }} />
-            <div className="font-semibold text-sm">توزيع التوصيل حسب الحي</div>
-          </div>
-          <div className="grid grid-cols-4 gap-3">
-            {deliveries.map((d) => (
-              <div key={d.zone} className="rounded-xl px-3 py-3 text-center" style={{ background: T.bg }}>
-                <div className="text-sm font-bold">{d.zone}</div>
-                <div className="text-lg font-extrabold mt-1" style={{ color: T.brand }}>{d.count}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="flex gap-3">
-          <Link href="/admin/kitchen" className="flex-1 rounded-2xl py-3.5 text-center text-sm font-bold text-white" style={{ background: T.brandBright }}>
-            <ShoppingBag size={16} className="inline ml-1.5" />
-            الانتقال للوحة المطبخ
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+          <Link href="/admin/launch" className="rounded-2xl py-3.5 text-center text-sm font-bold text-[#0B1410]" style={{ background: T.brandBright }}>
+            <Rocket size={15} className="inline ml-1.5" /> قرار الإطلاق
+          </Link>
+          <Link href="/admin/ops" className="rounded-2xl py-3.5 text-center text-sm font-bold" style={{ background: T.brandTint, color: T.brand }}>
+            <ShoppingBag size={15} className="inline ml-1.5" /> مركز العمليات
+          </Link>
+          <Link href="/admin/ops/engineering" className="rounded-2xl py-3.5 text-center text-sm font-bold" style={{ background: T.brandTint, color: T.brand }}>
+            <Wallet size={15} className="inline ml-1.5" /> هندسة المنيو
+          </Link>
+          <Link href="/admin/ops/ingredients" className="rounded-2xl py-3.5 text-center text-sm font-bold" style={{ background: T.brandTint, color: T.brand }}>
+            <Package size={15} className="inline ml-1.5" /> المكوّنات والأسعار
+          </Link>
+          <Link href="/admin/team" className="rounded-2xl py-3.5 text-center text-sm font-bold" style={{ background: T.brandTint, color: T.brand }}>
+            <ShieldCheck size={15} className="inline ml-1.5" /> القواعد والصلاحيات
           </Link>
         </div>
 
-        <div className="text-center text-[11px] mt-8 pb-4" style={{ color: T.inkSoft }}>
-          لوحة الإدارة التنفيذية — رؤية شاملة للأعمال والمالية، بدون تفاصيل تشغيل المطبخ اليومية
+        <div className="flex items-center justify-center gap-1.5 text-[11px] mt-8 pb-4" style={{ color: T.inkSoft }}>
+          <Users size={11} /> كل الأرقام من قاعدة البيانات — ما فيه أي بيانات تجريبية
         </div>
       </div>
     </div>

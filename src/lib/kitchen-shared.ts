@@ -1,161 +1,44 @@
-// بيانات ومحاكاة مشتركة بين لوحة الإدارة التنفيذية ولوحة المطبخ
+// أدوات مشتركة بين الشاشات.
 
+import { BRAND } from "./brand";
+//
+// كان هذا الملف يحتوي بيانات محاكاة (أصناف ومكوّنات وأسماء عملاء وهمية) وطبقة
+// تخزين في المتصفح تُستخدم كقاعدة بيانات. انحذف كل ذلك: بيانات العمليات صارت في
+// Supabase، وتفضيلات العميل صارت أعمدة في جدول customers.
+
+/**
+ * ألوان الواجهة، مشتقّة من هوية العلامة في src/lib/brand.ts.
+ *
+ * الأسماء هي نفسها اللي تستخدمها كل الشاشات (حوالي ألف موضع)، فتبديل القيم
+ * هنا يغيّر النظام كله دفعة واحدة — وهذا سبب وجود هذي الطبقة أصلاً.
+ *
+ * ملاحظة على brandBright: صار الليموني، وهو لون الفعل في الهوية. والنص فوقه
+ * حبري لا أبيض — الأبيض على الليموني تباينه 2:1 وما يُقرأ. ولهذا onBright.
+ */
 export const T = {
-  bg: "#FCF6F2",
+  bg: BRAND.cream,
   surface: "#FFFFFF",
-  border: "#F0DFD3",
-  ink: "#2B1B14",
-  inkSoft: "#7A6153",
-  brand: "#A84F2E",
-  brandBright: "#D67A4F",
-  brandTint: "#FBEEE6",
-  warn: "#C0392B",
-  warnTint: "#FBEBE0",
-  good: "#2E9E6D",
-  goodTint: "#E5F4ED",
+  border: "#E4DCCB", // كريمي أغمق — حد يُرى على الكريمي والأبيض
+  ink: BRAND.ink,
+  inkSoft: "#5C6B62", // رمادي أخضر: تباينه على الكريمي 6.4:1
+  brand: BRAND.forest,
+  brandBright: BRAND.lime, // لون الفعل
+  onBright: BRAND.ink, // النص فوق لون الفعل
+  brandTint: "#EBF4DB", // ليموني مخفّف للخلفيات والشارات
+  warn: "#B3261E", // إيقاف وخطر
+  warnTint: "#FBE9E7",
+  good: BRAND.limeText, // معتمد وسليم
+  goodTint: "#E9F3DB",
+  accent: BRAND.orange, // إبراز بصري: الكارب والشارات الملوّنة
+  accentText: BRAND.orangeText, // نفس الإبراز حين يكون نصاً
+  accentTint: "#FDF0DC",
 };
 
-export const ZONES = ["الروضة", "الشاطئ", "النزهة", "الصفا"];
+export const GOAL_TAGS = ["تنزيل وزن", "ثبات الوزن", "زيادة عضل"] as const;
+export type GoalTag = (typeof GOAL_TAGS)[number];
 
-export const SIM_MEALS = [
-  { name: "صدر دجاج مشوي + أرز بني", kcal: 420, protein: 42, price: 32, uses: { "صدر دجاج": 1, "أرز": 1 } },
-  { name: "سلمون مشوي + كينوا", kcal: 460, protein: 38, price: 42, uses: { "سلمون": 1, "كينوا": 1 } },
-  { name: "شوفان بروتين + فواكه", kcal: 380, protein: 28, price: 22, uses: { "شوفان": 1, "فواكه": 1 } },
-  { name: "سلطة دجاج + حمص وطحينة", kcal: 400, protein: 35, price: 28, uses: { "صدر دجاج": 1, "حمص": 1 } },
-];
+export const WEEK_DAYS = ["السبت", "الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة"] as const;
 
-export const INVENTORY_INIT = [
-  { name: "صدر دجاج", unit: "قطعة", stock: 42, cap: 60, low: 15, cost: 6 },
-  { name: "أرز", unit: "حصة", stock: 55, cap: 70, low: 15, cost: 1.2 },
-  { name: "سلمون", unit: "قطعة", stock: 20, cap: 40, low: 10, cost: 12 },
-  { name: "كينوا", unit: "حصة", stock: 25, cap: 40, low: 10, cost: 3 },
-  { name: "شوفان", unit: "حصة", stock: 18, cap: 50, low: 15, cost: 1 },
-  { name: "فواكه", unit: "حصة", stock: 30, cap: 60, low: 15, cost: 2.5 },
-  { name: "حمص", unit: "حصة", stock: 22, cap: 50, low: 15, cost: 2 },
-];
+export const HEALTH_CONDITIONS = ["سكري", "ضغط مرتفع", "كوليسترول مرتفع"] as const;
 
-export const NAMES = ["فهد", "نورة", "سارة", "عبدالله", "منيرة", "خالد", "لمى", "تركي", "هند", "بندر"];
-
-export function timeNow() {
-  return new Date().toLocaleTimeString("ar-SA", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-}
-
-export type FeedEvent = { id: number; text: string; type: "new" | "renew" | "pause"; meal: string; time: string };
-export type ProductionRow = { name: string; kcal: number; protein: number; count: number };
-export type DeliveryRow = { zone: string; count: number };
-export type InventoryRow = { name: string; unit: string; stock: number; cap: number; low: number; cost: number };
-export type StockEvent = { id: number; meal: string; ingredient: string; before: number; after: number; qty: number; cost: number; time: string };
-export type OrderRow = { id: number; customer: string; meal: string; amount: number; zone: string; time: string };
-export type Meal = { id: string; name: string; price: number; kcal: number; available: boolean };
-
-export const DEMO_MEALS: Meal[] = [
-  { id: "1", name: "صدر دجاج مشوي + أرز بني", price: 32, kcal: 420, available: true },
-  { id: "2", name: "سلمون مشوي + كينوا", price: 42, kcal: 460, available: true },
-  { id: "3", name: "شوفان بروتين + فواكه", price: 22, kcal: 380, available: false },
-];
-
-// ---------------- قسم الموافقة (الجودة/المتابعة) ----------------
-// أي وجبة يدخلها المطبخ تدخل قائمة انتظار — ما تنشر للعميل إلا بعد موافقة قسم منفصل.
-// نستخدم localStorage مؤقتاً (بدل قاعدة بيانات حقيقية) عشان القائمة تكون مرئية بين لوحة
-// المطبخ ولوحة الموافقة بنفس المتصفح، لحد ما نربط Supabase فعلياً.
-
-export type PendingMeal = {
-  id: string;
-  name: string;
-  price: number;
-  kcal: number;
-  submittedAt: string;
-  submittedBy: string;
-};
-
-export type RejectedMeal = PendingMeal & { reason: string; rejectedAt: string };
-
-const PENDING_KEY = "foodstyle_pending_meals";
-const REJECTED_KEY = "foodstyle_rejected_meals";
-const PUBLISHED_KEY = "foodstyle_published_meals_local";
-
-function safeParse<T>(raw: string | null, fallback: T): T {
-  if (!raw) return fallback;
-  try {
-    return JSON.parse(raw) as T;
-  } catch {
-    return fallback;
-  }
-}
-
-export function loadPendingMeals(): PendingMeal[] {
-  if (typeof window === "undefined") return [];
-  return safeParse<PendingMeal[]>(localStorage.getItem(PENDING_KEY), []);
-}
-
-export function savePendingMeals(list: PendingMeal[]) {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(PENDING_KEY, JSON.stringify(list));
-}
-
-export function loadRejectedMeals(): RejectedMeal[] {
-  if (typeof window === "undefined") return [];
-  return safeParse<RejectedMeal[]>(localStorage.getItem(REJECTED_KEY), []);
-}
-
-export function saveRejectedMeals(list: RejectedMeal[]) {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(REJECTED_KEY, JSON.stringify(list));
-}
-
-export function loadPublishedLocalMeals(): Meal[] {
-  if (typeof window === "undefined") return [];
-  return safeParse<Meal[]>(localStorage.getItem(PUBLISHED_KEY), []);
-}
-
-export function savePublishedLocalMeals(list: Meal[]) {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(PUBLISHED_KEY, JSON.stringify(list));
-}
-
-// ---------------- برامج الاشتراك المخصصة (يديرها المطعم يدوياً) ----------------
-
-export type SubscriptionPlan = { id: string; name: string; desc: string; icon: string };
-
-export const DEFAULT_PLANS: SubscriptionPlan[] = [
-  { id: "keto", name: "خطة كيتو", desc: "كارب منخفض، دهون مرتفعة — لحرق دهون أسرع وطاقة أعلى", icon: "flame" },
-  { id: "champion", name: "خطة الأبطال", desc: "بروتين عالي مصمم لدعم التمرين وبناء العضل", icon: "dumbbell" },
-  { id: "lifestyle", name: "خطة نمط الحياة", desc: "وجبات متوازنة ومستدامة — بدون قيود متطرفة", icon: "leaf" },
-  { id: "diabetes", name: "خطة السكري", desc: "مصممة بعناية لدعم مستوى سكر الدم الصحي", icon: "heart" },
-  { id: "kids", name: "خطة الأطفال", desc: "وجبات مغذية وشهية تدعم نمو الأطفال وتركيزهم", icon: "baby" },
-];
-
-const PLANS_KEY = "foodstyle_subscription_plans";
-
-export function loadPlans(): SubscriptionPlan[] {
-  if (typeof window === "undefined") return DEFAULT_PLANS;
-  const saved = safeParse<SubscriptionPlan[] | null>(localStorage.getItem(PLANS_KEY), null);
-  return saved && saved.length > 0 ? saved : DEFAULT_PLANS;
-}
-
-export function savePlans(list: SubscriptionPlan[]) {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(PLANS_KEY, JSON.stringify(list));
-}
-
-// ---------------- طلبات مجدولة بالتاريخ (اليوم / غداً / بعد غد) ----------------
-
-export type ScheduledOrder = {
-  id: string;
-  customerName: string;
-  orderNumber: string;
-  stage: string;
-  scheduledFor: "today" | "tomorrow" | "dayAfter";
-};
-
-const ORDERS_KEY = "foodstyle_scheduled_orders";
-
-export function loadScheduledOrders(): ScheduledOrder[] {
-  if (typeof window === "undefined") return [];
-  return safeParse<ScheduledOrder[]>(localStorage.getItem(ORDERS_KEY), []);
-}
-
-export function saveScheduledOrders(list: ScheduledOrder[]) {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(ORDERS_KEY, JSON.stringify(list));
-}
+export const CUISINES = ["سعودي", "خليجي", "عربي", "آسيوي", "متوسطي", "هندي"] as const;

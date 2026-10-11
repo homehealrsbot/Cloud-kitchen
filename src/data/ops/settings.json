@@ -1,0 +1,71 @@
+{
+  "multipliers": {
+    "P": {
+      "lean": 1,
+      "balanced": 1,
+      "performance": 1.3
+    },
+    "C": {
+      "lean": 0.6,
+      "balanced": 1,
+      "performance": 1.45
+    },
+    "V": {
+      "lean": 1.25,
+      "balanced": 1,
+      "performance": 1
+    },
+    "S": {
+      "lean": 0.75,
+      "balanced": 1,
+      "performance": 1.15
+    }
+  },
+  "sections": {
+    "رئيسي": {
+      "packaging": 3,
+      "targetCostPct": 0.33,
+      "labor": 4
+    },
+    "فطور": {
+      "packaging": 2.2,
+      "targetCostPct": 0.3,
+      "labor": 3
+    },
+    "سناك": {
+      "packaging": 1.2,
+      "targetCostPct": 0.3,
+      "labor": 1.5
+    },
+    "شوربة": {
+      "packaging": 1.8,
+      "targetCostPct": 0.28,
+      "labor": 2
+    },
+    "سلطة": {
+      "packaging": 2.5,
+      "targetCostPct": 0.32,
+      "labor": 2.5
+    },
+    "حلا": {
+      "packaging": 1.5,
+      "targetCostPct": 0.28,
+      "labor": 2
+    }
+  },
+  "wastePct": 0.06,
+  "spiceAllowance": 0.35,
+  "priceRoundStep": 1,
+  "lowCarbMax": 45,
+  "highProteinMin": 30,
+  "kcalDiffMax": 0.1,
+  "vatRate": 0.15,
+  "priceIncludesVat": 1,
+  "paymentFeePct": 0.02,
+  "appCommissionPct": 0.2,
+  "appSalesShare": 0.3,
+  "marginWarnPct": 0.25,
+  "shelfLifeApprovalH": 72,
+  "pilotPassesRequired": 3,
+  "readyItemsRequired": 0
+}
