@@ -6,7 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { ReactNode, useState } from "react";
-import { ChevronRight, Eye, Lock, Pencil, Printer } from "lucide-react";
+import { ChevronRight, Lock, Pencil, Printer } from "lucide-react";
 import { T } from "@/lib/kitchen-shared";
 import { GateStatus, SkuStatus, STATUS_LABEL } from "@/lib/ops/engine";
 import { ROLES, can } from "@/lib/ops/roles";
@@ -175,7 +175,7 @@ export function AccessNote({ canEdit, editText, viewText }: { canEdit: boolean; 
       {canEdit ? (
         <Pencil size={15} style={{ color: T.brand }} className="mt-0.5 shrink-0" />
       ) : (
-        <Eye size={15} style={{ color: T.inkSoft }} className="mt-0.5 shrink-0" />
+        <Lock size={15} style={{ color: T.inkSoft }} className="mt-0.5 shrink-0" />
       )}
       <p className="text-[12px] leading-relaxed" style={{ color: canEdit ? T.brand : T.inkSoft }}>
         {canEdit ? editText : viewText}
@@ -254,7 +254,7 @@ export function NumInput({
     }
     onCommit(v);
   }
-  return (
+  const input = (
     <input
       type="number"
       inputMode="decimal"
@@ -269,11 +269,22 @@ export function NumInput({
       onKeyDown={(e) => {
         if (e.key === "Enter") (e.target as HTMLInputElement).blur();
       }}
-      className="rounded-lg border px-2 py-1.5 text-sm text-center font-bold disabled:opacity-60"
+      className="rounded-lg border px-2 py-1.5 text-sm text-center font-bold disabled:opacity-60 disabled:cursor-not-allowed"
       style={{ borderColor: T.border, width, background: disabled ? T.bg : "#FFFDF5", color: T.ink }}
     />
   );
+  if (!disabled) return input;
+  // الحقل الرمادي وحده يُقرأ «فاضي» أو «تعطّل». القفل يقول السبب: مو دورك.
+  return (
+    <span className="relative inline-flex items-center align-middle" title={LOCKED_FIELD_TITLE}>
+      {input}
+      <Lock size={10} className="absolute left-1.5 pointer-events-none" style={{ color: T.inkSoft }} />
+    </span>
+  );
 }
+
+/** نص واحد يشرح أي حقل أو زر مقفول — عشان ما يختلف من شاشة لشاشة. */
+export const LOCKED_FIELD_TITLE = "عرض فقط — هذا من صلاحية قسم ثاني";
 
 export function Th({ children, className = "" }: { children?: ReactNode; className?: string }) {
   return (
@@ -343,7 +354,12 @@ export function TriState({
   if (disabled) {
     const c = statusColors(value);
     return (
-      <span className="text-[10px] font-bold rounded-full px-2.5 py-1 whitespace-nowrap" style={{ background: c.bg, color: c.fg }}>
+      <span
+        title={LOCKED_FIELD_TITLE}
+        className="inline-flex items-center gap-1 text-[10px] font-bold rounded-full px-2.5 py-1 whitespace-nowrap"
+        style={{ background: c.bg, color: c.fg }}
+      >
+        <Lock size={9} style={{ opacity: 0.75 }} />
         {GATE_LABEL[value]}
       </span>
     );

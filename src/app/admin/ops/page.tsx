@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { ArrowLeft, CheckCircle2, AlertTriangle, ClipboardCheck, Layers, ShieldCheck, History, RotateCcw, Users, Eye, Pencil } from "lucide-react";
+import { ArrowLeft, CheckCircle2, AlertTriangle, ClipboardCheck, Layers, ShieldCheck, History, RotateCcw, Users, Lock, Pencil } from "lucide-react";
 import { SECTIONS, integrityChecks } from "@/lib/ops/engine";
 import { PERMISSION_ROWS, ROLES, Role, can, MATRIX } from "@/lib/ops/roles";
 import { useSession } from "@/lib/ops/session";
@@ -76,8 +76,8 @@ export default function OpsHub() {
                     className="inline-flex items-center gap-1 text-[10px] font-bold rounded-full px-2 py-0.5"
                     style={editable ? { background: T.goodTint, color: T.good } : { background: "#F3EFEC", color: T.inkSoft }}
                   >
-                    {editable ? <Pencil size={10} /> : <Eye size={10} />}
-                    {editable ? "تعديل" : "عرض"}
+                    {editable ? <Pencil size={10} /> : <Lock size={10} />}
+                    {editable ? "تعديل" : "عرض فقط"}
                   </span>
                 </div>
                 <div className="text-[11px] mt-1" style={{ color: T.inkSoft }}>{m.desc}</div>

@@ -11,7 +11,7 @@
 // owner_role عندها null. فما ينفع أحد يختصر التجارب.
 
 import { useMemo, useState } from "react";
-import { ChefHat, Search, CheckCircle2, AlertTriangle } from "lucide-react";
+import { ChefHat, Search, CheckCircle2, AlertTriangle, Lock } from "lucide-react";
 import { GateStatus, SECTIONS, gateOfKind } from "@/lib/ops/engine";
 import { can } from "@/lib/ops/roles";
 import { useSession } from "@/lib/ops/session";
@@ -216,8 +216,9 @@ export default function KitchenGatePage() {
                     )}
 
                     {!canDecide ? (
-                      <div className="text-[11px]" style={{ color: T.inkSoft }}>
-                        القرار من صلاحية المطبخ.
+                      <div className="flex items-center gap-1.5 text-[11px]" style={{ color: T.inkSoft }}>
+                        <Lock size={11} className="shrink-0" />
+                        مقفول — القرار من صلاحية المطبخ.
                       </div>
                     ) : (
                       <div className="space-y-2.5">

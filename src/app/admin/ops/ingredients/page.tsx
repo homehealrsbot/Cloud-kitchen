@@ -1,12 +1,12 @@
 "use client";
 
 import { Fragment, useState } from "react";
-import { Search, ChevronDown, ChevronUp, Save } from "lucide-react";
+import { Search, ChevronDown, ChevronUp, Lock, Save } from "lucide-react";
 import { ALLERGENS, AllergenKey, IngApprovalDef, Ingredient } from "@/lib/ops/engine";
 import { ROLES, Role, can, isRole, sealsGate } from "@/lib/ops/roles";
 import { useSession } from "@/lib/ops/session";
 import { IngredientSpecs, useOps } from "@/lib/ops/store";
-import { AccessNote, Card, ErrorNote, Loading, NumInput, OpsShell, Pill, T, TableWrap, Td, Th, TriState, num, sar, statusColors } from "@/components/ops/ui";
+import { AccessNote, Card, ErrorNote, LOCKED_FIELD_TITLE, Loading, NumInput, OpsShell, Pill, T, TableWrap, Td, Th, TriState, num, sar, statusColors } from "@/components/ops/ui";
 import { useStage } from "@/lib/ops/stage";
 
 type Filter = "all" | "allergen" | "pending";
@@ -240,9 +240,11 @@ function Editor({
                   disabled={!canSpecs}
                   aria-pressed={on}
                   onClick={async () => { setSavedMsg(""); setSpecs((s) => ({ ...s, flags: { ...s.flags, [a.key]: !on } })); }}
-                  className="text-[11px] font-bold rounded-full px-2.5 py-1"
+                  title={canSpecs ? undefined : LOCKED_FIELD_TITLE}
+                  className="inline-flex items-center gap-1 text-[11px] font-bold rounded-full px-2.5 py-1 disabled:opacity-60"
                   style={on ? { background: T.warn, color: "#fff" } : { background: T.surface, color: T.inkSoft, border: `1px solid ${T.border}` }}
                 >
+                  {!canSpecs && <Lock size={9} style={{ opacity: 0.8 }} />}
                   {a.label}
                 </button>
               );
