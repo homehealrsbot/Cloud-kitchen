@@ -76,7 +76,7 @@ export function OpsShell({
           </div>
         </div>
         <div className="max-w-6xl mx-auto px-4 sm:px-6 pb-3 flex items-center gap-3 overflow-x-auto">
-          <NavChip href="/admin/ops" label="مركز العمليات" active={pathname === "/admin/ops"} />
+          <NavChip href="/admin/ops" label="مركز العمليات" active={pathname === "/admin/ops"} locked={false} />
           {groups.map((g) => (
             <div key={g.key} className="flex items-center gap-2 shrink-0">
               <span
@@ -86,7 +86,13 @@ export function OpsShell({
                 {g.label}
               </span>
               {g.items.map((m) => (
-                <NavChip key={m.href} href={m.href} label={m.label} active={pathname === m.href} />
+                <NavChip
+                  key={m.href}
+                  href={m.href}
+                  label={m.label}
+                  active={pathname === m.href}
+                  locked={!(m.edit && can(role, m.edit))}
+                />
               ))}
             </div>
           ))}
@@ -97,13 +103,24 @@ export function OpsShell({
   );
 }
 
-function NavChip({ href, label, active }: { href: string; label: string; active: boolean }) {
+/**
+ * قطعة في الشريط. `locked` تعني «تنفتح للقراءة، ما تنفتح للتعديل» — وهذا
+ * اللي يحتاج يبيّن قبل الضغط لا بعده: الموظف يعرف من الشريط إيش يخصّه.
+ */
+function NavChip({ href, label, active, locked }: { href: string; label: string; active: boolean; locked: boolean }) {
+  const style = active
+    ? { background: T.brand, color: "#fff" }
+    : locked
+      ? { background: "#F3EFEC", color: T.inkSoft, border: `1px solid ${T.border}` }
+      : { background: T.brandTint, color: T.brand };
   return (
     <Link
       href={href}
-      className="shrink-0 rounded-lg px-3 py-1.5 text-xs font-bold whitespace-nowrap"
-      style={active ? { background: T.brand, color: "#fff" } : { background: T.brandTint, color: T.brand }}
+      title={locked ? LOCKED_FIELD_TITLE : undefined}
+      className="shrink-0 rounded-lg px-3 py-1.5 text-xs font-bold whitespace-nowrap inline-flex items-center gap-1"
+      style={style}
     >
+      {locked && <Lock size={10} style={{ opacity: active ? 0.85 : 0.7 }} />}
       {label}
     </Link>
   );
