@@ -33,3 +33,6 @@ yarn-error.log*
 # مخرجات سكربتات العمليات
 /scripts/ops/out/
 __pycache__/
+
+# graphify knowledge graph output (generated - rebuild with /graphify .)
+graphify-out/
