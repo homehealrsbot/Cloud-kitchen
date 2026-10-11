@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import { Search, ChevronDown, ChevronUp, ShieldCheck, AlertTriangle, CheckCircle2 } from "lucide-react";
-import { GateStatus, SECTIONS, SkuStatus, gateOfKind } from "@/lib/ops/engine";
+import { GateStatus, SECTIONS, SkuStatus, gateOfKind, gateOrderBlocker } from "@/lib/ops/engine";
 import { ROLES, can, isRole, sealsGate } from "@/lib/ops/roles";
 import { useSession } from "@/lib/ops/session";
 import { SkuView, useOps } from "@/lib/ops/store";
 import { AccessNote, ErrorNote, Kpi, Loading, NumInput, OpsShell, Pill, StatusBadge, T, TriState, num, pct, sar } from "@/components/ops/ui";
+import { Lock } from "lucide-react";
 import { useStage } from "@/lib/ops/stage";
 
 type StatusFilter = "all" | SkuStatus;
@@ -60,7 +61,7 @@ export default function QualityPage() {
   return (
     <OpsShell
       title="بوابات الاعتماد"
-      subtitle={`كل صنف يمر على ${ops.gateDefs.length} بوابة — ما يُباع إلا لما تكون كلها معتمدة`}
+      subtitle={`كل صنف يمر على ${ops.gateDefs.length} بوابة بالترتيب — البوابة ما تنفتح قبل اللي قبلها، وما يُباع إلا لما تكون كلها معتمدة`}
     >
       <AccessNote
         canEdit={myGates.length > 0}
@@ -168,20 +169,46 @@ export default function QualityPage() {
                         // مين يعدّل؟ صاحب البوابة في تعريفها. والمحسوبة ما يعدّلها أحد.
                         const computed = d.ownerRole === null;
                         const editable = sealsGate(role, d.ownerRole);
+                        // بوابة ما تُختم قبل اللي قبلها. نفس الشرط في القاعدة.
+                        const blocker = gateOrderBlocker(ops.data.gateDefs, v.gates, gi);
+                        const step = ops.gateDefs.findIndex((x) => x.index === gi) + 1;
                         const holding = hold && hold.sku === sku.item.id && hold.gate === gi;
                         const stamp = v.stamps[gi];
                         return (
                           <div key={gi} className="rounded-xl px-3 py-2.5" style={{ background: T.bg }}>
                             <div className="flex items-center justify-between gap-2 flex-wrap">
                               <div className="flex items-center gap-2 flex-wrap">
+                                <span
+                                  className="text-[10px] font-extrabold rounded-full flex items-center justify-center shrink-0"
+                                  style={{
+                                    width: 19, height: 19,
+                                    background: v.gates[gi] === "READY" ? T.good : blocker ? T.bg : T.surface,
+                                    color: v.gates[gi] === "READY" ? "#fff" : T.inkSoft,
+                                    border: `1px solid ${T.border}`,
+                                  }}
+                                >
+                                  {step}
+                                </span>
                                 <ShieldCheck size={14} style={{ color: v.gates[gi] === "READY" ? T.good : T.inkSoft }} />
                                 <span className="text-xs font-bold">{d.label}</span>
                                 <span className="text-[10px] rounded-full px-2 py-0.5" style={{ background: T.surface, color: T.inkSoft }}>
                                   {computed ? "محسوبة" : isRole(d.ownerRole) ? ROLES[d.ownerRole].label : d.ownerRole}
                                 </span>
                               </div>
-                              <TriState value={v.gates[gi]} disabled={!editable} onChange={(next) => setGate(v, gi, next)} />
+                              <TriState
+                                value={v.gates[gi]}
+                                disabled={!editable}
+                                locked={blocker ? ["READY"] : []}
+                                lockedTitle={blocker ? `قبلها «${blocker.label}»` : undefined}
+                                onChange={(next) => setGate(v, gi, next)}
+                              />
                             </div>
+                            {blocker && v.gates[gi] !== "READY" && (
+                              <div className="flex items-center gap-1.5 text-[10px] mt-1.5" style={{ color: T.inkSoft }}>
+                                <Lock size={10} className="shrink-0" />
+                                مقفولة لين تُعتمد «{blocker.label}» — البوابات بالترتيب
+                              </div>
+                            )}
                             {computed && (
                               <div className="text-[10px] mt-1.5" style={{ color: T.inkSoft }}>
                                 تتحدد من تجارب Pilot وقرار الشيف — <a href="/admin/ops/kitchen-gate" className="underline">بوابة المطبخ</a>

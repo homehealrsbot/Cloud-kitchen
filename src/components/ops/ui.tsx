@@ -11,7 +11,7 @@ import { T } from "@/lib/kitchen-shared";
 import { GateStatus, SkuStatus, STATUS_LABEL } from "@/lib/ops/engine";
 import { ROLES, can } from "@/lib/ops/roles";
 import { useSession } from "@/lib/ops/session";
-import { OPS_MODULES } from "@/lib/ops/modules";
+import { OPS_STAGES, modulesForRole } from "@/lib/ops/modules";
 
 export { T };
 
@@ -44,7 +44,12 @@ export function OpsShell({
   const session = useSession();
   const pathname = usePathname();
   const role = session?.role ?? null;
-  const modules = OPS_MODULES.filter((m) => can(role, m.view));
+  // اللي يخصّ الدور، ومن ضمنه اللي تسمح به صلاحيته — الشرطان معاً.
+  const modules = modulesForRole(role).filter((m) => can(role, m.view));
+  // مرتّبة بمراحل التشغيل: الإدخال ← التجربة ← الاعتماد ← التشغيل ← المخرجات
+  const groups = OPS_STAGES
+    .map((s) => ({ key: s.key, label: s.label, items: modules.filter((m) => m.stage === s.key) }))
+    .filter((g) => g.items.length > 0);
   return (
     <div style={{ background: T.bg, color: T.ink }} className="min-h-screen w-full">
       <div className="w-full border-b print:hidden" style={{ borderColor: T.border, background: T.surface }}>
@@ -70,10 +75,20 @@ export function OpsShell({
             </Link>
           </div>
         </div>
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 pb-3 flex items-center gap-2 overflow-x-auto">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 pb-3 flex items-center gap-3 overflow-x-auto">
           <NavChip href="/admin/ops" label="مركز العمليات" active={pathname === "/admin/ops"} />
-          {modules.map((m) => (
-            <NavChip key={m.href} href={m.href} label={m.label} active={pathname === m.href} />
+          {groups.map((g) => (
+            <div key={g.key} className="flex items-center gap-2 shrink-0">
+              <span
+                className="shrink-0 text-[10px] font-bold whitespace-nowrap pr-1"
+                style={{ color: T.inkSoft, borderRight: `1px solid ${T.border}`, paddingRight: 10 }}
+              >
+                {g.label}
+              </span>
+              {g.items.map((m) => (
+                <NavChip key={m.href} href={m.href} label={m.label} active={pathname === m.href} />
+              ))}
+            </div>
           ))}
         </div>
       </div>
@@ -313,11 +328,16 @@ export function TriState({
   onChange,
   disabled,
   allowHold = true,
+  locked = [],
+  lockedTitle,
 }: {
   value: GateStatus;
   onChange: (v: GateStatus) => void;
   disabled?: boolean;
   allowHold?: boolean;
+  /** خيارات تظهر لكن ما تُضغط — مقفولة بشرط، لا مخفية. الاختفاء يربك. */
+  locked?: GateStatus[];
+  lockedTitle?: string;
 }) {
   const options: GateStatus[] = allowHold ? ["READY", "PENDING", "HOLD"] : ["READY", "PENDING"];
   if (disabled) {
@@ -333,14 +353,24 @@ export function TriState({
       {options.map((o) => {
         const c = statusColors(o);
         const active = o === value;
+        const isLocked = locked.includes(o) && !active;
         return (
           <button
             key={o}
-            onClick={() => !active && onChange(o)}
+            onClick={() => !active && !isLocked && onChange(o)}
+            disabled={isLocked}
             aria-pressed={active}
-            className="px-2.5 py-1 text-[10px] font-bold whitespace-nowrap"
-            style={active ? { background: c.fg, color: "#fff" } : { background: T.surface, color: T.inkSoft }}
+            title={isLocked ? lockedTitle : undefined}
+            className="px-2.5 py-1 text-[10px] font-bold whitespace-nowrap flex items-center gap-1 disabled:cursor-not-allowed"
+            style={
+              active
+                ? { background: c.fg, color: "#fff" }
+                : isLocked
+                  ? { background: T.bg, color: T.inkSoft, opacity: 0.5 }
+                  : { background: T.surface, color: T.inkSoft }
+            }
           >
+            {isLocked && <Lock size={9} />}
             {GATE_LABEL[o]}
           </button>
         );

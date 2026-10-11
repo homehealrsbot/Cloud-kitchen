@@ -6,7 +6,7 @@ import { ArrowLeft, CheckCircle2, AlertTriangle, ClipboardCheck, Layers, ShieldC
 import { SECTIONS, integrityChecks } from "@/lib/ops/engine";
 import { PERMISSION_ROWS, ROLES, Role, can, MATRIX } from "@/lib/ops/roles";
 import { useSession } from "@/lib/ops/session";
-import { OPS_MODULES } from "@/lib/ops/modules";
+import { modulesForRole } from "@/lib/ops/modules";
 import { useOps } from "@/lib/ops/store";
 import * as actions from "./actions";
 import { Card, CardTitle, Kpi, Loading, OpsShell, PENDING_COLOR, T, pct, sar, StatusBadge } from "@/components/ops/ui";
@@ -37,7 +37,7 @@ export default function OpsHub() {
   const underMargin = ops.computed.filter((c) => c.marginAlert).length;
   const checks = integrityChecks(ops.data);
   const ingTotal = ops.data.ingredients.length;
-  const modules = OPS_MODULES.filter((m) => can(role, m.view));
+  const modules = modulesForRole(role).filter((m) => can(role, m.view));
   const holds = ops.skus.filter((s) => s.quality.status === "HOLD");
 
   return (

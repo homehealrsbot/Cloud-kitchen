@@ -12,18 +12,31 @@ import { ReactNode } from "react";
 import { ShieldAlert } from "lucide-react";
 import { T } from "@/lib/kitchen-shared";
 import { MATRIX, ROLES, can, capForPath } from "@/lib/ops/roles";
+import type { Role } from "@/lib/ops/roles";
+import { moduleAllowsRole, moduleForPath } from "@/lib/ops/modules";
 import { useSession } from "@/lib/ops/session";
+
+const ALL_ROLES: Role[] = ["executive", "kitchen", "quality"];
 
 export default function AdminGate({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const session = useSession();
 
   const cap = capForPath(pathname);
+  // شرطان: الصلاحية تقول «مسموح»، والوحدة تقول «يخصّ دورك». الشاشة المخفية من
+  // الشريط تبقى مخفية لو كتب أحد مسارها بيده — الإخفاء بلا منع مو إخفاء.
   // ما فيه قاعدة لهذا المسار (مثل /admin نفسها) → يكفي إنه موظف
-  const allowed = cap ? can(session?.role, cap) : !!session;
+  const allowed = (cap ? can(session?.role, cap) : !!session) && moduleAllowsRole(pathname, session?.role);
   if (allowed) return <>{children}</>;
 
-  const allowedRoles = cap ? MATRIX[cap].map((r) => ROLES[r].label).join(" · ") : "";
+  // الأدوار المعروضة لازم تكون اللي تفتح الصفحة فعلاً: تقاطع الصلاحية مع
+  // أدوار الوحدة. عرض MATRIX وحدها كان يقول «متاحة للجودة» وهي ممنوعة عنها.
+  const mod = moduleForPath(pathname);
+  const byCap = cap ? MATRIX[cap] : ALL_ROLES;
+  const allowedRoles = byCap
+    .filter((r) => !mod || mod.roles.includes(r))
+    .map((r) => ROLES[r].label)
+    .join(" · ");
   return (
     <div style={{ background: T.bg, color: T.ink }} className="min-h-screen w-full flex flex-col items-center justify-center px-6 text-center">
       <div className="rounded-full flex items-center justify-center mb-4" style={{ width: 60, height: 60, background: T.warnTint, color: T.warn }}>
