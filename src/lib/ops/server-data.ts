@@ -20,6 +20,8 @@ import {
   Settings,
   gateStatuses,
   ingApprovalStatuses,
+  type YieldSpec,
+  type YieldCheck,
 } from "./engine";
 import type { AuditEntry, GateStamp, OpsSnapshot } from "./types";
 import { AXIS_KINDS, type AxisKind, type LaunchAxisDef } from "./launch";
@@ -105,6 +107,8 @@ export function emptyOpsSnapshot(): OpsSnapshot {
     ingApprovals: {},
     ingApprovalStamps: {},
     pilotTrials: {},
+    yieldSpecs: {},
+    yieldChecks: {},
     kitchenGate: {},
     production: {},
     unitsSold: {},
@@ -126,7 +130,7 @@ export async function loadOpsSnapshot(): Promise<OpsSnapshot> {
 
   const [
     ing, menu, recipes, settings, rotMeta, rotation, gates, approvals, shelf, production, units, audit,
-    gateDefRows, approvalDefRows, pilotRows, chefRows,
+    gateDefRows, approvalDefRows, pilotRows, chefRows, yieldSpecRows, yieldCheckRows,
   ] = await Promise.all([
       supabase.from("ops_ingredients").select("*").order("sort_order"),
       supabase.from("ops_menu_items").select("*").order("sort_order"),
@@ -144,6 +148,10 @@ export async function loadOpsSnapshot(): Promise<OpsSnapshot> {
       supabase.from("ops_ing_approval_defs").select("*").order("approval_index"),
       supabase.from("ops_pilot_trials").select("*").order("trial_index"),
       supabase.from("ops_kitchen_gate").select("*"),
+      supabase.from("ops_yield_specs").select("*"),
+      // آخر ٣٠٠ قياس: الشاشة تعرض الأحدث لكل صنف، وسحب السجل كله على كل
+      // تحميل شاشة ثمنٌ بلا مقابل.
+      supabase.from("ops_yield_checks").select("*").order("check_date", { ascending: false }).limit(300),
     ]);
 
   const gateDefs = ((gateDefRows.data ?? []) as Row[]).map(toGateDef);
@@ -253,6 +261,34 @@ export async function loadOpsSnapshot(): Promise<OpsSnapshot> {
     };
   }
 
+  const yieldSpecs: Record<string, YieldSpec> = {};
+  for (const r of (yieldSpecRows.data ?? []) as Row[]) {
+    yieldSpecs[String(r.sku)] = {
+      rawPortionG: Number(r.raw_portion_g),
+      cookedPortionG: Number(r.cooked_portion_g),
+      note: String(r.note ?? ""),
+    };
+  }
+
+  // الأحدث أولاً — الاستعلام مرتَّب، فالدفع يحفظ الترتيب لكل صنف.
+  const yieldChecks: Record<string, YieldCheck[]> = {};
+  for (const r of (yieldCheckRows.data ?? []) as Row[]) {
+    const num = (v: unknown) => (v === null || v === undefined ? null : Number(v));
+    (yieldChecks[String(r.sku)] ??= []).push({
+      id: String(r.id),
+      date: String(r.check_date ?? ""),
+      rawG: Number(r.raw_weight_g),
+      cookedG: Number(r.cooked_weight_g),
+      yieldPct: num(r.yield_pct),
+      specYieldPct: num(r.spec_yield_pct),
+      deviationPct: num(r.deviation_pct),
+      tolerancePct: num(r.tolerance_pct),
+      verdict: String(r.verdict ?? "NO_SPEC") as YieldCheck["verdict"],
+      note: String(r.note ?? ""),
+      by: String(r.recorded_by_name ?? ""),
+    });
+  }
+
   const prod: Record<string, Record<string, number>> = {};
   for (const r of (production.data ?? []) as Row[]) {
     const d = String(r.day_index);
@@ -280,6 +316,8 @@ export async function loadOpsSnapshot(): Promise<OpsSnapshot> {
     ingApprovals,
     ingApprovalStamps,
     pilotTrials,
+    yieldSpecs,
+    yieldChecks,
     kitchenGate,
     production: prod,
     unitsSold,

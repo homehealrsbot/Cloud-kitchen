@@ -34,6 +34,8 @@ import {
   deriveSkuQuality,
   gateStatuses,
   ingApprovalStatuses,
+  type YieldSpec,
+  type YieldCheck,
 } from "./engine";
 import type { AuditEntry, GateStamp, OpsSnapshot } from "./types";
 
@@ -64,6 +66,10 @@ export interface SkuView {
   trials: PilotTrial[];
   chef: KitchenGateRecord | null;
   pilot: KitchenPilotView;
+  /** مرجع المالك، أو null إذا ما حدّده بعد. */
+  yieldSpec: YieldSpec | null;
+  /** قياسات المطبخ لهذا الصنف، الأحدث أولاً. */
+  yieldChecks: YieldCheck[];
 }
 
 /** نفس الشكل اللي كانت الشاشات تستخدمه — ما تغيّر شي من ناحيتها. */
@@ -139,6 +145,8 @@ export function useOps(): OpsView {
         trials,
         chef,
         pilot: deriveKitchenPilot(sku, trials, chef, data.settings),
+        yieldSpec: snap.yieldSpecs[id] ?? null,
+        yieldChecks: snap.yieldChecks[id] ?? [],
       };
     });
 

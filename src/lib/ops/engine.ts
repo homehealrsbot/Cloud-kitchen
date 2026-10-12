@@ -103,7 +103,51 @@ export interface Settings {
   // أقل عدد أصناف جاهزة للبيع يسمح بقرار GO. قرار تجاري يكتبه التنفيذي؛
   // 0 أو غير مكتوب = ما فيه حد معلن، والقرار يبقى NO-GO لهذا السبب نفسه.
   readyItemsRequired: number;
+  /**
+   * تساهل مطابقة الـyield. غيابه = ١٠٪ افتراضاً في المحفّز، لا تساهلاً
+   * مفتوحاً — نفس قاعدة pilotPassesRequired.
+   */
+  yieldTolerancePct: number;
 }
+
+/** مرجع المالك: وزن الحصة نيئة ومطبوخة. */
+export interface YieldSpec {
+  rawPortionG: number;
+  cookedPortionG: number;
+  note: string;
+}
+
+export type YieldVerdict = "MATCH" | "MISMATCH" | "NO_SPEC";
+
+/** قياس المطبخ وحكمه. الحكم من القاعدة لا من هنا — الواجهة تعرضه فقط. */
+export interface YieldCheck {
+  id: string;
+  date: string;
+  rawG: number;
+  cookedG: number;
+  yieldPct: number | null;
+  specYieldPct: number | null;
+  deviationPct: number | null;
+  tolerancePct: number | null;
+  verdict: YieldVerdict;
+  note: string;
+  by: string;
+}
+
+/**
+ * نسبة الـyield من المرجع (مطبوخ ÷ نيئ). تُحسب ولا تُخزَّن: رقم محفوظ وآخر
+ * محسوب من نفس المصدر يفترقان أول ما يُعدَّل أحدهما.
+ */
+export function specYield(spec: YieldSpec | null | undefined): number | null {
+  if (!spec || !(spec.rawPortionG > 0)) return null;
+  return spec.cookedPortionG / spec.rawPortionG;
+}
+
+export const YIELD_VERDICT_LABEL: Record<YieldVerdict, string> = {
+  MATCH: "مطابق",
+  MISMATCH: "مخالف",
+  NO_SPEC: "ما فيه مرجع",
+};
 
 export interface Rotation {
   slotLabels: string[];

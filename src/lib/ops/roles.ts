@@ -66,6 +66,8 @@ export type Cap =
   | "quality.editGates"
   | "quality.editPriceGate"
   | "quality.editShelfLife"
+  | "yield.spec"
+  | "yield.check"
   | "gateDefs.manage"
   | "launch.view"
   | "launchAxes.manage"
@@ -123,6 +125,10 @@ export const MATRIX: Record<Cap, Role[]> = {
   "quality.editGates": ["quality"],
   "quality.editPriceGate": ["finance"],
   "quality.editShelfLife": ["quality"],
+  // مرجع الـyield للمالك وحده: هو الرقم الذي يُقاس عليه المطبخ، فلو ملكه
+  // المطبخ قاس نفسه على رقمٍ يملك تغييره وصارت المطابقة بلا معنى.
+  "yield.spec": ["executive"],
+  "yield.check": ["kitchen", "quality"],
   "gateDefs.manage": ["executive"],
   // لوحة الجاهزية يشوفها كل دور: هي اللي تقول لقسمه وش يوقف الإطلاق. أما
   // تعريف المحاور نفسها فللمالك — القسم ما يشيل المحور اللي يقيسه.
@@ -218,6 +224,8 @@ export const PERMISSION_ROWS: { label: string; view: Cap; edit?: Cap }[] = [
   { label: "الوصفات (الجرامات)", view: "recipes.view", edit: "recipes.edit" },
   { label: "المكوّنات: القيم الغذائية والحساسية", view: "ingredients.view", edit: "ingredients.editSpecs" },
   { label: "المكوّنات: الأسعار", view: "finance.view", edit: "ingredients.editPrice" },
+  { label: "مرجع الـyield: نيئ ← مطبوخ", view: "recipes.view", edit: "yield.spec" },
+  { label: "قياس الـyield الفعلي (مطابقة المطبخ)", view: "recipes.view", edit: "yield.check" },
   { label: "تسجيل تجارب Pilot", view: "quality.view", edit: "pilot.edit" },
   { label: "قرار الشيف على بوابة المطبخ", view: "quality.view", edit: "kitchenGate.edit" },
   { label: "الأسعار والتكاليف والهوامش", view: "finance.view" },

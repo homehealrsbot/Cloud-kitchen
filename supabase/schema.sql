@@ -338,6 +338,10 @@ create table ops_rotation (
 create type gate_status as enum ('READY', 'PENDING', 'HOLD');
 create type pilot_result as enum ('PASS', 'FAIL');
 
+-- حكم قياس الـyield. NO_SPEC = ما فيه مرجع من المالك لهذا الصنف، فالقياس
+-- يُحفظ ولا يُحكم عليه — أصدق من «مطابق» بلا شيء يُطابَق، ومن رفض القياس.
+create type yield_verdict as enum ('MATCH', 'MISMATCH', 'NO_SPEC');
+
 -- ---------- تعريفات البوابات: بيانات، لا ثوابت ----------
 --
 -- كانت البوابات ثماني بوابات مكتوبة في الكود، وعددها (8) مكتوب في شرط النشر
@@ -444,6 +448,53 @@ create table ops_kitchen_gate (
   updated_by    uuid references auth.users(id),
   updated_at    timestamptz not null default now()
 );
+
+-- ---------- الـyield: قبل الطبخ وبعد الطبخ ----------
+--
+-- رقمان للصنف: وزن الحصة نيئة ووزنها مطبوخة. المالك يُدخلهما مرجعاً، والمطبخ
+-- يزن طبقه الفعلي فيقول له النظام «مطابق» أو «مخالف» مقابل مرجع المالك.
+--
+-- والمرجع للمالك وحده بقصد: لو قدر المطبخ يعدّل الرقم الذي يُقاس عليه، صارت
+-- المطابقة مسرحية — يغيّر المرجع حتى يوافق ميزانه. السياسة أدناه تمنعه.
+--
+-- والنسبة (مطبوخ ÷ نيئ) ما تُخزَّن: تُحسب من الرقمين في المحرك. رقم محفوظ
+-- ومحسوب في وقت واحد يفترقان أول ما يُعدَّل أحد المصدرين.
+create table ops_yield_specs (
+  sku              text primary key references ops_menu_items(id) on delete cascade,
+  raw_portion_g    numeric(8,2) not null check (raw_portion_g > 0),
+  cooked_portion_g numeric(8,2) not null check (cooked_portion_g > 0),
+  note             text not null default '',
+  updated_by       uuid references auth.users(id),
+  updated_at       timestamptz not null default now()
+);
+
+comment on table ops_yield_specs is
+  'مرجع الـyield للصنف: وزن الحصة نيئة ومطبوخة. يُدخله المالك، ويُقاس عليه المطبخ.';
+
+-- قياس فعلي من المطبخ. الحكم (مطابق/مخالف) يحسبه محفّز ولا يكتبه الموظف —
+-- نفس مبدأ عمود passed في سجل المراقبة: لو كان الحكم حقلاً يُملأ باليد، كتب
+-- من يقيس «مطابق» على قياسٍ مخالف ولم يبقَ للفحص معنى.
+create table ops_yield_checks (
+  id               bigserial primary key,
+  sku              text not null references ops_menu_items(id) on delete cascade,
+  check_date       date not null default current_date,
+  raw_weight_g     numeric(8,2) not null check (raw_weight_g > 0),
+  cooked_weight_g  numeric(8,2) not null check (cooked_weight_g > 0),
+  yield_pct        numeric(7,4),                      -- يحسبها المحفّز
+  spec_yield_pct   numeric(7,4),                      -- لقطة من المرجع وقت القياس
+  deviation_pct    numeric(7,4),                      -- يحسبها المحفّز
+  tolerance_pct    numeric(7,4),                      -- التساهل المطبَّق وقت القياس
+  verdict          yield_verdict not null default 'NO_SPEC',
+  note             text not null default '',
+  recorded_by      uuid references auth.users(id),
+  recorded_by_name text not null default '',
+  recorded_at      timestamptz not null default now()
+);
+
+create index idx_yield_checks_sku on ops_yield_checks(sku, check_date desc);
+
+comment on table ops_yield_checks is
+  'قياس المطبخ الفعلي وحكمه. لا يُعدَّل: القياس الخاطئ يُعاد تسجيله صفاً جديداً ويبقى الأول في السجل.';
 
 -- صلاحية معلنة معدّلة لصنف (تتجاوز قيمة المنيو)
 create table ops_shelf_life (
@@ -806,6 +857,8 @@ alter table ops_change_kinds  enable row level security;
 alter table ops_change_requests enable row level security;
 alter table ops_gates         enable row level security;
 alter table ops_ing_approvals enable row level security;
+alter table ops_yield_specs  enable row level security;
+alter table ops_yield_checks enable row level security;
 alter table ops_pilot_trials  enable row level security;
 alter table ops_kitchen_gate  enable row level security;
 alter table ops_shelf_life    enable row level security;
@@ -995,6 +1048,30 @@ create policy "executive writes launch axes" on ops_launch_axes
   for all to authenticated
   using (private.has_role(array['executive']::staff_role[]))
   with check (private.has_role(array['executive']::staff_role[]));
+
+-- ---------- ops_yield_specs / ops_yield_checks ----------
+--
+-- المرجع: يقرأه كل الفريق، ويكتبه المالك وحده. وهذا شرط صحة الفكرة لا تشديد
+-- زائد — المرجع هو ما يُقاس عليه المطبخ، فلو ملكه المطبخ قاس نفسه على رقمٍ
+-- يملك تغييره.
+create policy "staff reads yield specs" on ops_yield_specs
+  for select to authenticated using (private.is_staff());
+
+create policy "owner writes yield specs" on ops_yield_specs
+  for all to authenticated
+  using (private.current_staff_role() = 'executive')
+  with check (private.current_staff_role() = 'executive');
+
+-- القياس: يقرأه كل الفريق، ويسجّله المطبخ والجودة (والمالك بحكم has_role).
+-- بلا update ولا delete: القياس واقعة، والخاطئ يُعاد تسجيله صفاً جديداً فيبقى
+-- الأول في السجل. ولو سمحنا بالتعديل صار بالإمكان تحويل «مخالف» إلى «مطابق»
+-- بإعادة كتابة الوزن — وهو بالضبط ما يحرسه المحفّز أعلاه.
+create policy "staff reads yield checks" on ops_yield_checks
+  for select to authenticated using (private.is_staff());
+
+create policy "kitchen records yield checks" on ops_yield_checks
+  for insert to authenticated
+  with check (private.has_role(array['kitchen', 'quality']::staff_role[]));
 
 -- ---------- ops_ing_approvals ----------
 create policy "staff reads ing approvals" on ops_ing_approvals
@@ -1232,6 +1309,49 @@ $$;
 create trigger trg_ingredient_column_roles
   before update on ops_ingredients
   for each row execute function private.enforce_ingredient_column_roles();
+
+-- ---------- حكم قياس الـyield ----------
+--
+-- المطبخ يُدخل وزنيه؛ والنسبة والفرق والحكم تُحسب هنا. الموظف ما يكتب حكماً
+-- على قياسه، ولا يكتب التساهل: يُقرأ من الإعدادات (للمالك وحده) وتُحفظ لقطته
+-- في الصف عشان يبقى الحكم القديم مفهوماً لو تغيّر التساهل بعدين.
+--
+-- وغياب yieldTolerancePct من الإعدادات يعني الافتراضي ١٠٪ لا تساهلاً مفتوحاً:
+-- النقص ما يصير تجاوزاً — نفس قاعدة pilotPassesRequired في القسم 11.
+create or replace function private.tg_yield_check_verdict() returns trigger
+language plpgsql security definer set search_path = public as $fn$
+declare
+  v_raw numeric; v_cooked numeric; v_spec numeric; v_tol numeric;
+begin
+  new.recorded_by := coalesce(new.recorded_by, (select auth.uid()));
+  new.yield_pct := round(new.cooked_weight_g / new.raw_weight_g, 4);
+
+  select raw_portion_g, cooked_portion_g into v_raw, v_cooked
+    from ops_yield_specs where sku = new.sku;
+
+  if v_raw is null then
+    new.spec_yield_pct := null;
+    new.deviation_pct  := null;
+    new.tolerance_pct  := null;
+    new.verdict        := 'NO_SPEC';
+    return new;
+  end if;
+
+  v_spec := v_cooked / v_raw;
+  new.spec_yield_pct := round(v_spec, 4);
+  new.deviation_pct  := round((new.yield_pct - v_spec) / v_spec, 4);
+
+  select (data->>'yieldTolerancePct')::numeric into v_tol from ops_settings where id = 1;
+  if v_tol is null or v_tol <= 0 then v_tol := 0.10; end if;
+  new.tolerance_pct := v_tol;
+
+  new.verdict := case when abs(new.deviation_pct) <= v_tol then 'MATCH' else 'MISMATCH' end;
+  return new;
+end $fn$;
+
+create trigger yield_check_verdict
+  before insert on ops_yield_checks
+  for each row execute function private.tg_yield_check_verdict();
 
 -- ============================================================================
 -- 11) البوابة المحسوبة: تجارب Pilot + قرار الشيف
@@ -1929,6 +2049,7 @@ grant insert on ops_audit            to authenticated;  -- السجل يُكتب
 grant insert on ops_change_requests  to authenticated;  -- الحالة من decide_change وحدها
 grant insert on safety_nonconformance to authenticated; -- الرفع فوري، المعالجة باعتماد
 grant insert, update on safety_ccp_log        to authenticated;
+grant insert on ops_yield_checks              to authenticated;  -- قياس يُسجَّل ولا يُعدَّل
 grant insert, update on safety_prp_log        to authenticated;
 grant insert, update on safety_expiry_batches to authenticated;
 grant update on customers to authenticated;                      -- العميل يعدّل صفّه
@@ -1940,6 +2061,7 @@ grant update on customers to authenticated;                      -- العميل
 revoke insert, update, delete on staff from anon, authenticated;
 
 grant usage, select on sequence ops_audit_id_seq              to authenticated;
+grant usage, select on sequence ops_yield_checks_id_seq      to authenticated;
 grant usage, select on sequence ops_change_requests_id_seq    to authenticated;
 grant usage, select on sequence safety_ccp_log_id_seq         to authenticated;
 grant usage, select on sequence safety_prp_log_id_seq         to authenticated;

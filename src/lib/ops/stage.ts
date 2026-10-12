@@ -41,6 +41,14 @@ export interface StageApi {
   ) => Promise<ActionResult>;
   setIngredientPrice: (key: string, price: number, quoteDate?: string | null) => Promise<ActionResult>;
   setShelfLife: (skuId: string, hours: number) => Promise<ActionResult>;
+  /**
+   * مرجع الـyield. يمرّ بمسار الاعتماد كأي تعريف لا كواقعة: هو رقم يُحكم به
+   * على عمل المطبخ، فتغييره يستحق أثراً في السجل.
+   */
+  setYieldSpec: (
+    skuId: string,
+    input: { rawPortionG: number; cookedPortionG: number; note: string },
+  ) => Promise<ActionResult>;
   setPortions: (dayIndex: number, slot: number, portions: number, skuId: string) => Promise<ActionResult>;
   clearDay: (dayIndex: number) => Promise<ActionResult>;
   setUnitsSold: (skuId: string, units: number | null) => Promise<ActionResult>;
@@ -186,6 +194,24 @@ export function useStage(): StageApi {
           { hours: Math.round(Number(hours)) },
           { hours: cur },
           `${skuName(skuId)} · الصلاحية → ${Math.round(Number(hours))} ساعة`,
+        );
+      },
+
+      setYieldSpec(skuId, input) {
+        const raw = Number(input.rawPortionG);
+        const cooked = Number(input.cookedPortionG);
+        if (!(raw > 0)) return Promise.resolve(no("الوزن النيئ لازم يكون أكبر من صفر"));
+        if (!(cooked > 0)) return Promise.resolve(no("الوزن المطبوخ لازم يكون أكبر من صفر"));
+        const cur = ops.skuMap.get(skuId)?.yieldSpec ?? null;
+        const pct = Math.round((cooked / raw) * 100);
+        return put(
+          "yield_spec.set",
+          { sku: skuId },
+          { raw_portion_g: raw, cooked_portion_g: cooked, note: input.note ?? "" },
+          cur
+            ? { raw_portion_g: cur.rawPortionG, cooked_portion_g: cur.cookedPortionG, note: cur.note }
+            : { raw_portion_g: null, cooked_portion_g: null, note: null },
+          `${skuName(skuId)} · المرجع → ${raw}جم نيئ ← ${cooked}جم مطبوخ (${pct}%)`,
         );
       },
 

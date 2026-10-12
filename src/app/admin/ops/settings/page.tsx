@@ -173,6 +173,7 @@ export default function SettingsPage() {
           <Row label="حد فرق السعرات المقبول عن الماكروز" hint="للتحقق من اتساق بيانات المكوّنات"><Field label="فرق السعرات" value={s.kcalDiffMax} percent onChange={(v) => patch({ kcalDiffMax: v })} /></Row>
           <Row label="حد الصلاحية اللي يحتاج اعتماد (ساعة)" hint="أي صنف صلاحيته المعلنة أعلى يتوقف تلقائياً لحد اعتماد بوابة الصلاحية"><Field label="حد الصلاحية" value={s.shelfLifeApprovalH} onChange={(v) => patch({ shelfLifeApprovalH: v })} /></Row>
           <Row label="تجارب Pilot الناجحة المطلوبة" hint="كم تجربة طبخ ناجحة تحتاجها بوابة المطبخ قبل قرار الشيف"><Field label="تجارب Pilot" value={s.pilotPassesRequired} onChange={(v) => patch({ pilotPassesRequired: v })} /></Row>
+          <Row label="تساهل مطابقة الـyield" hint="كم يُسمح أن يبعد قياس المطبخ عن مرجع المالك قبل أن يُحكم عليه بالمخالفة. صفر أو غير مكتوب = ١٠٪"><Field label="تساهل الـyield" value={s.yieldTolerancePct} percent onChange={(v) => patch({ yieldTolerancePct: v })} /></Row>
         </div>
       </Card>
 

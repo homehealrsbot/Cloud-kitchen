@@ -1,8 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { BookOpen, Plus, Trash2, Save, Undo2, CheckCircle2, AlertTriangle } from "lucide-react";
-import { ING_TYPE_LABEL, IngType, MAX_RECIPE_LINES, SECTIONS, gatesResetOnRecipeChange } from "@/lib/ops/engine";
+import { ING_TYPE_LABEL, IngType, MAX_RECIPE_LINES, SECTIONS, YIELD_VERDICT_LABEL, gatesResetOnRecipeChange, specYield } from "@/lib/ops/engine";
+import type { SkuView } from "@/lib/ops/store";
+import type { StageApi } from "@/lib/ops/stage";
+import { recordYieldCheck } from "./actions";
 import { can } from "@/lib/ops/roles";
 import { useSession } from "@/lib/ops/session";
 import { useOps } from "@/lib/ops/store";
@@ -296,6 +299,13 @@ export default function RecipesPage() {
             {saved && <div className="text-xs font-bold mt-3" style={{ color: T.good }}>{saved}</div>}
           </Card>
 
+          <YieldCard
+            view={view}
+            stage={stage}
+            canSpec={can(role, "yield.spec")}
+            canCheck={can(role, "yield.check")}
+          />
+
           <Card>
             <CardTitle>ملخص الصنف (المحفوظ)</CardTitle>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -316,6 +326,173 @@ export default function RecipesPage() {
         </div>
       </div>
     </OpsShell>
+  );
+}
+
+/**
+ * الـyield: مرجع المالك وقياس المطبخ.
+ *
+ * الحكم (مطابق/مخالف) ما يُحسب هنا: يجي من القاعدة مع الصف. حسابه في الواجهة
+ * كان يعني رقمين يفترقان أول ما يتغيّر التساهل — والواجهة ما تملك التساهل.
+ */
+function YieldCard({
+  view, stage, canSpec, canCheck,
+}: { view: SkuView; stage: StageApi; canSpec: boolean; canCheck: boolean }) {
+  const spec = view.yieldSpec;
+  const skuId = view.sku.item.id;
+  const [raw, setRaw] = useState(spec ? String(spec.rawPortionG) : "");
+  const [cooked, setCooked] = useState(spec ? String(spec.cookedPortionG) : "");
+  const [mRaw, setMRaw] = useState("");
+  const [mCooked, setMCooked] = useState("");
+  const [mNote, setMNote] = useState("");
+  const [msg, setMsg] = useState("");
+  const [err, setErr] = useState("");
+  const [pending, start] = useTransition();
+
+  const refPct = specYield(spec);
+
+  async function saveSpec() {
+    setErr(""); setMsg("");
+    const r = await stage.setYieldSpec(skuId, {
+      rawPortionG: Number(raw), cookedPortionG: Number(cooked), note: "",
+    });
+    if (!r.ok) setErr(r.error ?? "تعذّر الحفظ");
+    else setMsg("المرجع في المسودة — أرسله من الشريط أسفل الشاشة");
+  }
+
+  function submitCheck() {
+    setErr(""); setMsg("");
+    start(async () => {
+      const r = await recordYieldCheck({
+        sku: skuId,
+        date: new Date().toISOString().slice(0, 10),
+        rawWeightG: Number(mRaw),
+        cookedWeightG: Number(mCooked),
+        note: mNote,
+      });
+      if (!r.ok) setErr(r.error ?? "تعذّر التسجيل");
+      else { setMsg("سُجّل القياس"); setMRaw(""); setMCooked(""); setMNote(""); }
+    });
+  }
+
+  return (
+    <Card>
+      <CardTitle>الـyield — قبل الطبخ وبعد الطبخ</CardTitle>
+
+      {/* مرجع المالك */}
+      <div className="rounded-xl px-3 py-3 mb-3" style={{ background: T.bg }}>
+        <div className="text-[11px] font-bold mb-2">
+          مرجع المالك
+          {refPct !== null && (
+            <span className="font-normal" style={{ color: T.inkSoft }}>
+              {" "}— النسبة {Math.round(refPct * 100)}%
+            </span>
+          )}
+        </div>
+        {canSpec ? (
+          <div className="flex flex-wrap items-end gap-2">
+            <Field label="نيئ (جم)" value={raw} onChange={setRaw} />
+            <Field label="مطبوخ (جم)" value={cooked} onChange={setCooked} />
+            <button
+              onClick={saveSpec}
+              className="rounded-lg px-3 py-1.5 text-[11px] font-bold"
+              style={{ background: T.brand, color: "#fff" }}
+            >
+              حفظ المرجع
+            </button>
+          </div>
+        ) : spec ? (
+          <div className="text-xs font-bold">
+            {spec.rawPortionG} جم نيئ ← {spec.cookedPortionG} جم مطبوخ
+          </div>
+        ) : (
+          <div className="text-xs" style={{ color: T.inkSoft }}>
+            ما حدّد المالك مرجعاً لهذا الصنف بعد — فالقياس يُحفظ بلا حكم.
+          </div>
+        )}
+      </div>
+
+      {/* قياس المطبخ */}
+      {canCheck && (
+        <div className="rounded-xl px-3 py-3 mb-3" style={{ background: T.bg }}>
+          <div className="text-[11px] font-bold mb-2">قياسك الفعلي</div>
+          <div className="flex flex-wrap items-end gap-2">
+            <Field label="نيئ (جم)" value={mRaw} onChange={setMRaw} />
+            <Field label="مطبوخ (جم)" value={mCooked} onChange={setMCooked} />
+            <Field label="ملاحظة" value={mNote} onChange={setMNote} wide />
+            <button
+              onClick={submitCheck}
+              disabled={pending}
+              className="rounded-lg px-3 py-1.5 text-[11px] font-bold disabled:opacity-40 disabled:cursor-not-allowed"
+              style={{ background: T.brand, color: "#fff" }}
+            >
+              {pending ? "..." : "سجّل وطابِق"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {err && <ErrorNote text={err} />}
+      {msg && !err && (
+        <div className="text-[11px] mb-2" style={{ color: T.good }}>{msg}</div>
+      )}
+
+      {/* آخر القياسات وحكمها */}
+      {view.yieldChecks.length === 0 ? (
+        <div className="text-[11px]" style={{ color: T.inkSoft }}>ما فيه قياسات مسجّلة لهذا الصنف.</div>
+      ) : (
+        <TableWrap>
+          <thead>
+            <tr>
+              <Th>التاريخ</Th><Th>نيئ</Th><Th>مطبوخ</Th><Th>النسبة</Th><Th>الفرق</Th><Th>الحكم</Th><Th>سجّلها</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {view.yieldChecks.slice(0, 8).map((c) => (
+              <tr key={c.id}>
+                <Td>{c.date}</Td>
+                <Td>{c.rawG}</Td>
+                <Td>{c.cookedG}</Td>
+                <Td>{c.yieldPct === null ? "—" : `${Math.round(c.yieldPct * 100)}%`}</Td>
+                <Td>{c.deviationPct === null ? "—" : `${(c.deviationPct * 100).toFixed(1)}%`}</Td>
+                <Td>
+                  <span
+                    className="rounded-full px-2 py-0.5 text-[10px] font-bold"
+                    style={
+                      c.verdict === "MATCH"
+                        ? { background: T.goodTint, color: T.good }
+                        : c.verdict === "MISMATCH"
+                          ? { background: T.warnTint, color: T.warn }
+                          : { background: T.bg, color: T.inkSoft }
+                    }
+                  >
+                    {YIELD_VERDICT_LABEL[c.verdict]}
+                  </span>
+                </Td>
+                <Td>{c.by || "—"}</Td>
+              </tr>
+            ))}
+          </tbody>
+        </TableWrap>
+      )}
+    </Card>
+  );
+}
+
+function Field({
+  label, value, onChange, wide,
+}: { label: string; value: string; onChange: (v: string) => void; wide?: boolean }) {
+  return (
+    <label className="flex flex-col gap-1">
+      <span className="text-[10px]" style={{ color: T.inkSoft }}>{label}</span>
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        inputMode={wide ? "text" : "decimal"}
+        className="rounded-lg border px-2 py-1.5 text-sm font-bold"
+        style={{ borderColor: T.border, width: wide ? 180 : 86, background: "#FFFDF5", color: T.ink }}
+      />
+    </label>
   );
 }
 
