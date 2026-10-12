@@ -12,7 +12,7 @@ import { useState, useTransition } from "react";
 import { ShieldCheck, Plus, Cpu } from "lucide-react";
 import { T } from "@/lib/kitchen-shared";
 import { GateDef, IngApprovalDef, GateKind } from "@/lib/ops/engine";
-import { ROLES, Role, isRole } from "@/lib/ops/roles";
+import { ALL_ROLES, ROLES, Role, isRole } from "@/lib/ops/roles";
 import { useStage } from "@/lib/ops/stage";
 
 const KIND_LABEL: Record<GateKind, string> = {
@@ -22,7 +22,7 @@ const KIND_LABEL: Record<GateKind, string> = {
   price: "سعر وهامش",
 };
 
-const SEAL_ROLES: Role[] = ["quality", "kitchen", "executive"];
+const SEAL_ROLES: Role[] = ALL_ROLES;
 
 export default function GateDefManager({
   gateDefs,

@@ -16,6 +16,7 @@
 // والحماية الفعلية على الكتابة تبقى في القاعدة: RLS + محفّزات. هذا الملف
 // يرتّب ويخفي، ما يحرس.
 
+import { ADMIN_ROLE, ALL_ROLES } from "./roles";
 import type { Cap, Role } from "./roles";
 
 /** مراحل التشغيل بالترتيب — الاسم المعروض فوق مجموعة الوحدات. */
@@ -40,7 +41,7 @@ export interface OpsModule {
   roles: Role[];
 }
 
-const ALL: Role[] = ["executive", "kitchen", "quality"];
+const ALL: Role[] = ALL_ROLES;
 
 export const OPS_MODULES: OpsModule[] = [
   // ١ · الإدخال — الأرقام الخام تدخل هنا قبل أي اعتماد
@@ -55,15 +56,15 @@ export const OPS_MODULES: OpsModule[] = [
   { href: "/admin/ops/quality", label: "بوابات الاعتماد", view: "quality.view", edit: "quality.editGates", desc: "اعتماد كل صنف قبل البيع", stage: "approve", roles: ALL },
 
   // ٤ · التشغيل — بعد الاعتماد: جدولة، إنتاج، مراقبة
-  { href: "/admin/ops/rotation", label: "جدول الدوران", view: "rotation.view", edit: "rotation.edit", desc: "أصناف كل يوم خلال 14 يوم", stage: "run", roles: ["executive", "kitchen"] },
-  { href: "/admin/ops/production", label: "الإنتاج والمشتريات", view: "production.view", edit: "production.edit", desc: "حصص اليوم وقائمة الشراء", stage: "run", roles: ["executive", "kitchen"] },
+  { href: "/admin/ops/rotation", label: "جدول الدوران", view: "rotation.view", edit: "rotation.edit", desc: "أصناف كل يوم خلال 14 يوم", stage: "run", roles: ["kitchen"] },
+  { href: "/admin/ops/production", label: "الإنتاج والمشتريات", view: "production.view", edit: "production.edit", desc: "حصص اليوم وقائمة الشراء", stage: "run", roles: ["kitchen", "finance"] },
   { href: "/admin/ops/kitchen-card", label: "بطاقة المطبخ", view: "card.view", desc: "أوزان الدفعة وطريقة التحضير", stage: "run", roles: ["kitchen", "quality"] },
   { href: "/admin/safety/ccp", label: "سجل المراقبة", view: "safety.view", edit: "safety.log", desc: "قراءات النقاط الحرجة اليومية", stage: "run", roles: ["kitchen", "quality"] },
 
   // ٥ · المخرجات — اللي يطلع من كل اللي فوق
   { href: "/admin/launch", label: "قرار الإطلاق", view: "launch.view", desc: "GO / NO-GO ومحاور الجاهزية", stage: "output", roles: ALL },
   { href: "/admin/ops/menu", label: "المنيو", view: "ops.view", desc: "كل الأصناف بحالتها وقيمها", stage: "output", roles: ALL },
-  { href: "/admin/ops/engineering", label: "هندسة المنيو", view: "engineering.view", edit: "engineering.view", desc: "تصنيف الأصناف حسب المبيعات والهامش", stage: "output", roles: ["executive"] },
+  { href: "/admin/ops/engineering", label: "هندسة المنيو", view: "engineering.view", edit: "engineering.view", desc: "تصنيف الأصناف حسب المبيعات والهامش", stage: "output", roles: ["finance"] },
 
   // دائم — ما له مرحلة: يُفتح في أي وقت
   { href: "/admin/requests", label: "الطلبات", view: "requests.view", desc: "التعديلات المرسلة وحالتها", stage: "always", roles: ALL },
@@ -72,9 +73,13 @@ export const OPS_MODULES: OpsModule[] = [
   { href: "/admin/ops/settings", label: "الإعدادات", view: "settings.edit", edit: "settings.edit", desc: "مضاعفات الحصص ونسب التكلفة", stage: "always", roles: ["executive"] },
 ];
 
-/** وحدات هذا الدور، مرتّبة بالمراحل. الدور الفاضي ما يشوف شي. */
+/**
+ * وحدات هذا الدور، مرتّبة بالمراحل. الدور الفاضي ما يشوف شي، والمالك يشوف
+ * الكل: أدمن، فلا يُذكر في صفوف roles أعلاه ولا يُنقص ذلك من وصوله.
+ */
 export function modulesForRole(role: Role | null | undefined): OpsModule[] {
   if (!role) return [];
+  if (role === ADMIN_ROLE) return OPS_MODULES;
   return OPS_MODULES.filter((m) => m.roles.includes(role));
 }
 
@@ -86,6 +91,7 @@ export function modulesForRole(role: Role | null | undefined): OpsModule[] {
 export function moduleAllowsRole(pathname: string, role: Role | null | undefined): boolean {
   const hit = moduleForPath(pathname);
   if (!hit) return true;
+  if (role === ADMIN_ROLE) return true;
   return !!role && hit.roles.includes(role);
 }
 

@@ -4,14 +4,14 @@ import Link from "next/link";
 import { useState } from "react";
 import { ArrowLeft, CheckCircle2, AlertTriangle, ClipboardCheck, Layers, ShieldCheck, History, RotateCcw, Users, Lock, Pencil } from "lucide-react";
 import { SECTIONS, integrityChecks } from "@/lib/ops/engine";
-import { PERMISSION_ROWS, ROLES, Role, can, MATRIX } from "@/lib/ops/roles";
+import { ALL_ROLES, PERMISSION_ROWS, ROLES, Role, can } from "@/lib/ops/roles";
 import { useSession } from "@/lib/ops/session";
 import { modulesForRole } from "@/lib/ops/modules";
 import { useOps } from "@/lib/ops/store";
 import * as actions from "./actions";
 import { Card, CardTitle, Kpi, Loading, OpsShell, PENDING_COLOR, T, pct, sar, StatusBadge } from "@/components/ops/ui";
 
-const ROLE_ORDER: Role[] = ["kitchen", "quality", "executive"];
+const ROLE_ORDER: Role[] = ALL_ROLES;
 
 export default function OpsHub() {
   const ops = useOps();
@@ -244,8 +244,8 @@ export default function OpsHub() {
                 <tr key={row.label} className="text-xs border-t" style={{ borderColor: T.border }}>
                   <td className="px-2 py-2">{row.label}</td>
                   {ROLE_ORDER.map((r) => {
-                    const edit = row.edit ? MATRIX[row.edit].includes(r) : false;
-                    const view = MATRIX[row.view].includes(r);
+                    const edit = row.edit ? can(r, row.edit) : false;
+                    const view = can(r, row.view);
                     return (
                       <td key={r} className="px-2 py-2 text-center font-bold" style={{ color: edit ? T.good : view ? T.inkSoft : "#CDBFB5", background: r === role ? T.brandTint : undefined }}>
                         {edit ? "تعديل" : view ? "عرض" : "—"}

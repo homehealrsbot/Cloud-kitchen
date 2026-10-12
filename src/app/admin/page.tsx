@@ -1,17 +1,20 @@
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowLeft, ClipboardList, Lock, LogOut, ShieldCheck, TrendingUp, ChefHat, Users } from "lucide-react";
+import { ArrowLeft, ClipboardList, Crown, Lock, LogOut, ShieldCheck, TrendingUp, ChefHat, Users } from "lucide-react";
 import { T } from "@/lib/kitchen-shared";
 import { modulesForRole } from "@/lib/ops/modules";
 import { ROLES, can } from "@/lib/ops/roles";
+import type { Role } from "@/lib/ops/roles";
 import { getStaffSession } from "@/lib/supabase/auth";
 import NotConfigured from "@/components/auth/NotConfigured";
 import { signOut } from "../login/actions";
 
 export const metadata = { title: "لوحات التحكم — Macro Meals" };
 
-const ROLE_ICON = {
-  executive: <TrendingUp size={22} />,
+// التاج للمالك، والمنحنى الصاعد للمالية — الأرقام شغلها.
+const ROLE_ICON: Record<Role, React.ReactNode> = {
+  executive: <Crown size={22} />,
+  finance: <TrendingUp size={22} />,
   kitchen: <ChefHat size={22} />,
   quality: <ShieldCheck size={22} />,
 };

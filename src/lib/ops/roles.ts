@@ -9,13 +9,30 @@
 // الأزرار. الحماية الفعلية في قاعدة البيانات: سياسات RLS في supabase/schema.sql
 // تمنع أي كتابة خارج صلاحية الدور، فتعديل الواجهة أو الكوكيز ما يفيد شي.
 
-export type Role = "executive" | "kitchen" | "quality";
+export type Role = "executive" | "finance" | "kitchen" | "quality";
+
+/**
+ * الأدوار كلها، مرتّبة بسلطتها. مصدر واحد بقصد: كان هذا الثلاثي مكتوباً حرفياً
+ * في أحد عشر ملفاً، فإضافة دور كانت تعني تتبّعها كلها — وأي موضع يُنسى يسقط منه
+ * الدور بلا خطأ يبيّن: عمود ناقص في جدول صلاحيات، أو دور غائب عن قائمة اختيار.
+ * من يضيف دوراً بعد اليوم يضيفه هنا وحده.
+ */
+export const ALL_ROLES: Role[] = ["executive", "finance", "kitchen", "quality"];
+
+/** الأدمن. كل شيء مفتوح له — انظر can() و sealsGate أدناه. */
+export const ADMIN_ROLE: Role = "executive";
 
 export const ROLES: Record<Role, { label: string; short: string; desc: string; home: string }> = {
   executive: {
-    label: "الإدارة التنفيذية",
-    short: "تنفيذي",
-    desc: "الأسعار، التكاليف، الهوامش، الإعدادات، واعتماد بوابة السعر",
+    label: "المالك — أدمن",
+    short: "المالك",
+    desc: "كل شيء مفتوح: يعدّل أي شيء، ويعتمد أي شيء، ويتجاوز أي حساب أو قفل",
+    home: "/admin",
+  },
+  finance: {
+    label: "الإدارة المالية",
+    short: "مالية",
+    desc: "الأسعار والتكاليف والهوامش، قائمة المشتريات، هندسة المنيو، وبوابة السعر",
     home: "/admin/executive",
   },
   kitchen: {
@@ -73,28 +90,42 @@ export type Cap =
   | "legacy.kitchen"
   | "legacy.safetyLogs";
 
-const ALL: Role[] = ["executive", "kitchen", "quality"];
+const ALL: Role[] = ALL_ROLES;
 
+/**
+ * مين يملك كل صلاحية.
+ *
+ * اقرأ هذا الجدول على أنه الملكية لا الوصول: المالك (ADMIN_ROLE) يمرّ على كل
+ * صلاحية بحكم can() أدناه وإن لم يُذكر في صفّها، فلا تستنتج من غيابه عن صفٍّ
+ * أنه ممنوع منه. وما يُذكر فيه «executive» صريحاً هو ما لا يملكه أحد غيره:
+ * الإعدادات، والفريق، وتعريف البوابات والمحاور، والسجل، والتصفير.
+ *
+ * والمال كله انتقل إلى الإدارة المالية: الأسعار، والهوامش، وقائمة المشتريات،
+ * وهندسة المنيو، وبوابة السعر، واعتماد سعر المكوّن. المالك يبقى قادراً عليها
+ * كلها — لكن ملكيتها صارت لدور مستقل، فيُقرأ من الجدول من يُسأل عنها.
+ */
 export const MATRIX: Record<Cap, Role[]> = {
   "ops.view": ALL,
   "production.view": ALL,
   "production.edit": ["kitchen"],
-  "shopping.view": ["kitchen", "executive"],
+  "shopping.view": ["kitchen", "finance"],
   "card.view": ALL,
   "rotation.view": ALL,
   "rotation.edit": ["kitchen"],
   "recipes.view": ALL,
   "recipes.edit": ["kitchen"],
   "ingredients.view": ALL,
-  "ingredients.editSpecs": ["quality"],
-  "ingredients.editPrice": ["executive"],
+  // المطبخ يُدخل المكوّنات والجودة تراجعها — الاثنان يكتبان المواصفة، والسعر
+  // ليس منها: هو عمود منفصل للمالية يحرسه محفّز في القاعدة.
+  "ingredients.editSpecs": ["kitchen", "quality"],
+  "ingredients.editPrice": ["finance"],
   "quality.view": ALL,
   "quality.editGates": ["quality"],
-  "quality.editPriceGate": ["executive"],
+  "quality.editPriceGate": ["finance"],
   "quality.editShelfLife": ["quality"],
   "gateDefs.manage": ["executive"],
   // لوحة الجاهزية يشوفها كل دور: هي اللي تقول لقسمه وش يوقف الإطلاق. أما
-  // تعريف المحاور نفسها فللتنفيذي — القسم ما يشيل المحور اللي يقيسه.
+  // تعريف المحاور نفسها فللمالك — القسم ما يشيل المحور اللي يقيسه.
   "launch.view": ALL,
   "launchAxes.manage": ["executive"],
   // كل موظف يشوف طلباته؛ واللي ينتظر قراره تحدده سلطة الاعتماد في
@@ -109,26 +140,43 @@ export const MATRIX: Record<Cap, Role[]> = {
   "safety.log": ["kitchen", "quality"],
   "safety.verify": ["quality"],
   "ncr.raise": ALL,
-  "ncr.manage": ["quality", "executive"],
+  "ncr.manage": ["quality"],
   "ingApproval.edit": ["quality"],
-  "ingApproval.editPrice": ["executive"],
-  "finance.view": ["executive"],
+  "ingApproval.editPrice": ["finance"],
+  "finance.view": ["finance"],
   "settings.edit": ["executive"],
-  "engineering.view": ["executive"],
+  "engineering.view": ["finance"],
   "audit.view": ["executive"],
   "team.manage": ["executive"],
   "data.reset": ["executive"],
-  "legacy.executive": ["executive"],
-  "legacy.kitchen": ["kitchen", "executive"],
-  "legacy.safetyLogs": ["kitchen", "executive", "quality"],
+  "legacy.executive": ["finance"],
+  "legacy.kitchen": ["kitchen"],
+  "legacy.safetyLogs": ["kitchen", "quality"],
 };
 
+/**
+ * المالك أدمن: كل شيء مفتوح له — قرار صاحب النظام، مُتَّخَذ بعلم أن الضوابط
+ * التي يتجاوزها (فصل التوقيعين على سجل المراقبة، البوابات المحسوبة، ملكية
+ * البوابة) موضوعة أصلاً ليمنع بعضها بعضاً. ونفس القاعدة حرفياً في القاعدة:
+ * private.has_role تُرجع صح للمالك قبل أن تنظر في القائمة المسموحة، فما تفتحه
+ * الواجهة هنا تفتحه السياسة هناك ولا يفترقان.
+ */
 export function can(role: Role | null | undefined, cap: Cap): boolean {
-  return !!role && MATRIX[cap].includes(role);
+  if (!role) return false;
+  if (role === ADMIN_ROLE) return true;
+  return MATRIX[cap].includes(role);
+}
+
+/**
+ * الأدوار التي تفتح صلاحية ما — للعرض. تُحسب من can() لا من MATRIX مباشرة،
+ * لأن قراءة MATRIX وحدها تُسقط المالك فتقول «ممنوع» وهو يفتحها.
+ */
+export function rolesWithCap(cap: Cap): Role[] {
+  return ALL_ROLES.filter((r) => can(r, cap));
 }
 
 export function isRole(v: unknown): v is Role {
-  return typeof v === "string" && (ALL as string[]).includes(v);
+  return typeof v === "string" && (ALL_ROLES as string[]).includes(v);
 }
 
 /**
@@ -144,10 +192,17 @@ export function isRole(v: unknown): v is Role {
  * أحد يدوياً، يكتبها محفّز في القاعدة.
  *
  * ومين يملك تغيير التعريفات نفسها (يضيف بوابة، يوقفها، ينقل ملكيتها)؟
- * الإدارة التنفيذية وحدها — صلاحية "gateDefs.manage".
+ * المالك وحده — صلاحية "gateDefs.manage".
+ *
+ * والمالك يختم أي بوابة: بوابة غيره، والمحسوبة كذلك. والمحسوبة هي الحالة
+ * التي يُقصد بها «يتجاوز أي حساب» — بوابة المطبخ تُحسب من تجارب Pilot وقرار
+ * الشيف، فختمها يدوياً يعني إعلان جاهزية صنف لم تنجح تجاربه. مسموح له،
+ * ومسجَّل عليه في سجل التعديلات باسمه.
  */
 export function sealsGate(role: Role | null | undefined, ownerRole: string | null | undefined): boolean {
-  return !!role && !!ownerRole && role === ownerRole;
+  if (!role) return false;
+  if (role === ADMIN_ROLE) return true;
+  return !!ownerRole && role === ownerRole;
 }
 
 // جدول الصلاحيات المعروض للمستخدم (مين يسوي إيش) — الميزات الثابتة فقط.

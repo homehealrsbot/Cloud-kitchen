@@ -7,8 +7,12 @@
 import { cache } from "react";
 import { createClient } from "./server";
 import { isSupabaseConfigured } from "./config";
+import type { Role } from "@/lib/ops/roles";
 
-export type Role = "executive" | "kitchen" | "quality";
+// النوع مُعرَّف مرة واحدة في lib/ops/roles ويُعاد تصديره هنا لمن يستورده من
+// هذا الملف. كان مكتوباً هنا ثانية بثلاثة أدوار، فإضافة دورٍ رابع هناك كانت
+// تمرّ من فحص الأنواع بلا خطأ وتترك جهة الخادم تعرف ثلاثة وجهة العميل أربعة.
+export type { Role };
 
 export interface StaffSession {
   userId: string;

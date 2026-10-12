@@ -12,7 +12,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getStaffSession } from "@/lib/supabase/auth";
-import { ROLES, Role, can } from "@/lib/ops/roles";
+import { ALL_ROLES, ROLES, Role, can } from "@/lib/ops/roles";
 import type { GateDef, IngApprovalDef } from "@/lib/ops/engine";
 import type { LaunchAxisDef } from "@/lib/ops/launch";
 import type { ActionResult } from "@/lib/ops/types";
@@ -26,7 +26,7 @@ export interface TeamMember {
   created_at: string;
 }
 
-const ROLE_VALUES: Role[] = ["executive", "kitchen", "quality"];
+const ROLE_VALUES: Role[] = ALL_ROLES;
 
 /** يقرأ الفريق مع الإيميلات. يرجّع [] لغير التنفيذي بدل ما يطيح. */
 export async function listTeam(): Promise<TeamMember[]> {

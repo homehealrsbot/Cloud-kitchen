@@ -11,12 +11,10 @@ import { usePathname } from "next/navigation";
 import { ReactNode } from "react";
 import { ShieldAlert } from "lucide-react";
 import { T } from "@/lib/kitchen-shared";
-import { MATRIX, ROLES, can, capForPath } from "@/lib/ops/roles";
-import type { Role } from "@/lib/ops/roles";
+import { ALL_ROLES, ROLES, can, capForPath, rolesWithCap } from "@/lib/ops/roles";
 import { moduleAllowsRole, moduleForPath } from "@/lib/ops/modules";
 import { useSession } from "@/lib/ops/session";
 
-const ALL_ROLES: Role[] = ["executive", "kitchen", "quality"];
 
 export default function AdminGate({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -32,7 +30,7 @@ export default function AdminGate({ children }: { children: ReactNode }) {
   // الأدوار المعروضة لازم تكون اللي تفتح الصفحة فعلاً: تقاطع الصلاحية مع
   // أدوار الوحدة. عرض MATRIX وحدها كان يقول «متاحة للجودة» وهي ممنوعة عنها.
   const mod = moduleForPath(pathname);
-  const byCap = cap ? MATRIX[cap] : ALL_ROLES;
+  const byCap = cap ? rolesWithCap(cap) : ALL_ROLES;
   const allowedRoles = byCap
     .filter((r) => !mod || mod.roles.includes(r))
     .map((r) => ROLES[r].label)

@@ -14,7 +14,10 @@
 -- 1) الأدوار والموظفون
 -- ============================================================================
 
-create type staff_role as enum ('executive', 'kitchen', 'quality');
+-- executive هو المالك/الأدمن: كل شيء مفتوح له (انظر private.has_role أدناه).
+-- finance دور مستقل للمال: الأسعار والهوامش وقائمة المشتريات وبوابة السعر —
+-- فُصل عن المالك عشان تُقرأ ملكية المال من الجدول لا تُستنتج من سلطة الأدمن.
+create type staff_role as enum ('executive', 'finance', 'kitchen', 'quality');
 
 create table staff (
   user_id    uuid primary key references auth.users(id) on delete cascade,
@@ -56,6 +59,17 @@ as $$
 $$;
 
 -- هل دور المستخدم الحالي ضمن القائمة المسموحة؟
+--
+-- المالك (executive) يمرّ قبل النظر في القائمة: أدمن، كل شيء مفتوح له. وهذا
+-- هو الموضع الوحيد الذي يُقرَّر فيه — كل السياسات تنادي هذه الدالّة، فالقرار
+-- يسري على اثنتين وستين سياسة بلا أن تُعدَّل واحدة، ولا يبقى موضع يُنسى.
+--
+-- ونفس القاعدة حرفياً في الواجهة: can() في src/lib/ops/roles.ts تُرجع صح
+-- للمالك قبل أن تنظر في MATRIX. فما تفتحه هناك تفتحه هنا ولا يفترقان.
+--
+-- قرار صاحب النظام، مُتَّخَذ بعلم: الضوابط التي يتجاوزها (ملكية البوابة،
+-- البوابات المحسوبة، فصل التوقيعين على سجل المراقبة) موضوعة ليمنع بعضها
+-- بعضاً، وتجاوزها يبقى مسجَّلاً باسمه في سجل التعديلات.
 create or replace function private.has_role(allowed staff_role[])
 returns boolean
 language sql
@@ -63,7 +77,10 @@ stable
 security definer
 set search_path = public
 as $$
-  select coalesce(private.current_staff_role() = any(allowed), false)
+  select coalesce(
+    private.current_staff_role() = 'executive'
+    or private.current_staff_role() = any(allowed),
+  false)
 $$;
 
 -- الإدارة التنفيذية أو لا شي. تُنادى من بداية كل دالّة تمسّ الفريق.
@@ -912,12 +929,25 @@ create policy "anyone reads gates" on ops_gates
 
 -- مين يختم البوابة؟ owner_role في تعريفها. سياسة واحدة لكل البوابات بدل
 -- «السابعة للتنفيذي وما عداها للجودة» — فنقل ملكية بوابة أو إضافة واحدة ما
--- يحتاج تعديل سياسة. و owner_role = null (المحسوبة) ما يختمها أحد: المحفّز
--- في القسم 11 هو اللي يكتبها، و SECURITY DEFINER يتجاوز RLS.
+-- يحتاج تعديل سياسة.
+--
+-- والمالك يمرّ على أي بوابة: has_role تمرّره على بوابة لها مالك، وفرع
+-- 'executive' أدناه يضيف المحسوبة (owner_role = null) كذلك.
+--
+-- لكن انتبه لحدّ هذا التجاوز على المحسوبة تحديداً: المحفّز في القسم 11
+-- (sync_kitchen_pilot_gate) يعيد حساب بوابة kitchen_pilot كل ما تغيّر مُدخل
+-- من مُدخلاتها — تجربة، أو قرار شيف، أو سطر وصفة، أو عدد التجارب المطلوب.
+-- فختم المالك لها يصمد حتى أول إعادة حساب ثم يُكتب فوقه. تثبيته يحتاج علامة
+-- تجاوز صريحة في الصف يحترمها المحفّز، وهي قرار لم يُطلب بعد.
+--
+-- وعملياً الكتابة لا تمرّ من هنا أصلاً: authenticated ما له grant بالكتابة
+-- على ops_gates، فكل ختم يمشي عبر مسار الاعتماد (gate.set ← decide_change
+-- ← apply_change) وهي SECURITY DEFINER تتجاوز RLS. هذه السياسة خط ثانٍ.
 create policy "gate owner writes gates" on ops_gates
   for all to authenticated
   using (
-    exists (
+    private.current_staff_role() = 'executive'
+    or exists (
       select 1 from ops_gate_defs d
       where d.gate_index = ops_gates.gate_index
         and d.active and d.owner_role is not null
@@ -925,7 +955,8 @@ create policy "gate owner writes gates" on ops_gates
     )
   )
   with check (
-    exists (
+    private.current_staff_role() = 'executive'
+    or exists (
       select 1 from ops_gate_defs d
       where d.gate_index = ops_gates.gate_index
         and d.active and d.owner_role is not null
@@ -972,7 +1003,8 @@ create policy "staff reads ing approvals" on ops_ing_approvals
 create policy "approval owner writes ing approvals" on ops_ing_approvals
   for all to authenticated
   using (
-    exists (
+    private.current_staff_role() = 'executive'
+    or exists (
       select 1 from ops_ing_approval_defs d
       where d.approval_index = ops_ing_approvals.approval_index
         and d.active and d.owner_role is not null
@@ -980,7 +1012,8 @@ create policy "approval owner writes ing approvals" on ops_ing_approvals
     )
   )
   with check (
-    exists (
+    private.current_staff_role() = 'executive'
+    or exists (
       select 1 from ops_ing_approval_defs d
       where d.approval_index = ops_ing_approvals.approval_index
         and d.active and d.owner_role is not null
@@ -1177,8 +1210,8 @@ declare
   r staff_role := private.current_staff_role();
 begin
   if ( new.price, new.price_quote_date ) is distinct from ( old.price, old.price_quote_date )
-     and r is distinct from 'executive' then
-    raise exception 'تعديل سعر المكوّن وتاريخ عرضه من صلاحية الإدارة التنفيذية فقط';
+     and r not in ('finance', 'executive') then
+    raise exception 'تعديل سعر المكوّن وتاريخ عرضه من صلاحية الإدارة المالية';
   end if;
 
   if ( new.kcal, new.protein, new.carb, new.fat, new.fiber,
@@ -1188,8 +1221,8 @@ begin
      ( old.kcal, old.protein, old.carb, old.fat, old.fiber,
        old.flags, old.hidden, old.allergen_text, old.source,
        old.supplier, old.supplier_note )
-     and r is distinct from 'quality' then
-    raise exception 'تعديل القيم الغذائية والحساسية والمورد من صلاحية الجودة والمتابعة فقط';
+     and r not in ('kitchen', 'quality', 'executive') then
+    raise exception 'إدخال القيم الغذائية والحساسية والمورد من صلاحية المطبخ أو الجودة';
   end if;
 
   return new;
@@ -1491,10 +1524,16 @@ begin
   end if;
 
   if (new.verified_by, new.verified_at) is distinct from (old.verified_by, old.verified_at) then
-    if r is distinct from 'quality' then
-      raise exception 'اعتماد سجل المراقبة من صلاحية الجودة والمتابعة فقط';
+    if r not in ('quality', 'executive') then
+      raise exception 'اعتماد سجل المراقبة من صلاحية الجودة والمتابعة';
     end if;
-    if new.verified_by is not null and new.verified_by = old.recorded_by then
+    -- فصل التوقيعين: المسجّل لا يعتمد نفسه. والمالك يتجاوزه — قرار صريح من
+    -- صاحب النظام، ومعناه أنه يقدر يقيس الحرارة ويوقّع على قياسه بنفسه، فيسقط
+    -- عن سجله الضابط الذي يسأل عنه مفتّش HACCP أولاً. مقصود، لا سهو.
+    -- وما بقي: الاعتماد يبقى خطوة ثانية منفصلة (فرع INSERT أعلاه) حتى للمالك،
+    -- فيبقى في السجل أثر لتسجيلٍ ثم اعتمادٍ لا صفٌّ مولود موقَّعاً.
+    if r <> 'executive'
+       and new.verified_by is not null and new.verified_by = old.recorded_by then
       raise exception 'ما ينفع يعتمد السجل نفس من سجّله — لازم توقيع ثانٍ';
     end if;
   end if;
@@ -1790,7 +1829,8 @@ begin
   end if;
 
   select * into k from ops_change_kinds where kind = r.kind;
-  if k.approver_role <> my_role then
+  -- المالك يعتمد أي طلب. وما عداه: صاحب السلطة المكتوبة في نوع التغيير.
+  if my_role <> 'executive' and k.approver_role <> my_role then
     raise exception 'اعتماد «%» من صلاحية % وحده', k.label, k.approver_role;
   end if;
 

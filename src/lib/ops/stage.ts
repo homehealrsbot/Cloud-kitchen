@@ -18,10 +18,11 @@ import { useDraft } from "@/lib/ops/draft";
 import { useOps } from "@/lib/ops/store";
 import { changedFields } from "@/lib/ops/changes";
 import { gateOrderBlocker } from "@/lib/ops/engine";
+import { ALL_ROLES } from "@/lib/ops/roles";
 import type { GateStatus, IngType, PilotResult, Settings } from "@/lib/ops/engine";
 import type { ActionResult } from "@/lib/ops/types";
 
-const ROLE_VALUES: string[] = ["executive", "kitchen", "quality"];
+const ROLE_VALUES: string[] = ALL_ROLES;
 
 const OK: ActionResult = { ok: true };
 const no = (error: string): ActionResult => ({ ok: false, error });

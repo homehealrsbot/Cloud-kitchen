@@ -9,9 +9,9 @@
 import { Check, Minus, Cpu } from "lucide-react";
 import { T } from "@/lib/kitchen-shared";
 import type { GateDef, IngApprovalDef } from "@/lib/ops/engine";
-import { PERMISSION_ROWS, ROLES, Role, approvalPermissionRows, can } from "@/lib/ops/roles";
+import { ALL_ROLES, PERMISSION_ROWS, ROLES, Role, approvalPermissionRows, can } from "@/lib/ops/roles";
 
-const COLS: Role[] = ["executive", "kitchen", "quality"];
+const COLS: Role[] = ALL_ROLES;
 
 export default function PermissionMatrix({
   gateDefs,

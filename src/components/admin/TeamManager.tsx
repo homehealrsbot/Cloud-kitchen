@@ -5,18 +5,19 @@
 // القاعدة. ما فيه أي قرار صلاحية يُتخذ هنا.
 
 import { useState, useTransition } from "react";
-import { ShieldCheck, ChefHat, TrendingUp, UserPlus, Check, X } from "lucide-react";
+import { ShieldCheck, ChefHat, Crown, TrendingUp, UserPlus, Check, X } from "lucide-react";
 import { T } from "@/lib/kitchen-shared";
-import { ROLES, Role } from "@/lib/ops/roles";
+import { ALL_ROLES, ROLES, Role } from "@/lib/ops/roles";
 import { setStaff, type TeamMember } from "@/app/admin/team/actions";
 
 const ROLE_ICON: Record<Role, React.ReactNode> = {
-  executive: <TrendingUp size={14} />,
+  executive: <Crown size={14} />,
+  finance: <TrendingUp size={14} />,
   kitchen: <ChefHat size={14} />,
   quality: <ShieldCheck size={14} />,
 };
 
-const ROLE_ORDER: Role[] = ["executive", "kitchen", "quality"];
+const ROLE_ORDER: Role[] = ALL_ROLES;
 
 export default function TeamManager({ team, myEmail }: { team: TeamMember[]; myEmail: string }) {
   const [email, setEmail] = useState("");

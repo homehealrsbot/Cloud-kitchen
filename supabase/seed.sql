@@ -632,14 +632,14 @@ insert into ops_gate_defs (gate_index, label, kind, owner_role, resets_on_recipe
   (4, 'سلامة الغذاء', 'standard', 'quality'::staff_role, false, true, 'HACCP والحدود الحرجة'),
   (5, 'صلاحية', 'shelf', 'quality'::staff_role, false, true, 'الصلاحية المعلنة مدعومة باختبار'),
   (6, 'ملصق', 'standard', 'quality'::staff_role, true, true, 'الملصق يطابق الوصفة والقيم'),
-  (7, 'سعر وهامش', 'price', 'executive'::staff_role, true, true, 'السعر يغطي التكلفة الكاملة بهامش مقبول')
+  (7, 'سعر وهامش', 'price', 'finance'::staff_role, true, true, 'السعر يغطي التكلفة الكاملة بهامش مقبول')
 on conflict (gate_index) do nothing;
 
 -- 3 اعتماد مكوّن (قيم بداية)
 insert into ops_ing_approval_defs (approval_index, label, kind, owner_role, active, note) values
   (0, 'اعتماد المورد', 'supplier', 'quality'::staff_role, true, 'مورد معروف وشهاداته سارية'),
   (1, 'إقرار الحساسية', 'allergen', 'quality'::staff_role, true, 'مسببات الحساسية والمواد الخفية موثّقة'),
-  (2, 'سعر موثّق', 'price', 'executive'::staff_role, true, 'عرض سعر محدّث من المورد')
+  (2, 'سعر موثّق', 'price', 'finance'::staff_role, true, 'عرض سعر محدّث من المورد')
 on conflict (approval_index) do nothing;
 
 -- 5 محور جاهزية (قيم بداية — لا تُكتب فوق الموجود)
@@ -653,13 +653,13 @@ on conflict (axis_index) do nothing;
 
 -- 26 نوع طلب تغيير (قائمة بيضاء — لا تُكتب فوق الموجود)
 insert into ops_change_kinds (kind, label, area, target_table, strategy, key_columns, patch_columns, requester_roles, approver_role, active, note) values
-  ('gate.set', 'ختم بوابة اعتماد', 'بوابات الاعتماد', 'ops_gates', 'upsert'::change_strategy, array['sku', 'gate_index']::text[], array['status', 'note', 'approved_by_name', 'approved_at']::text[], array['quality'::staff_role, 'executive'::staff_role], 'executive'::staff_role, true, 'ختم بوابة على صنف — يُطبَّق بعد الاعتماد فقط'),
-  ('ing_approval.set', 'اعتماد مكوّن', 'المكوّنات', 'ops_ing_approvals', 'upsert'::change_strategy, array['ing_key', 'approval_index']::text[], array['status', 'note', 'approved_by_name', 'approved_at']::text[], array['quality'::staff_role, 'executive'::staff_role], 'executive'::staff_role, true, 'اعتماد مواصفة أو مورد أو حساسية أو سعر مكوّن'),
-  ('ingredient.specs', 'مواصفة مكوّن', 'المكوّنات', 'ops_ingredients', 'upsert'::change_strategy, array['key']::text[], array['kcal', 'protein', 'carb', 'fat', 'fiber', 'allergen_text', 'flags', 'source', 'hidden', 'supplier', 'supplier_note']::text[], array['quality'::staff_role], 'executive'::staff_role, true, 'القيم الغذائية والحساسية والمورد — السعر نوع منفصل'),
-  ('ingredient.price', 'سعر مكوّن', 'المكوّنات', 'ops_ingredients', 'upsert'::change_strategy, array['key']::text[], array['price', 'price_quote_date']::text[], array['executive'::staff_role], 'executive'::staff_role, true, 'السعر يمسّ كل الأطباق اللي تستخدم المكوّن'),
+  ('gate.set', 'ختم بوابة اعتماد', 'بوابات الاعتماد', 'ops_gates', 'upsert'::change_strategy, array['sku', 'gate_index']::text[], array['status', 'note', 'approved_by_name', 'approved_at']::text[], array['quality'::staff_role, 'finance'::staff_role, 'executive'::staff_role], 'executive'::staff_role, true, 'ختم بوابة على صنف — يُطبَّق بعد الاعتماد فقط'),
+  ('ing_approval.set', 'اعتماد مكوّن', 'المكوّنات', 'ops_ing_approvals', 'upsert'::change_strategy, array['ing_key', 'approval_index']::text[], array['status', 'note', 'approved_by_name', 'approved_at']::text[], array['quality'::staff_role, 'finance'::staff_role, 'executive'::staff_role], 'executive'::staff_role, true, 'اعتماد مواصفة أو مورد أو حساسية أو سعر مكوّن'),
+  ('ingredient.specs', 'مواصفة مكوّن', 'المكوّنات', 'ops_ingredients', 'upsert'::change_strategy, array['key']::text[], array['kcal', 'protein', 'carb', 'fat', 'fiber', 'allergen_text', 'flags', 'source', 'hidden', 'supplier', 'supplier_note']::text[], array['kitchen'::staff_role, 'quality'::staff_role], 'executive'::staff_role, true, 'القيم الغذائية والحساسية والمورد — السعر نوع منفصل'),
+  ('ingredient.price', 'سعر مكوّن', 'المكوّنات', 'ops_ingredients', 'upsert'::change_strategy, array['key']::text[], array['price', 'price_quote_date']::text[], array['finance'::staff_role], 'executive'::staff_role, true, 'السعر يمسّ كل الأطباق اللي تستخدم المكوّن'),
   ('shelf_life.set', 'صلاحية صنف', 'الجودة', 'ops_shelf_life', 'upsert'::change_strategy, array['sku']::text[], array['hours']::text[], array['quality'::staff_role], 'executive'::staff_role, true, 'الصلاحية المعلنة بالساعات'),
   ('production.set', 'حصص الإنتاج', 'الإنتاج', 'ops_production', 'upsert'::change_strategy, array['day_index', 'slot']::text[], array['portions']::text[], array['kitchen'::staff_role], 'executive'::staff_role, true, 'عدد الحصص المخططة لخانة في يوم'),
-  ('units_sold.set', 'مبيعات صنف', 'هندسة المنيو', 'ops_units_sold', 'upsert'::change_strategy, array['sku']::text[], array['units']::text[], array['executive'::staff_role], 'executive'::staff_role, true, 'الوحدات المباعة — أساس تصنيف هندسة المنيو'),
+  ('units_sold.set', 'مبيعات صنف', 'هندسة المنيو', 'ops_units_sold', 'upsert'::change_strategy, array['sku']::text[], array['units']::text[], array['finance'::staff_role], 'executive'::staff_role, true, 'الوحدات المباعة — أساس تصنيف هندسة المنيو'),
   ('pilot.set', 'تجربة Pilot', 'بوابة المطبخ', 'ops_pilot_trials', 'upsert'::change_strategy, array['sku', 'trial_index']::text[], array['result', 'cooked_portion_g', 'trial_date', 'notes']::text[], array['quality'::staff_role], 'executive'::staff_role, true, 'نتيجة تجربة طبخ — تدخل في حساب بوابة المطبخ'),
   ('kitchen_gate.set', 'قرار الشيف', 'بوابة المطبخ', 'ops_kitchen_gate', 'upsert'::change_strategy, array['sku']::text[], array['chef_decision', 'chef_name', 'approved_at', 'note']::text[], array['kitchen'::staff_role], 'executive'::staff_role, true, 'قرار الشيف على جاهزية الصنف للإنتاج'),
   ('settings.save', 'إعدادات التكلفة والحدود', 'الإعدادات', 'ops_settings', 'upsert'::change_strategy, array['id']::text[], array['data']::text[], array['executive'::staff_role], 'executive'::staff_role, true, 'مضاعفات الحصص ونسب التكلفة وحدود الجودة وحد الإطلاق'),

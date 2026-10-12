@@ -14,17 +14,18 @@
 //    تمنعها هنا برسالة مفهومة.
 
 import { useState, useTransition } from "react";
-import { ChefHat, Lock, Rocket, ScrollText, ShieldCheck, TrendingUp } from "lucide-react";
+import { ChefHat, Crown, Lock, Rocket, ScrollText, ShieldCheck, TrendingUp } from "lucide-react";
 import { T } from "@/lib/kitchen-shared";
-import { ROLES, Role } from "@/lib/ops/roles";
+import { ALL_ROLES, ROLES, Role } from "@/lib/ops/roles";
 import { useStage } from "@/lib/ops/stage";
 import type { ChangeKind } from "@/lib/ops/changes";
 import { AXIS_KIND_DESC, type LaunchAxisDef } from "@/lib/ops/launch";
 
-const ROLE_ORDER: Role[] = ["executive", "kitchen", "quality"];
+const ROLE_ORDER: Role[] = ALL_ROLES;
 
 const ROLE_ICON: Record<Role, React.ReactNode> = {
-  executive: <TrendingUp size={11} />,
+  executive: <Crown size={11} />,
+  finance: <TrendingUp size={11} />,
   kitchen: <ChefHat size={11} />,
   quality: <ShieldCheck size={11} />,
 };
