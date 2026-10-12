@@ -264,6 +264,9 @@ create table ops_ingredients (
   source        text not null default '',          -- مصدر القيم الغذائية، لا المورد
   flags         jsonb not null default '{}'::jsonb,  -- {gluten:true, nuts:false, ...}
   hidden        text not null default '',
+  -- false = مؤرشف: ما يظهر في اختيار الوصفات ولا قائمة الشراء، ويبقى في
+  -- الوصفات القديمة فلا يتغيّر أي حساب تاريخي.
+  active        boolean not null default true,
   -- المورد: بوابة «مكوّنات وموردون» واعتماد «اعتماد المورد» بلا خانة يُكتب فيها
   -- المورد = اعتماد بلا اسم. الجودة تكتبه، والتنفيذي يكتب تاريخ عرض السعر.
   supplier         text not null default '',
@@ -286,6 +289,9 @@ create table ops_menu_items (
   ops_note     text not null default '',
   method       text not null default '',
   eng_group    text not null default '',
+  -- false = مؤرشف: يختفي من الشاشات والمنيو والجدول، ويبقى سجله وبواباته.
+  -- مستقل عن hidden في المكوّنات: ذاك إخفاء تشغيلي، وهذا إخراج من الخدمة.
+  active       boolean not null default true,
   sort_order   int not null default 0,
   updated_at   timestamptz not null default now()
 );
@@ -716,7 +722,10 @@ create index idx_ncr_status on safety_nonconformance(status, raised_at desc);
 -- اعتمد نفسه — ما نخفي الخطوة، نسجّلها.
 
 create type change_status as enum ('pending', 'applied', 'rejected', 'failed');
-create type change_strategy as enum ('upsert', 'insert', 'replace_lines');
+-- delete: حذف الصف بمفتاحه. قائمتها البيضاء هي key_columns وحدها — ما فيه
+-- patch يُكتب. مضافة للنوع، ولم يُسجَّل بعد أي نوع تغيير يستخدمها: فرع الحذف
+-- في private.apply_change لم يُطبَّق بعد (انظر الملاحظة فوق الدالّة).
+create type change_strategy as enum ('upsert', 'insert', 'replace_lines', 'delete');
 
 -- القائمة البيضاء. دالة التطبيق ما تكتب في أي جدول ولا عمود خارج الصف هنا،
 -- فحتى لو انبعث طلب مزوّر ما يقدر يلمس عموداً ما هو مكتوب في patch_columns.
@@ -1808,6 +1817,10 @@ begin
 end;
 $fn$;
 
+-- ملاحظة: فرع 'delete' لم يُضَف لهذه الدالّة بعد على قاعدة الإنتاج — ثلاث
+-- محاولات لتطبيقه انتهت بمهلة الموصّل. فالقيمة موجودة في النوع والأعمدة
+-- جاهزة، ولا نوع تغيير يستخدم الاستراتيجية، فلا شيء نصف موصول. يُطبَّق الفرع
+-- من محرر SQL في لوحة Supabase أو بـ supabase db push.
 create or replace function private.apply_change(p_kind text, p_key jsonb, p_patch jsonb)
 returns void
 language plpgsql
