@@ -1,8 +1,8 @@
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowLeft, ClipboardList, LogOut, ShieldCheck, TrendingUp, ChefHat, Users } from "lucide-react";
+import { ArrowLeft, ClipboardList, Lock, LogOut, ShieldCheck, TrendingUp, ChefHat, Users } from "lucide-react";
 import { T } from "@/lib/kitchen-shared";
-import { OPS_MODULES } from "@/lib/ops/modules";
+import { modulesForRole } from "@/lib/ops/modules";
 import { ROLES, can } from "@/lib/ops/roles";
 import { getStaffSession } from "@/lib/supabase/auth";
 import NotConfigured from "@/components/auth/NotConfigured";
@@ -23,7 +23,7 @@ export default async function AdminHome() {
   const session = await getStaffSession();
   if (!session) return <NotConfigured />;
   const role = session.role;
-  const modules = OPS_MODULES.filter((m) => can(role, m.view));
+  const modules = modulesForRole(role).filter((m) => can(role, m.view));
 
   return (
     <div style={{ background: T.bg, color: T.ink }} className="min-h-screen w-full flex flex-col items-center px-6 py-12">
@@ -71,16 +71,20 @@ export default async function AdminHome() {
           المتاح لدورك ({modules.length})
         </div>
         <div className="grid grid-cols-2 gap-2">
-          {modules.map((m) => (
-            <Link
-              key={m.href}
-              href={m.href}
-              className="rounded-xl px-3 py-2.5 text-xs font-bold"
-              style={{ background: T.surface, border: `1px solid ${T.border}`, color: T.ink }}
-            >
-              {m.label}
-            </Link>
-          ))}
+          {modules.map((m) => {
+            const editable = m.edit ? can(role, m.edit) : false;
+            return (
+              <Link
+                key={m.href}
+                href={m.href}
+                className="rounded-xl px-3 py-2.5 text-xs font-bold flex items-center gap-1.5"
+                style={{ background: T.surface, border: `1px solid ${T.border}`, color: editable ? T.ink : T.inkSoft }}
+              >
+                {!editable && <Lock size={10} className="shrink-0" style={{ opacity: 0.7 }} />}
+                {m.label}
+              </Link>
+            );
+          })}
         </div>
       </div>
 

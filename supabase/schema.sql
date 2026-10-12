@@ -1389,6 +1389,52 @@ create trigger reset_gates_on_recipe_change
   after insert or update or delete on ops_recipe_lines
   for each row execute function private.tg_reset_gates_on_recipe_change();
 
+-- ---------- البوابات تُختم بالترتيب ----------
+--
+-- بوابة ما تُعتمد قبل اللي قبلها. القاعدة هنا لا في الواجهة: الكتابة الفعلية
+-- تجي من private.apply_change وهي SECURITY DEFINER تتجاوز RLS، فشرط في
+-- الواجهة وحدها ما يمنع شي. المحفّز يمنع، والواجهة تشرح وتقفل الزر.
+--
+-- الشرط على الاعتماد وحده: الإيقاف والإرجاع للمعلّق مسموحان في أي وقت ومن أي
+-- مرحلة — منع قسمٍ من تسجيل عيب شافه أسوأ من بوابة تُختم خارج دورها.
+--
+-- والصفوف المختومة خارج الترتيب قبل هذا المحفّز تبقى كما هي: الحكم على كتابة
+-- جديدة لا على ماضٍ، وإرجاعها قرار للأقسام.
+
+create or replace function private.tg_enforce_gate_order() returns trigger
+language plpgsql security definer set search_path = public as $fn$
+declare
+  v_blocker text;
+begin
+  if new.status is distinct from 'READY' then
+    return new;
+  end if;
+
+  select d.label into v_blocker
+    from ops_gate_defs d
+   where d.active
+     and d.gate_index < new.gate_index
+     and not exists (
+       select 1 from ops_gates g
+        where g.sku = new.sku
+          and g.gate_index = d.gate_index
+          and g.status = 'READY'
+     )
+   order by d.gate_index
+   limit 1;
+
+  if v_blocker is not null then
+    raise exception 'البوابات تُختم بالترتيب: «%» ما اعتُمدت بعد', v_blocker
+      using errcode = 'check_violation';
+  end if;
+
+  return new;
+end $fn$;
+
+create trigger trg_gate_order
+  before insert or update on ops_gates
+  for each row execute function private.tg_enforce_gate_order();
+
 -- ---------- سلامة الغذاء: الحكم على القراءة وفصل التوقيعين ----------
 --
 -- لو خلّينا «ناجح/راسب» حقلاً يملأه الموظف، صار بإمكانه يكتب «ناجح» على قراءة

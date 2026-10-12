@@ -17,6 +17,7 @@ import { useCallback, useMemo } from "react";
 import { useDraft } from "@/lib/ops/draft";
 import { useOps } from "@/lib/ops/store";
 import { changedFields } from "@/lib/ops/changes";
+import { gateOrderBlocker } from "@/lib/ops/engine";
 import type { GateStatus, IngType, PilotResult, Settings } from "@/lib/ops/engine";
 import type { ActionResult } from "@/lib/ops/types";
 
@@ -107,7 +108,18 @@ export function useStage(): StageApi {
         const def = ops.data.gateDefs.find((d) => d.index === gateIndex);
         if (!def) return Promise.resolve(no("البوابة غير معرّفة"));
         if (status === "HOLD" && !note.trim()) return Promise.resolve(no("سبب الإيقاف إجباري"));
-        const current = ops.skuMap.get(skuId)?.gates[gateIndex] ?? "PENDING";
+        const view = ops.skuMap.get(skuId);
+        // البوابات بالترتيب. نمسكها هنا عشان الموظف يشوف السبب وهو يضغط، لا
+        // بعد ما يرسل ويرجع طلبه «فشل تطبيقه». والمنع الفعلي في القاعدة.
+        if (status === "READY" && view) {
+          const blocker = gateOrderBlocker(ops.data.gateDefs, view.gates, gateIndex);
+          if (blocker) {
+            return Promise.resolve(
+              no(`البوابات تُختم بالترتيب: «${blocker.label}» ما اعتُمدت بعد`),
+            );
+          }
+        }
+        const current = view?.gates[gateIndex] ?? "PENDING";
         return put(
           "gate.set",
           { sku: skuId, gate_index: gateIndex },

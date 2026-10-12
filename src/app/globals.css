@@ -50,3 +50,12 @@ body {
   font-family: var(--font-poppins), var(--font-tajawal), system-ui, sans-serif;
   font-feature-settings: "tnum" 1;
 }
+
+/* أي حقل أو زر مقفول يقول إنه مقفول بمؤشّر الفأرة كمان، لا بالبهتان وحده.
+   البهتان يُقرأ «جاري التحميل»؛ مؤشّر المنع يُقرأ «مو لك». */
+button:disabled,
+input:disabled,
+select:disabled,
+textarea:disabled {
+  cursor: not-allowed;
+}

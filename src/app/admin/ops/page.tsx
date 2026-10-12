@@ -2,11 +2,11 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { ArrowLeft, CheckCircle2, AlertTriangle, ClipboardCheck, Layers, ShieldCheck, History, RotateCcw, Users, Eye, Pencil } from "lucide-react";
+import { ArrowLeft, CheckCircle2, AlertTriangle, ClipboardCheck, Layers, ShieldCheck, History, RotateCcw, Users, Lock, Pencil } from "lucide-react";
 import { SECTIONS, integrityChecks } from "@/lib/ops/engine";
 import { PERMISSION_ROWS, ROLES, Role, can, MATRIX } from "@/lib/ops/roles";
 import { useSession } from "@/lib/ops/session";
-import { OPS_MODULES } from "@/lib/ops/modules";
+import { modulesForRole } from "@/lib/ops/modules";
 import { useOps } from "@/lib/ops/store";
 import * as actions from "./actions";
 import { Card, CardTitle, Kpi, Loading, OpsShell, PENDING_COLOR, T, pct, sar, StatusBadge } from "@/components/ops/ui";
@@ -37,7 +37,7 @@ export default function OpsHub() {
   const underMargin = ops.computed.filter((c) => c.marginAlert).length;
   const checks = integrityChecks(ops.data);
   const ingTotal = ops.data.ingredients.length;
-  const modules = OPS_MODULES.filter((m) => can(role, m.view));
+  const modules = modulesForRole(role).filter((m) => can(role, m.view));
   const holds = ops.skus.filter((s) => s.quality.status === "HOLD");
 
   return (
@@ -76,8 +76,8 @@ export default function OpsHub() {
                     className="inline-flex items-center gap-1 text-[10px] font-bold rounded-full px-2 py-0.5"
                     style={editable ? { background: T.goodTint, color: T.good } : { background: "#F3EFEC", color: T.inkSoft }}
                   >
-                    {editable ? <Pencil size={10} /> : <Eye size={10} />}
-                    {editable ? "تعديل" : "عرض"}
+                    {editable ? <Pencil size={10} /> : <Lock size={10} />}
+                    {editable ? "تعديل" : "عرض فقط"}
                   </span>
                 </div>
                 <div className="text-[11px] mt-1" style={{ color: T.inkSoft }}>{m.desc}</div>

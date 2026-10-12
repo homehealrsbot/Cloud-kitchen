@@ -167,6 +167,22 @@ export function activeIngApprovals(defs: readonly IngApprovalDef[]): IngApproval
   return defs.filter((d) => d.active).sort((a, b) => a.index - b.index);
 }
 
+/**
+ * البوابات تُختم بالترتيب: أول بوابة نشطة قبل `index` ما اعتُمدت بعد، أو null
+ * إذا الطريق فاضي. نفس الشرط حرفياً في محفّز private.tg_enforce_gate_order
+ * على ops_gates — الواجهة تشرح، والقاعدة تمنع.
+ *
+ * الشرط على الاعتماد وحده: الإيقاف مسموح في أي وقت ومن أي مرحلة، لأن منع
+ * القسم من تسجيل عيب شافه أسوأ من بوابة تُختم خارج دورها.
+ */
+export function gateOrderBlocker(
+  defs: readonly GateDef[],
+  gates: Readonly<Record<number, GateStatus>>,
+  index: number,
+): GateDef | null {
+  return activeGates(defs).find((d) => d.index < index && gates[d.index] !== "READY") ?? null;
+}
+
 /** أول بوابة نشطة من نوع معيّن، أو null إذا القسم شالها. */
 export function gateOfKind(defs: readonly GateDef[], kind: GateKind): GateDef | null {
   return activeGates(defs).find((d) => d.kind === kind) ?? null;

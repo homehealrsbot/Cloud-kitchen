@@ -6,12 +6,12 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { ReactNode, useState } from "react";
-import { ChevronRight, Eye, Lock, Pencil, Printer } from "lucide-react";
+import { ChevronRight, Lock, Pencil, Printer } from "lucide-react";
 import { T } from "@/lib/kitchen-shared";
 import { GateStatus, SkuStatus, STATUS_LABEL } from "@/lib/ops/engine";
 import { ROLES, can } from "@/lib/ops/roles";
 import { useSession } from "@/lib/ops/session";
-import { OPS_MODULES } from "@/lib/ops/modules";
+import { OPS_STAGES, modulesForRole } from "@/lib/ops/modules";
 
 export { T };
 
@@ -44,7 +44,12 @@ export function OpsShell({
   const session = useSession();
   const pathname = usePathname();
   const role = session?.role ?? null;
-  const modules = OPS_MODULES.filter((m) => can(role, m.view));
+  // اللي يخصّ الدور، ومن ضمنه اللي تسمح به صلاحيته — الشرطان معاً.
+  const modules = modulesForRole(role).filter((m) => can(role, m.view));
+  // مرتّبة بمراحل التشغيل: الإدخال ← التجربة ← الاعتماد ← التشغيل ← المخرجات
+  const groups = OPS_STAGES
+    .map((s) => ({ key: s.key, label: s.label, items: modules.filter((m) => m.stage === s.key) }))
+    .filter((g) => g.items.length > 0);
   return (
     <div style={{ background: T.bg, color: T.ink }} className="min-h-screen w-full">
       <div className="w-full border-b print:hidden" style={{ borderColor: T.border, background: T.surface }}>
@@ -70,10 +75,26 @@ export function OpsShell({
             </Link>
           </div>
         </div>
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 pb-3 flex items-center gap-2 overflow-x-auto">
-          <NavChip href="/admin/ops" label="مركز العمليات" active={pathname === "/admin/ops"} />
-          {modules.map((m) => (
-            <NavChip key={m.href} href={m.href} label={m.label} active={pathname === m.href} />
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 pb-3 flex items-center gap-3 overflow-x-auto">
+          <NavChip href="/admin/ops" label="مركز العمليات" active={pathname === "/admin/ops"} locked={false} />
+          {groups.map((g) => (
+            <div key={g.key} className="flex items-center gap-2 shrink-0">
+              <span
+                className="shrink-0 text-[10px] font-bold whitespace-nowrap pr-1"
+                style={{ color: T.inkSoft, borderRight: `1px solid ${T.border}`, paddingRight: 10 }}
+              >
+                {g.label}
+              </span>
+              {g.items.map((m) => (
+                <NavChip
+                  key={m.href}
+                  href={m.href}
+                  label={m.label}
+                  active={pathname === m.href}
+                  locked={!(m.edit && can(role, m.edit))}
+                />
+              ))}
+            </div>
           ))}
         </div>
       </div>
@@ -82,13 +103,24 @@ export function OpsShell({
   );
 }
 
-function NavChip({ href, label, active }: { href: string; label: string; active: boolean }) {
+/**
+ * قطعة في الشريط. `locked` تعني «تنفتح للقراءة، ما تنفتح للتعديل» — وهذا
+ * اللي يحتاج يبيّن قبل الضغط لا بعده: الموظف يعرف من الشريط إيش يخصّه.
+ */
+function NavChip({ href, label, active, locked }: { href: string; label: string; active: boolean; locked: boolean }) {
+  const style = active
+    ? { background: T.brand, color: "#fff" }
+    : locked
+      ? { background: "#F3EFEC", color: T.inkSoft, border: `1px solid ${T.border}` }
+      : { background: T.brandTint, color: T.brand };
   return (
     <Link
       href={href}
-      className="shrink-0 rounded-lg px-3 py-1.5 text-xs font-bold whitespace-nowrap"
-      style={active ? { background: T.brand, color: "#fff" } : { background: T.brandTint, color: T.brand }}
+      title={locked ? LOCKED_FIELD_TITLE : undefined}
+      className="shrink-0 rounded-lg px-3 py-1.5 text-xs font-bold whitespace-nowrap inline-flex items-center gap-1"
+      style={style}
     >
+      {locked && <Lock size={10} style={{ opacity: active ? 0.85 : 0.7 }} />}
       {label}
     </Link>
   );
@@ -160,7 +192,7 @@ export function AccessNote({ canEdit, editText, viewText }: { canEdit: boolean; 
       {canEdit ? (
         <Pencil size={15} style={{ color: T.brand }} className="mt-0.5 shrink-0" />
       ) : (
-        <Eye size={15} style={{ color: T.inkSoft }} className="mt-0.5 shrink-0" />
+        <Lock size={15} style={{ color: T.inkSoft }} className="mt-0.5 shrink-0" />
       )}
       <p className="text-[12px] leading-relaxed" style={{ color: canEdit ? T.brand : T.inkSoft }}>
         {canEdit ? editText : viewText}
@@ -239,7 +271,7 @@ export function NumInput({
     }
     onCommit(v);
   }
-  return (
+  const input = (
     <input
       type="number"
       inputMode="decimal"
@@ -254,11 +286,22 @@ export function NumInput({
       onKeyDown={(e) => {
         if (e.key === "Enter") (e.target as HTMLInputElement).blur();
       }}
-      className="rounded-lg border px-2 py-1.5 text-sm text-center font-bold disabled:opacity-60"
+      className="rounded-lg border px-2 py-1.5 text-sm text-center font-bold disabled:opacity-60 disabled:cursor-not-allowed"
       style={{ borderColor: T.border, width, background: disabled ? T.bg : "#FFFDF5", color: T.ink }}
     />
   );
+  if (!disabled) return input;
+  // الحقل الرمادي وحده يُقرأ «فاضي» أو «تعطّل». القفل يقول السبب: مو دورك.
+  return (
+    <span className="relative inline-flex items-center align-middle" title={LOCKED_FIELD_TITLE}>
+      {input}
+      <Lock size={10} className="absolute left-1.5 pointer-events-none" style={{ color: T.inkSoft }} />
+    </span>
+  );
 }
+
+/** نص واحد يشرح أي حقل أو زر مقفول — عشان ما يختلف من شاشة لشاشة. */
+export const LOCKED_FIELD_TITLE = "عرض فقط — هذا من صلاحية قسم ثاني";
 
 export function Th({ children, className = "" }: { children?: ReactNode; className?: string }) {
   return (
@@ -313,17 +356,27 @@ export function TriState({
   onChange,
   disabled,
   allowHold = true,
+  locked = [],
+  lockedTitle,
 }: {
   value: GateStatus;
   onChange: (v: GateStatus) => void;
   disabled?: boolean;
   allowHold?: boolean;
+  /** خيارات تظهر لكن ما تُضغط — مقفولة بشرط، لا مخفية. الاختفاء يربك. */
+  locked?: GateStatus[];
+  lockedTitle?: string;
 }) {
   const options: GateStatus[] = allowHold ? ["READY", "PENDING", "HOLD"] : ["READY", "PENDING"];
   if (disabled) {
     const c = statusColors(value);
     return (
-      <span className="text-[10px] font-bold rounded-full px-2.5 py-1 whitespace-nowrap" style={{ background: c.bg, color: c.fg }}>
+      <span
+        title={LOCKED_FIELD_TITLE}
+        className="inline-flex items-center gap-1 text-[10px] font-bold rounded-full px-2.5 py-1 whitespace-nowrap"
+        style={{ background: c.bg, color: c.fg }}
+      >
+        <Lock size={9} style={{ opacity: 0.75 }} />
         {GATE_LABEL[value]}
       </span>
     );
@@ -333,14 +386,24 @@ export function TriState({
       {options.map((o) => {
         const c = statusColors(o);
         const active = o === value;
+        const isLocked = locked.includes(o) && !active;
         return (
           <button
             key={o}
-            onClick={() => !active && onChange(o)}
+            onClick={() => !active && !isLocked && onChange(o)}
+            disabled={isLocked}
             aria-pressed={active}
-            className="px-2.5 py-1 text-[10px] font-bold whitespace-nowrap"
-            style={active ? { background: c.fg, color: "#fff" } : { background: T.surface, color: T.inkSoft }}
+            title={isLocked ? lockedTitle : undefined}
+            className="px-2.5 py-1 text-[10px] font-bold whitespace-nowrap flex items-center gap-1 disabled:cursor-not-allowed"
+            style={
+              active
+                ? { background: c.fg, color: "#fff" }
+                : isLocked
+                  ? { background: T.bg, color: T.inkSoft, opacity: 0.5 }
+                  : { background: T.surface, color: T.inkSoft }
+            }
           >
+            {isLocked && <Lock size={9} />}
             {GATE_LABEL[o]}
           </button>
         );
