@@ -1517,6 +1517,14 @@ declare
   v_sku text := coalesce(new.sku, old.sku);
   v_labels text;
 begin
+  -- حذف الصنف يُسقط أسطر وصفته، فيشتغل هذا المحفّز على صنفٍ اختفى في نفس
+  -- العبارة فيكتب في ops_gates وينتهك مفتاحه الأجنبي — ويفشل الحذف برسالة
+  -- لا علاقة لها بسببه. والخروج صحيح منطقياً كذلك: «رجّع البوابات للاعتماد»
+  -- بلا معنى لصنف لم يبقَ.
+  if not exists (select 1 from ops_menu_items where id = v_sku) then
+    return null;
+  end if;
+
   with reset as (
     update ops_gates g
        set status = 'PENDING',
@@ -1596,6 +1604,68 @@ end $fn$;
 create trigger trg_gate_order
   before insert or update on ops_gates
   for each row execute function private.tg_enforce_gate_order();
+
+-- ---------- الحذف النهائي للنطيف وحده ----------
+--
+-- الأرشفة (active = false) هي طريق الإخراج المعتاد: الصف يختفي من الشاشات
+-- ويبقى سجله. والحذف النهائي مسموح لما لا يرتبط بشيء — مسوّدة لم تُعتمد ولم
+-- تُبَع ولم تدخل جدولاً. والحرس محفّز لا شرط في الواجهة: الحذف يجي من
+-- apply_change وهي SECURITY DEFINER تتجاوز RLS، ومن محرر SQL كذلك.
+create or replace function private.tg_guard_menu_item_delete() returns trigger
+language plpgsql security definer set search_path = public as $fn$
+declare v_why text;
+begin
+  if exists (select 1 from ops_gates where sku = old.id and status = 'READY') then
+    v_why := 'له بوابات اعتماد مختومة';
+  elsif exists (select 1 from ops_units_sold where sku = old.id and units > 0) then
+    v_why := 'له مبيعات مسجّلة';
+  elsif exists (select 1 from ops_rotation where sku = old.id) then
+    v_why := 'مُدرج في جدول الدوران';
+  elsif exists (select 1 from ops_yield_checks where sku = old.id) then
+    v_why := 'له قياسات yield مسجّلة';
+  end if;
+
+  if v_why is not null then
+    raise exception 'ما ينفع حذف «%» نهائياً: % — أرشفه بـ active=false ويبقى سجله', old.id, v_why
+      using errcode = 'foreign_key_violation';
+  end if;
+
+  -- نُسقط الأبناء الذين يحملون محفّزات بأنفسنا والصنف ما زال قائماً: التسلسل
+  -- يُشغّل محفّزاتها بعد اختفائه فتكتب في ops_gates وتنتهك مفتاحه.
+  delete from ops_pilot_trials where sku = old.id;
+  delete from ops_kitchen_gate  where sku = old.id;
+  delete from ops_recipe_lines  where sku = old.id;
+  delete from ops_gates         where sku = old.id;
+
+  return old;
+end $fn$;
+
+create trigger guard_menu_item_delete
+  before delete on ops_menu_items
+  for each row execute function private.tg_guard_menu_item_delete();
+
+-- المكوّن المستخدم في وصفة يمنعه المفتاح الأجنبي أصلاً. وهذا يغطي ما لا
+-- يغطيه: اعتماد مختوم عليه، أو سعر مُدخل يعني أن المالية عملت عليه.
+create or replace function private.tg_guard_ingredient_delete() returns trigger
+language plpgsql security definer set search_path = public as $fn$
+declare v_why text;
+begin
+  if exists (select 1 from ops_ing_approvals where ing_key = old.key and status = 'READY') then
+    v_why := 'له اعتمادات مختومة';
+  elsif coalesce(old.price, 0) > 0 then
+    v_why := 'له سعر مُدخل';
+  end if;
+
+  if v_why is not null then
+    raise exception 'ما ينفع حذف «%» نهائياً: % — أرشفه بـ active=false', old.key, v_why
+      using errcode = 'foreign_key_violation';
+  end if;
+  return old;
+end $fn$;
+
+create trigger guard_ingredient_delete
+  before delete on ops_ingredients
+  for each row execute function private.tg_guard_ingredient_delete();
 
 -- ---------- سلامة الغذاء: الحكم على القراءة وفصل التوقيعين ----------
 --

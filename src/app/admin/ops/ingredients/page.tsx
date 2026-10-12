@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useState } from "react";
-import { Search, ChevronDown, ChevronUp, Lock, Save } from "lucide-react";
+import { Search, ChevronDown, ChevronUp, Lock, Save, Plus, Archive, RotateCcw } from "lucide-react";
 import { ALLERGENS, AllergenKey, IngApprovalDef, Ingredient } from "@/lib/ops/engine";
 import { ROLES, Role, can, isRole, sealsGate } from "@/lib/ops/roles";
 import { useSession } from "@/lib/ops/session";
@@ -13,6 +13,7 @@ type Filter = "all" | "allergen" | "pending";
 
 export default function IngredientsPage() {
   const ops = useOps();
+  const stage = useStage();
   const session = useSession();
   const role = session?.role ?? null;
   const canSpecs = can(role, "ingredients.editSpecs");
@@ -24,6 +25,12 @@ export default function IngredientsPage() {
   const [filter, setFilter] = useState<Filter>("all");
   const [open, setOpen] = useState<string | null>(null);
   const [error, setError] = useState("");
+  // الإضافة للمالك والمطبخ (هو يُدخل المكوّنات)، والأرشفة للمالك
+  const canAdd = can(role, "ingredients.editSpecs");
+  const canArchive = can(role, "gateDefs.manage");
+  const [showArchived, setShowArchived] = useState(false);
+  const [nKey, setNKey] = useState("");
+  const [nName, setNName] = useState("");
 
   if (!ops.ready) {
     return (
@@ -37,6 +44,8 @@ export default function IngredientsPage() {
   for (const l of ops.data.recipes) usage.set(l.ing, (usage.get(l.ing) ?? 0) + 1);
 
   const list = ops.data.ingredients.filter((ing) => {
+    // المؤرشف مخفي افتراضياً — موجود في الوصفات القديمة لكنه خارج الخدمة
+    if (!ing.active && !showArchived) return false;
     if (q.trim() && !(`${ing.name} ${ing.nameEn}`.toLowerCase().includes(q.trim().toLowerCase()))) return false;
     if (filter === "allergen") return ALLERGENS.some((a) => ing.flags[a.key]) || !!ing.hidden;
     if (filter === "pending") return ops.ingApprovals(ing.key).some((s) => s !== "READY");
@@ -46,8 +55,19 @@ export default function IngredientsPage() {
   const anyEdit = canSpecs || canPrice || myApprovals.length > 0;
   const cols = 8 + (showFinance ? 1 : 0);
 
+  async function addIngredient() {
+    setError("");
+    const r = await stage.createIngredient({
+      key: nKey, name: nName, kcal: 0, protein: 0, carb: 0, fat: 0,
+    });
+    if (!r.ok) { setError(r.error ?? "تعذّر"); return; }
+    setNKey(""); setNName("");
+  }
+
+  const archivedCount = ops.data.ingredients.filter((i) => !i.active).length;
+
   return (
-    <OpsShell title="المكوّنات" subtitle={`${ops.data.ingredients.length} مكوّن — القيم لكل 100 جم (نيء ما لم يُذكر)`}>
+    <OpsShell title="المكوّنات" subtitle={`${ops.data.ingredients.filter((i) => i.active).length} مكوّن — القيم لكل 100 جم (نيء ما لم يُذكر)`}>
       <AccessNote
         canEdit={anyEdit}
         editText={
@@ -57,6 +77,48 @@ export default function IngredientsPage() {
         }
         viewText="عرض فقط — القيم الغذائية والحساسية من صلاحية الجودة، والأسعار من صلاحية الإدارة التنفيذية."
       />
+
+      {canAdd && (
+        <Card className="mb-3">
+          <div className="text-[11px] font-bold mb-2 flex items-center gap-1.5">
+            <Plus size={13} /> مكوّن جديد
+          </div>
+          <div className="flex flex-wrap items-end gap-2">
+            <label className="flex flex-col gap-1">
+              <span className="text-[10px]" style={{ color: T.inkSoft }}>المفتاح (إنجليزي)</span>
+              <input
+                value={nKey}
+                onChange={(e) => setNKey(e.target.value)}
+                placeholder="quinoa"
+                dir="ltr"
+                className="rounded-lg border px-2 py-1.5 text-sm font-bold"
+                style={{ borderColor: T.border, width: 150, background: "#FFFDF5", color: T.ink }}
+              />
+            </label>
+            <label className="flex flex-col gap-1">
+              <span className="text-[10px]" style={{ color: T.inkSoft }}>الاسم</span>
+              <input
+                value={nName}
+                onChange={(e) => setNName(e.target.value)}
+                placeholder="كينوا"
+                className="rounded-lg border px-2 py-1.5 text-sm font-bold"
+                style={{ borderColor: T.border, width: 180, background: "#FFFDF5", color: T.ink }}
+              />
+            </label>
+            <button
+              onClick={addIngredient}
+              className="rounded-lg px-3 py-1.5 text-[11px] font-bold"
+              style={{ background: T.brand, color: "#fff" }}
+            >
+              أضف للمسودة
+            </button>
+          </div>
+          <div className="text-[10px] mt-2 leading-relaxed" style={{ color: T.inkSoft }}>
+            يُضاف بقيم صفرية، وتُدخل قيمه الغذائية والحساسية بفتحه من الجدول بعد إرساله.
+            والسعر ليس منها — تُدخله الإدارة المالية.
+          </div>
+        </Card>
+      )}
 
       <div className="flex items-center gap-2 mb-4 flex-wrap">
         <div className="flex items-center gap-2 rounded-xl border px-3 py-2 flex-1 min-w-[200px]" style={{ borderColor: T.border, background: T.surface }}>
@@ -72,6 +134,16 @@ export default function IngredientsPage() {
         <Pill active={filter === "allergen"} onClick={() => setFilter("allergen")}>فيه حساسية</Pill>
         <Pill active={filter === "pending"} onClick={() => setFilter("pending")}>اعتماد ناقص</Pill>
       </div>
+
+      {archivedCount > 0 && (
+        <button
+          onClick={() => setShowArchived((v) => !v)}
+          className="text-[11px] font-bold mb-3 rounded-lg px-3 py-1.5"
+          style={{ background: showArchived ? T.brandTint : T.bg, color: showArchived ? T.brand : T.inkSoft }}
+        >
+          {showArchived ? "إخفاء المؤرشف" : `إظهار المؤرشف (${archivedCount})`}
+        </button>
+      )}
 
       <Card>
         <ErrorNote text={error} />
@@ -137,7 +209,26 @@ export default function IngredientsPage() {
                       </div>
                     </Td>
                     {showFinance && <Td strong>{sar(ing.price)}</Td>}
-                    <Td>{isOpen ? <ChevronUp size={14} style={{ color: T.inkSoft }} /> : <ChevronDown size={14} style={{ color: T.inkSoft }} />}</Td>
+                    <Td>
+                      <span className="inline-flex items-center gap-1.5">
+                        {canArchive && (
+                          <button
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              setError("");
+                              const r = await stage.archiveIngredient(ing.key, !ing.active);
+                              if (!r.ok) setError(r.error ?? "تعذّر");
+                            }}
+                            title={ing.active ? "أرشفة — يخرج من اختيار الوصفات ويبقى في القديمة" : "إرجاع من الأرشيف"}
+                            className="inline-flex items-center rounded-lg px-1.5 py-1"
+                            style={ing.active ? { background: T.warnTint, color: T.warn } : { background: T.goodTint, color: T.good }}
+                          >
+                            {ing.active ? <Archive size={11} /> : <RotateCcw size={11} />}
+                          </button>
+                        )}
+                        {isOpen ? <ChevronUp size={14} style={{ color: T.inkSoft }} /> : <ChevronDown size={14} style={{ color: T.inkSoft }} />}
+                      </span>
+                    </Td>
                   </tr>
                   {isOpen && (
                     <tr>

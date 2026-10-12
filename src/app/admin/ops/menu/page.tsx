@@ -2,20 +2,29 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Search, UtensilsCrossed, TrendingDown } from "lucide-react";
+import { Search, UtensilsCrossed, TrendingDown, Plus, Archive } from "lucide-react";
 import { SECTIONS, SkuStatus } from "@/lib/ops/engine";
 import { can } from "@/lib/ops/roles";
+import { useStage } from "@/lib/ops/stage";
 import { useSession } from "@/lib/ops/session";
 import { useOps } from "@/lib/ops/store";
-import { Card, CardTitle, Loading, OpsShell, Pill, StatusBadge, T, TableWrap, Td, Th, num, pct, sar } from "@/components/ops/ui";
+import { Card, CardTitle, ErrorNote, Loading, OpsShell, Pill, StatusBadge, T, TableWrap, Td, Th, num, pct, sar } from "@/components/ops/ui";
 
 type StatusFilter = "all" | SkuStatus;
 
 export default function OpsMenuPage() {
   const ops = useOps();
+  const stage = useStage();
   const session = useSession();
   const showFinance = can(session?.role, "finance.view");
+  // الإضافة والأرشفة للمالك: هيكل المنيو قراره
+  const canManage = can(session?.role, "gateDefs.manage");
   const [q, setQ] = useState("");
+  const [err, setErr] = useState("");
+  const [nId, setNId] = useState("");
+  const [nName, setNName] = useState("");
+  const [nSection, setNSection] = useState(SECTIONS[0]);
+  const [nCategory, setNCategory] = useState("");
   const [section, setSection] = useState("all");
   const [status, setStatus] = useState<StatusFilter>("all");
 
@@ -35,8 +44,49 @@ export default function OpsMenuPage() {
   });
   const weakest = [...ops.computed].sort((a, b) => a.contributionPct - b.contributionPct).slice(0, 5);
 
+  async function addItem() {
+    setErr("");
+    const r = await stage.createMenuItem({ id: nId, section: nSection, name: nName, category: nCategory });
+    if (!r.ok) { setErr(r.error ?? "تعذّر"); return; }
+    setNId(""); setNName(""); setNCategory("");
+  }
+
   return (
     <OpsShell title="المنيو" subtitle={`${ops.skus.length} صنف — الحالة تجي من بوابات الجودة، وما يُباع إلا «جاهز للبيع»`}>
+      {canManage && (
+        <Card className="mb-3">
+          <CardTitle icon={<Plus size={16} />}>صنف جديد</CardTitle>
+          <div className="flex flex-wrap items-end gap-2">
+            <NewField label="الرمز" value={nId} onChange={setNId} w={90} placeholder="C54" />
+            <NewField label="الاسم" value={nName} onChange={setNName} w={200} />
+            <label className="flex flex-col gap-1">
+              <span className="text-[10px]" style={{ color: T.inkSoft }}>القسم</span>
+              <select
+                value={nSection}
+                onChange={(e) => setNSection(e.target.value)}
+                className="rounded-lg border px-2 py-1.5 text-sm font-bold"
+                style={{ borderColor: T.border, background: "#FFFDF5", color: T.ink }}
+              >
+                {SECTIONS.map((x) => <option key={x} value={x}>{x}</option>)}
+              </select>
+            </label>
+            <NewField label="التصنيف" value={nCategory} onChange={setNCategory} w={120} placeholder="دجاج" />
+            <button
+              onClick={addItem}
+              className="rounded-lg px-3 py-1.5 text-[11px] font-bold"
+              style={{ background: T.brand, color: "#fff" }}
+            >
+              أضف للمسودة
+            </button>
+          </div>
+          {err && <ErrorNote text={err} />}
+          <div className="text-[10px] mt-2 leading-relaxed" style={{ color: T.inkSoft }}>
+            الصنف الجديد يبدأ بلا بوابات مختومة، فما يُبَاع حتى تُعتمد بوابات الجودة.
+            والوصفة تُضاف من شاشة الوصفات بعد إرساله.
+          </div>
+        </Card>
+      )}
+
       <div className="flex items-center gap-2 mb-3 flex-wrap">
         <div className="flex items-center gap-2 rounded-xl border px-3 py-2 flex-1 min-w-[200px]" style={{ borderColor: T.border, background: T.surface }}>
           <Search size={14} style={{ color: T.inkSoft }} />
@@ -73,6 +123,7 @@ export default function OpsMenuPage() {
               {showFinance && <Th>هامش</Th>}
               {showFinance && <Th>سعر Performance</Th>}
               <Th>العائق الأول</Th>
+              {canManage && <Th>الأرشفة</Th>}
             </tr>
           </thead>
           <tbody>
@@ -105,6 +156,22 @@ export default function OpsMenuPage() {
                   )}
                   {showFinance && <Td>{c.isMain ? sar(c.pricePerf, 0) : "—"}</Td>}
                   <Td><span style={{ color: T.inkSoft }}>{v.quality.blocker || "—"}</span></Td>
+                  {canManage && (
+                    <Td>
+                      <button
+                        onClick={async () => {
+                          setErr("");
+                          const r = await stage.archiveMenuItem(c.item.id, false, c.item.name);
+                          if (!r.ok) setErr(r.error ?? "تعذّر");
+                        }}
+                        title="يختفي من كل الشاشات والمنيو ويبقى سجله وبواباته"
+                        className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-bold"
+                        style={{ background: T.warnTint, color: T.warn }}
+                      >
+                        <Archive size={11} /> أرشفة
+                      </button>
+                    </Td>
+                  )}
                 </tr>
               );
             })}
@@ -146,5 +213,22 @@ export default function OpsMenuPage() {
         </Card>
       )}
     </OpsShell>
+  );
+}
+
+function NewField({
+  label, value, onChange, w, placeholder,
+}: { label: string; value: string; onChange: (v: string) => void; w: number; placeholder?: string }) {
+  return (
+    <label className="flex flex-col gap-1">
+      <span className="text-[10px]" style={{ color: T.inkSoft }}>{label}</span>
+      <input
+        value={value}
+        placeholder={placeholder}
+        onChange={(e) => onChange(e.target.value)}
+        className="rounded-lg border px-2 py-1.5 text-sm font-bold"
+        style={{ borderColor: T.border, width: w, background: "#FFFDF5", color: T.ink }}
+      />
+    </label>
   );
 }

@@ -45,6 +45,13 @@ export interface StageApi {
    * مرجع الـyield. يمرّ بمسار الاعتماد كأي تعريف لا كواقعة: هو رقم يُحكم به
    * على عمل المطبخ، فتغييره يستحق أثراً في السجل.
    */
+  /** أرشفة صنف أو إرجاعه. الحذف النهائي نوع منفصل للمسوّدات وحدها. */
+  archiveMenuItem: (skuId: string, active: boolean, name: string) => Promise<ActionResult>;
+  archiveIngredient: (key: string, active: boolean) => Promise<ActionResult>;
+  createMenuItem: (input: { id: string; section: string; name: string; category: string }) => Promise<ActionResult>;
+  createIngredient: (input: {
+    key: string; name: string; kcal: number; protein: number; carb: number; fat: number;
+  }) => Promise<ActionResult>;
   setYieldSpec: (
     skuId: string,
     input: { rawPortionG: number; cookedPortionG: number; note: string },
@@ -194,6 +201,67 @@ export function useStage(): StageApi {
           { hours: Math.round(Number(hours)) },
           { hours: cur },
           `${skuName(skuId)} · الصلاحية → ${Math.round(Number(hours))} ساعة`,
+        );
+      },
+
+      archiveMenuItem(skuId, active, name) {
+        return put(
+          "menu_item.archive",
+          { id: skuId },
+          { active },
+          { active: !active },
+          `${name || skuId} · ${active ? "إرجاع من الأرشيف" : "أرشفة — يختفي من الشاشات ويبقى سجله"}`,
+        );
+      },
+
+      archiveIngredient(key, active) {
+        return put(
+          "ingredient.archive",
+          { key },
+          { active },
+          { active: !active },
+          `${ingName(key)} · ${active ? "إرجاع من الأرشيف" : "أرشفة"}`,
+        );
+      },
+
+      createMenuItem(input) {
+        const id = input.id.trim().toUpperCase();
+        if (!/^[A-Z]{1,2}[0-9]{2,3}$/.test(id)) {
+          return Promise.resolve(no("رمز الصنف مثل C01 أو M12"));
+        }
+        if (ops.data.menu.some((m) => m.id === id)) {
+          return Promise.resolve(no(`الرمز ${id} مستخدم`));
+        }
+        if (!input.name.trim()) return Promise.resolve(no("اسم الصنف مطلوب"));
+        if (!input.section.trim()) return Promise.resolve(no("القسم مطلوب"));
+        return put(
+          "menu_item.new",
+          {},
+          { id, section: input.section, name: input.name.trim(), category: input.category.trim() },
+          null,
+          `صنف جديد · ${id} · ${input.name.trim()} (${input.section})`,
+        );
+      },
+
+      createIngredient(input) {
+        const key = input.key.trim().toLowerCase().replace(/\s+/g, "_");
+        if (!/^[a-z0-9_]{2,40}$/.test(key)) {
+          return Promise.resolve(no("مفتاح المكوّن حروف إنجليزية صغيرة وأرقام وشرطة سفلية"));
+        }
+        if (ops.data.ingredients.some((i) => i.key === key)) {
+          return Promise.resolve(no(`المفتاح ${key} مستخدم`));
+        }
+        if (!input.name.trim()) return Promise.resolve(no("اسم المكوّن مطلوب"));
+        return put(
+          "ingredient.new",
+          {},
+          {
+            key, name: input.name.trim(),
+            kcal: Number(input.kcal) || 0, protein: Number(input.protein) || 0,
+            carb: Number(input.carb) || 0, fat: Number(input.fat) || 0,
+          },
+          null,
+          `مكوّن جديد · ${input.name.trim()} (${key})`,
         );
       },
 

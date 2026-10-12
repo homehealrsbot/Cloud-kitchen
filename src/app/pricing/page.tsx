@@ -24,7 +24,7 @@ export const metadata = { title: "الأسعار — Macro Meals" };
 async function loadPrices() {
   if (!isSupabaseConfigured) return null;
   const supabase = await createClient();
-  const { data } = await supabase.from("ops_menu_items").select("*");
+  const { data } = await supabase.from("ops_menu_items").select("*").neq("active", false);
   if (!data || data.length === 0) return null;
 
   const [{ default: ingredients }, { default: recipes }] = await Promise.all([
@@ -33,7 +33,7 @@ async function loadPrices() {
   ]);
 
   const items: MenuItem[] = data.map((m) => ({
-    id: String(m.id), section: String(m.section ?? ""), category: String(m.category ?? ""),
+    id: String(m.id), active: true, section: String(m.section ?? ""), category: String(m.category ?? ""),
     name: String(m.name ?? ""), nameEn: String(m.name_en ?? ""), cuisine: String(m.cuisine ?? ""),
     identity: String(m.identity ?? ""), shelfLifeH: Number(m.shelf_life_h ?? 0),
     reheat: "", opsNote: "", method: "", engGroup: String(m.eng_group ?? ""),
@@ -41,7 +41,7 @@ async function loadPrices() {
   const ids = new Set(items.map((m) => m.id));
 
   const computed = computeMenu({
-    ingredients: ingredients as Ingredient[],
+    ingredients: (ingredients as Omit<Ingredient, "active">[]).map((i) => ({ ...i, active: true })),
     recipes: (recipes as RecipeLine[]).filter((r) => ids.has(r.sku)),
     menu: items,
     rotation: { slotLabels: [], slotRule: [], days: [], rules: "" },

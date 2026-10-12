@@ -14,7 +14,7 @@ import type { CustomerMealDetail } from "@/components/order/MealDetail";
 
 export async function loadCustomerMenu(): Promise<CustomerMealDetail[]> {
   const supabase = await createClient();
-  const { data: menu } = await supabase.from("ops_menu_items").select("*");
+  const { data: menu } = await supabase.from("ops_menu_items").select("*").neq("active", false);
   if (!menu || menu.length === 0) return [];
 
   const [{ default: ingredients }, { default: recipes }] = await Promise.all([
@@ -24,6 +24,7 @@ export async function loadCustomerMenu(): Promise<CustomerMealDetail[]> {
 
   const items: MenuItem[] = menu.map((m) => ({
     id: String(m.id),
+    active: true,
     section: String(m.section ?? ""),
     category: String(m.category ?? ""),
     name: String(m.name ?? ""),
@@ -39,7 +40,7 @@ export async function loadCustomerMenu(): Promise<CustomerMealDetail[]> {
 
   const approvedIds = new Set(items.map((m) => m.id));
   const computed = computeMenu({
-    ingredients: ingredients as Ingredient[],
+    ingredients: (ingredients as Omit<Ingredient, "active">[]).map((i) => ({ ...i, active: true })),
     recipes: (recipes as RecipeLine[]).filter((r) => approvedIds.has(r.sku)),
     menu: items,
     rotation: { slotLabels: [], slotRule: [], days: [], rules: "" },

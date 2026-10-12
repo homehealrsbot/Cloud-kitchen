@@ -31,6 +31,7 @@ type Row = Record<string, unknown>;
 function toIngredient(r: Row): Ingredient {
   return {
     key: String(r.key),
+    active: r.active !== false,
     name: String(r.name ?? ""),
     nameEn: String(r.name_en ?? ""),
     kcal: Number(r.kcal ?? 0),
@@ -52,6 +53,7 @@ function toIngredient(r: Row): Ingredient {
 function toMenuItem(r: Row): MenuItem {
   return {
     id: String(r.id),
+    active: r.active !== false,
     section: String(r.section ?? ""),
     category: String(r.category ?? ""),
     name: String(r.name ?? ""),
@@ -157,8 +159,12 @@ export async function loadOpsSnapshot(): Promise<OpsSnapshot> {
   const gateDefs = ((gateDefRows.data ?? []) as Row[]).map(toGateDef);
   const ingApprovalDefs = ((approvalDefRows.data ?? []) as Row[]).map(toIngApprovalDef);
 
+  // المكوّن المؤرشف يبقى محمّلاً: الوصفات القديمة تشير إليه، وإسقاطه يجعلها
+  // تُقرأ «مكوّن مجهول». الشاشات تصفّي قوائم الاختيار بـ active.
   const ingredients = (ing.data ?? []).map(toIngredient);
-  const menuItems = (menu.data ?? []).map(toMenuItem);
+  // الصنف المؤرشف يُصفّى: ما يُبَاع ولا يُنتَج ولا يُجدول، فوجوده في الحسابات
+  // يعني أرقاماً لصنفٍ أُخرِج من الخدمة.
+  const menuItems = (menu.data ?? []).map(toMenuItem).filter((m) => m.active);
 
   // الصلاحية المعدّلة تتجاوز قيمة المنيو
   const shelfOverride = new Map<string, number>(

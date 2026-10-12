@@ -53,6 +53,8 @@ export interface Ingredient {
   supplier: string; // المورد المعتمد — تكتبه الجودة
   supplierNote: string;
   priceQuoteDate: string | null; // تاريخ عرض السعر — يكتبه التنفيذي
+  /** false = مؤرشف: ما يظهر في اختيار الوصفات، ويبقى في الوصفات القديمة. */
+  active: boolean;
 }
 
 export interface RecipeLine {
@@ -75,6 +77,8 @@ export interface MenuItem {
   opsNote: string;
   method: string;
   engGroup: string;
+  /** false = مؤرشف. الصفوف المؤرشفة تُصفّى عند التحميل فلا تصل الحسابات. */
+  active: boolean;
 }
 
 export interface SectionSettings {
