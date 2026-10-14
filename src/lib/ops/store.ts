@@ -91,6 +91,8 @@ export interface OpsView {
   ingApprovals: (key: string) => GateStatus[];
   ingApprovalStamps: (key: string) => Record<number, GateStamp>;
   recipesEdited: boolean;
+  /** الأصناف المؤرشفة — تُعرض في شاشة المنيو لتُرجَع. */
+  archivedItems: MenuItem[];
 }
 
 const OpsContext = createContext<OpsSnapshot | null>(null);
@@ -115,6 +117,7 @@ export function useOps(): OpsView {
       return {
         ready: false,
         state: { production: {}, unitsSold: {}, audit: [], rotation: null },
+        archivedItems: [],
         data: empty,
         computed: [],
         skus: [],
@@ -167,6 +170,7 @@ export function useOps(): OpsView {
       ingApprovals: (key: string) => ingApprovalStatuses(data.ingApprovalDefs, snap.ingApprovals[key]),
       ingApprovalStamps: (key: string) => snap.ingApprovalStamps[key] ?? {},
       recipesEdited: snap.recipesEdited,
+      archivedItems: snap.archivedItems,
     };
   }, [snap]);
 }

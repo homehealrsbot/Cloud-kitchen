@@ -111,6 +111,7 @@ export function emptyOpsSnapshot(): OpsSnapshot {
     pilotTrials: {},
     yieldSpecs: {},
     yieldChecks: {},
+    archivedItems: [],
     kitchenGate: {},
     production: {},
     unitsSold: {},
@@ -162,9 +163,13 @@ export async function loadOpsSnapshot(): Promise<OpsSnapshot> {
   // المكوّن المؤرشف يبقى محمّلاً: الوصفات القديمة تشير إليه، وإسقاطه يجعلها
   // تُقرأ «مكوّن مجهول». الشاشات تصفّي قوائم الاختيار بـ active.
   const ingredients = (ing.data ?? []).map(toIngredient);
-  // الصنف المؤرشف يُصفّى: ما يُبَاع ولا يُنتَج ولا يُجدول، فوجوده في الحسابات
-  // يعني أرقاماً لصنفٍ أُخرِج من الخدمة.
-  const menuItems = (menu.data ?? []).map(toMenuItem).filter((m) => m.active);
+  // الصنف المؤرشف يُصفّى من الحسابات: ما يُبَاع ولا يُنتَج ولا يُجدول، فوجوده
+  // فيها يعني أرقاماً لصنفٍ أُخرِج من الخدمة. لكنه يُحمَّل منفصلاً في
+  // archivedItems — لأن الأرشفة بلا إرجاع مصيدة: من يُخفي صنفاً ثم لا يجده
+  // في أي شاشة ما يقدر يُرجعه.
+  const allMenuItems = (menu.data ?? []).map(toMenuItem);
+  const menuItems = allMenuItems.filter((m) => m.active);
+  const archivedItems = allMenuItems.filter((m) => !m.active);
 
   // الصلاحية المعدّلة تتجاوز قيمة المنيو
   const shelfOverride = new Map<string, number>(
@@ -324,6 +329,7 @@ export async function loadOpsSnapshot(): Promise<OpsSnapshot> {
     pilotTrials,
     yieldSpecs,
     yieldChecks,
+    archivedItems,
     kitchenGate,
     production: prod,
     unitsSold,

@@ -722,9 +722,11 @@ create index idx_ncr_status on safety_nonconformance(status, raised_at desc);
 -- اعتمد نفسه — ما نخفي الخطوة، نسجّلها.
 
 create type change_status as enum ('pending', 'applied', 'rejected', 'failed');
--- delete: حذف الصف بمفتاحه. قائمتها البيضاء هي key_columns وحدها — ما فيه
--- patch يُكتب. مضافة للنوع، ولم يُسجَّل بعد أي نوع تغيير يستخدمها: فرع الحذف
--- في private.apply_change لم يُطبَّق بعد (انظر الملاحظة فوق الدالّة).
+-- delete موجودة في النوع ولا تُستعمل بقرار من صاحب النظام: لا شيء يُحذف
+-- نهائياً، والإخراج من الخدمة أرشفة (active = false) فالصنف القديم يبقى
+-- ويُرجَع وقت الحاجة. ولا نوع تغيير مسجَّل بهذه الاستراتيجية، ومحفّزا الحرس
+-- أدناه يمنعان الحذف من أي طريق. والقيمة تبقى لأن Postgres ما يُسقط قيمة
+-- من enum.
 create type change_strategy as enum ('upsert', 'insert', 'replace_lines', 'delete');
 
 -- القائمة البيضاء. دالة التطبيق ما تكتب في أي جدول ولا عمود خارج الصف هنا،
@@ -1605,62 +1607,32 @@ create trigger trg_gate_order
   before insert or update on ops_gates
   for each row execute function private.tg_enforce_gate_order();
 
--- ---------- الحذف النهائي للنطيف وحده ----------
+-- ---------- لا حذف نهائي: الأرشفة هي طريق الإخراج ----------
 --
--- الأرشفة (active = false) هي طريق الإخراج المعتاد: الصف يختفي من الشاشات
--- ويبقى سجله. والحذف النهائي مسموح لما لا يرتبط بشيء — مسوّدة لم تُعتمد ولم
--- تُبَع ولم تدخل جدولاً. والحرس محفّز لا شرط في الواجهة: الحذف يجي من
--- apply_change وهي SECURITY DEFINER تتجاوز RLS، ومن محرر SQL كذلك.
+-- قرار صاحب النظام: الصنف أو المكوّن القديم قد يُحتاج، فلا يُمحى أبداً.
+-- الأرشفة (active = false) تُخرجه من كل شاشة وحساب والمنيو العام ويبقى سجله
+-- وبواباته، ويُرجَع بحالته لا صنفاً جديداً.
+--
+-- والمنع محفّز لا شرط في الواجهة: الحذف يجي من apply_change وهي
+-- SECURITY DEFINER تتجاوز RLS، ومن محرر SQL كذلك — فالمحفّز هو الموضع
+-- الوحيد الذي يمنع فعلاً. ولأن المنع مطلق، ما عاد يحتاج فحص ارتباطات:
+-- المرتبط وغير المرتبط كلاهما يُؤرشف.
 create or replace function private.tg_guard_menu_item_delete() returns trigger
 language plpgsql security definer set search_path = public as $fn$
-declare v_why text;
 begin
-  if exists (select 1 from ops_gates where sku = old.id and status = 'READY') then
-    v_why := 'له بوابات اعتماد مختومة';
-  elsif exists (select 1 from ops_units_sold where sku = old.id and units > 0) then
-    v_why := 'له مبيعات مسجّلة';
-  elsif exists (select 1 from ops_rotation where sku = old.id) then
-    v_why := 'مُدرج في جدول الدوران';
-  elsif exists (select 1 from ops_yield_checks where sku = old.id) then
-    v_why := 'له قياسات yield مسجّلة';
-  end if;
-
-  if v_why is not null then
-    raise exception 'ما ينفع حذف «%» نهائياً: % — أرشفه بـ active=false ويبقى سجله', old.id, v_why
-      using errcode = 'foreign_key_violation';
-  end if;
-
-  -- نُسقط الأبناء الذين يحملون محفّزات بأنفسنا والصنف ما زال قائماً: التسلسل
-  -- يُشغّل محفّزاتها بعد اختفائه فتكتب في ops_gates وتنتهك مفتاحه.
-  delete from ops_pilot_trials where sku = old.id;
-  delete from ops_kitchen_gate  where sku = old.id;
-  delete from ops_recipe_lines  where sku = old.id;
-  delete from ops_gates         where sku = old.id;
-
-  return old;
+  raise exception 'الأصناف ما تُحذف نهائياً — أرشف «%» بـ active=false ويبقى سجله ويُرجَع وقت ما تحتاجه', old.id
+    using errcode = 'foreign_key_violation';
 end $fn$;
 
 create trigger guard_menu_item_delete
   before delete on ops_menu_items
   for each row execute function private.tg_guard_menu_item_delete();
 
--- المكوّن المستخدم في وصفة يمنعه المفتاح الأجنبي أصلاً. وهذا يغطي ما لا
--- يغطيه: اعتماد مختوم عليه، أو سعر مُدخل يعني أن المالية عملت عليه.
 create or replace function private.tg_guard_ingredient_delete() returns trigger
 language plpgsql security definer set search_path = public as $fn$
-declare v_why text;
 begin
-  if exists (select 1 from ops_ing_approvals where ing_key = old.key and status = 'READY') then
-    v_why := 'له اعتمادات مختومة';
-  elsif coalesce(old.price, 0) > 0 then
-    v_why := 'له سعر مُدخل';
-  end if;
-
-  if v_why is not null then
-    raise exception 'ما ينفع حذف «%» نهائياً: % — أرشفه بـ active=false', old.key, v_why
-      using errcode = 'foreign_key_violation';
-  end if;
-  return old;
+  raise exception 'المكوّنات ما تُحذف نهائياً — أرشف «%» بـ active=false ويبقى في الوصفات القديمة', old.key
+    using errcode = 'foreign_key_violation';
 end $fn$;
 
 create trigger guard_ingredient_delete
@@ -1887,10 +1859,6 @@ begin
 end;
 $fn$;
 
--- ملاحظة: فرع 'delete' لم يُضَف لهذه الدالّة بعد على قاعدة الإنتاج — ثلاث
--- محاولات لتطبيقه انتهت بمهلة الموصّل. فالقيمة موجودة في النوع والأعمدة
--- جاهزة، ولا نوع تغيير يستخدم الاستراتيجية، فلا شيء نصف موصول. يُطبَّق الفرع
--- من محرر SQL في لوحة Supabase أو بـ supabase db push.
 create or replace function private.apply_change(p_kind text, p_key jsonb, p_patch jsonb)
 returns void
 language plpgsql

@@ -1,6 +1,6 @@
 // أنواع مشتركة بين الخادم والعميل لبيانات العمليات.
 
-import type { GateStatus, KitchenGateRecord, OpsData, PilotTrial, YieldSpec, YieldCheck } from "./engine";
+import type { GateStatus, KitchenGateRecord, MenuItem, OpsData, PilotTrial, YieldSpec, YieldCheck } from "./engine";
 
 export interface AuditEntry {
   id: string;
@@ -30,6 +30,8 @@ export interface OpsSnapshot {
   yieldSpecs: Record<string, YieldSpec>;
   /** قياسات المطبخ، الأحدث أولاً لكل صنف. */
   yieldChecks: Record<string, YieldCheck[]>;
+  /** الأصناف المؤرشفة — خارج كل حساب، وتُعرض لتُرجَع. */
+  archivedItems: MenuItem[];
   kitchenGate: Record<string, KitchenGateRecord>;
   production: Record<string, Record<string, number>>;
   unitsSold: Record<string, number>;

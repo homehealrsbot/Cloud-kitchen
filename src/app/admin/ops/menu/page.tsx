@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Search, UtensilsCrossed, TrendingDown, Plus, Archive } from "lucide-react";
+import { Search, UtensilsCrossed, TrendingDown, Plus, Archive, RotateCcw } from "lucide-react";
 import { SECTIONS, SkuStatus } from "@/lib/ops/engine";
 import { can } from "@/lib/ops/roles";
 import { useStage } from "@/lib/ops/stage";
@@ -183,8 +183,45 @@ export default function OpsMenuPage() {
         </div>
       </Card>
 
+      {ops.archivedItems.length > 0 && (
+        <Card className="mt-4">
+          <CardTitle icon={<Archive size={16} />}>المؤرشف ({ops.archivedItems.length})</CardTitle>
+          <div className="text-[10px] mb-3 leading-relaxed" style={{ color: T.inkSoft }}>
+            خارج كل حساب وكل شاشة والمنيو العام — وسجله وبواباته باقية كما هي.
+            والإرجاع يُعيده بحالته قبل الأرشفة، لا صنفاً جديداً.
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {ops.archivedItems.map((m) => (
+              <span
+                key={m.id}
+                className="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-xs"
+                style={{ background: T.bg }}
+              >
+                <span className="font-bold">{m.id}</span>
+                <span>{m.name}</span>
+                <span className="text-[10px]" style={{ color: T.inkSoft }}>{m.section}</span>
+                {canManage && (
+                  <button
+                    onClick={async () => {
+                      setErr("");
+                      const r = await stage.archiveMenuItem(m.id, true, m.name);
+                      if (!r.ok) setErr(r.error ?? "تعذّر");
+                    }}
+                    className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-bold"
+                    style={{ background: T.goodTint, color: T.good }}
+                  >
+                    <RotateCcw size={11} /> إرجاع
+                  </button>
+                )}
+              </span>
+            ))}
+          </div>
+          {err && <ErrorNote text={err} />}
+        </Card>
+      )}
+
       {showFinance && (
-        <Card>
+        <Card className="mt-4">
           <CardTitle icon={<TrendingDown size={17} />}>أضعف 5 أصناف هامشاً (لإعادة التسعير أو الوصفة)</CardTitle>
           <TableWrap>
             <thead>
