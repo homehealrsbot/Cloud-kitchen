@@ -29,6 +29,7 @@ export default function AboutPage() {
             fill
             priority
             sizes="100vw"
+            quality={90}
             className="object-cover scale-x-[-1] [object-position:45%_55%]"
           />
         }

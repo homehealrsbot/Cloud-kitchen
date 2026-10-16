@@ -83,6 +83,7 @@ export default async function PricingPage() {
             fill
             priority
             sizes="100vw"
+            quality={90}
             className="object-cover [object-position:62%_50%]"
           />
         }

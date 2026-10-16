@@ -58,7 +58,6 @@ export default function HeroStage({
   const root = useRef<HTMLDivElement>(null);
   const plate = useRef<HTMLDivElement>(null);
   const copy = useRef<HTMLDivElement>(null);
-  const bar = useRef<HTMLDivElement>(null);
 
   useGSAP(
     () => {
@@ -89,31 +88,12 @@ export default function HeroStage({
 
           // الكاميرا تقرب، والنص يرتفع ويخفت قبل ما يختفي المشهد: لو خرجا
           // معاً بنفس السرعة حسّ الواحد إن الصفحة تتزحلق لا إن الكاميرا تمشي.
-          tl.to(plate.current, { scale: dive ? 1.22 : 1.1, ease: "none" }, 0);
+          tl.to(plate.current, { scale: dive ? 1.1 : 1.05, ease: "none" }, 0);
           if (dive) {
             tl.to(copy.current, { y: -70, autoAlpha: 0, ease: "none" }, 0);
           }
         }
       );
-
-      // شريط المسافة: يمتلئ بمقدار ما قطعته الصفحة كاملةً، لا بمقدار البنر
-      // وحده — فهو مؤشّر «وين أنا من الموقع» لا زينة تحت الصورة.
-      mm.add("(prefers-reduced-motion: no-preference)", () => {
-        gsap.fromTo(
-          bar.current,
-          { scaleX: 0 },
-          {
-            scaleX: 1,
-            ease: "none",
-            scrollTrigger: {
-              trigger: document.documentElement,
-              start: "top top",
-              end: "bottom bottom",
-              scrub: 0.3,
-            },
-          }
-        );
-      });
 
       return () => mm.revert();
     },
@@ -131,13 +111,13 @@ export default function HeroStage({
       }
       style={{ background: BRAND.ink }}
     >
-      {/* ١ — الطبق. يتجاوز الحدود قليلاً عشان التقريب ما يكشف حوافه.
+      {/* ١ — الطبق.
           والتدرّج اللوني (contrast/saturate) قبل أي تعتيم: التعتيم وحده
           يطفئ الطبق مع الخلفية فيصير المشهد رمادياً كله. رفع التباين ينزّل
           الظلال ويطلّع الضوء، فتبقى الخلفية تغرق والطبق يطلع منها. */}
       <div
         ref={plate}
-        className="absolute inset-0 -m-[3%] will-change-transform"
+        className="absolute inset-0 will-change-transform"
         style={{ filter: g.filter }}
       >
         {image}
@@ -174,16 +154,15 @@ export default function HeroStage({
         }}
       />
 
-      {/* ٣ — شريط الأقسام، فوق المسطرة مباشرة.
+      {/* ٣ — دليل الأقسام أسفل البنر.
           موضعه أسفل لا أعلى: البنر يُثبَّت مع النزول فيصير سقفه سقف الشاشة،
-          وشريط التنقّل اللاصق يغطّي أي شي هناك. وأسفلُه يجاور المسطرة فيصيران
-          لوحة قياس واحدة: وين أنت، وكم قطعت.
+          وشريط التنقّل اللاصق يغطّي أي شي هناك.
           وأرقام لاتينية متباعدة، وعربي بلا تباعد: تباعد الحروف في العربي
           يفكّ وصلها فتُقرأ الكلمة مقطّعة. */}
       <div
         aria-hidden
         className={
-          "absolute bottom-7 inset-x-0 items-center gap-7 px-7 h-10 text-[10px] font-bold " +
+          "absolute bottom-0 inset-x-0 items-center gap-7 px-7 h-12 text-[10px] font-bold " +
           (sections && sections.length > 0 ? "hidden md:flex" : "hidden")
         }
         style={{ color: "#FFFFFF4D" }}
@@ -204,27 +183,8 @@ export default function HeroStage({
       </div>
 
       {/* ٥ — لوحة الزاوية السفلية. */}
-      {aside && <div className="absolute bottom-20 left-6 hidden lg:block">{aside}</div>}
+      {aside && <div className="absolute bottom-14 left-6 hidden lg:block">{aside}</div>}
 
-      {/* ٦ — شريط المسافة. العلامات من تدرّج متكرّر لا من عناصر: مئة شرطة
-          كعنصر DOM مئة عنصر بلا معنى لقارئ الشاشة ولا للمتصفح. */}
-      <div aria-hidden className="absolute bottom-0 inset-x-0 h-7">
-        <div
-          className="absolute inset-0"
-          style={{
-            backgroundImage: `repeating-linear-gradient(90deg, #FFFFFF2E 0 1px, transparent 1px 9px),
-                              repeating-linear-gradient(90deg, #FFFFFF57 0 1px, transparent 1px 45px)`,
-            backgroundSize: "100% 9px, 100% 15px",
-            backgroundPosition: "bottom left",
-            backgroundRepeat: "repeat-x",
-          }}
-        />
-        <div
-          ref={bar}
-          className="absolute bottom-0 inset-x-0 h-[2px] origin-right"
-          style={{ background: BRAND.lime }}
-        />
-      </div>
     </section>
   );
 }

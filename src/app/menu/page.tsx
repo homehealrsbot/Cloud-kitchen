@@ -71,6 +71,7 @@ export default async function MenuPage() {
             fill
             priority
             sizes="100vw"
+            quality={90}
             className="object-cover scale-x-[-1] [object-position:40%_50%]"
           />
         }
