@@ -25,14 +25,19 @@ export default function Home() {
 
       {/* ---------- البنر الرئيسي ---------- */}
       <HeroStage
+        variant="flagship"
+        sections={["الطبق", "الركائز", "الخطوات", "المنيو", "ابدأ"]}
         image={
           <Image
-            src="/brand/hero-bowl.jpg"
-            alt="بول الدجاج المشوي مع الخضار والحبوب"
+            src="/brand/hero-chicken-bowl.jpg"
+            alt="بول دجاج مشوي مع الأفوكادو والكينوا والخضار"
             fill
             priority
             sizes="100vw"
-            className="object-cover [object-position:56%_40%] lg:[object-position:58%_30%]"
+            /* الصورة بالطبق يمين وفراغها يسار، والعربي نصّه يمين — فتُعكس
+               أفقياً ليجلس الطبق يسار والفراغ تحت النص. العكس على الصورة
+               نفسها لا على حاويتها، عشان ما يصادم تقريبَ الكاميرا عليها. */
+            className="object-cover scale-x-[-1] [object-position:47%_40%] lg:[object-position:38%_50%]"
           />
         }
         aside={

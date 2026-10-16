@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Flame, UtensilsCrossed } from "lucide-react";
 import SiteNav from "@/components/SiteNav";
 import SmoothScroll from "@/components/motion/SmoothScroll";
-import HeroAurora from "@/components/motion/HeroAurora";
+import HeroStage from "@/components/motion/HeroStage";
 import { Reveal, Words } from "@/components/motion/Reveal";
 import SiteFooter from "@/components/SiteFooter";
 import Image from "next/image";
@@ -61,39 +61,36 @@ export default async function MenuPage() {
       <SmoothScroll />
       <SiteNav />
 
-      {/* بنر المنيو — نفس بنية بنر الهوية: نص يمين وصورة يسار */}
-      <section className="relative overflow-hidden" style={{ background: BRAND.forest }}>
-        <HeroAurora />
-        <div className="relative max-w-6xl mx-auto px-5 sm:px-6 grid grid-cols-1 lg:grid-cols-2 items-center gap-8 py-10 lg:py-0">
-          <div className="lg:py-16 order-2 lg:order-1">
-            <span
-              className="inline-block rounded-full px-3 py-1 text-[10px] font-bold mb-5"
-              style={{ border: `1px solid ${BRAND.lime}55`, color: BRAND.lime }}
-            >
-              منيو الأسبوع
-            </span>
-            <h1 className="text-3xl sm:text-4xl font-extrabold leading-tight mb-4">
-              <Words as="span" className="block" style={{ color: "#FFFFFF" }}>منيو جديد..</Words>
-              <Words as="span" className="block" style={{ color: BRAND.lime }} delay={0.12}>كل أسبوع.</Words>
-            </h1>
-            <p className="text-sm leading-relaxed max-w-md" style={{ color: BRAND.mist }}>
-              {meals.length > 0
-                ? `${meals.length} طبق معتمد، والقيم الغذائية محسوبة من الوصفة الفعلية لكل صنف — لا تقديرات.`
-                : "المنيو قيد التجهيز."}
-            </p>
-          </div>
-          <div className="relative h-48 sm:h-64 lg:h-[340px] order-1 lg:order-2 lg:-mx-10">
-            <Image
-              src="/brand/menu-bowl.jpg"
-              alt="أطباق ماكرو ميلز"
-              fill
-              priority
-              sizes="(max-width: 1024px) 100vw, 50vw"
-              className="object-cover lg:object-contain"
-            />
-          </div>
-        </div>
-      </section>
+      {/* بنر المنيو */}
+      <HeroStage
+        tone="dark"
+        image={
+          <Image
+            src="/brand/hero-steak-bowl.jpg"
+            alt="طبق ستيك مع الهليون والطماطم والبطاطس"
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover scale-x-[-1] [object-position:40%_50%]"
+          />
+        }
+      >
+        <span
+          className="inline-block rounded-full px-3 py-1 text-[10px] font-bold mb-5"
+          style={{ border: `1px solid ${BRAND.lime}55`, color: BRAND.lime }}
+        >
+          منيو الأسبوع
+        </span>
+        <h1 className="text-[2.2rem] sm:text-5xl font-extrabold leading-[1.2] mb-4">
+          <Words as="span" className="block" style={{ color: "#FFFFFF" }}>منيو جديد..</Words>
+          <Words as="span" className="block" style={{ color: BRAND.lime }} delay={0.12}>كل أسبوع.</Words>
+        </h1>
+        <p className="text-sm leading-relaxed max-w-md" style={{ color: "#FFFFFFA6" }}>
+          {meals.length > 0
+            ? `${meals.length} طبق معتمد، والقيم الغذائية محسوبة من الوصفة الفعلية لكل صنف — لا تقديرات.`
+            : "المنيو قيد التجهيز."}
+        </p>
+      </HeroStage>
 
       <div className="max-w-6xl mx-auto px-5 sm:px-6 py-14">
         {meals.length === 0 ? (

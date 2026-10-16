@@ -11,7 +11,8 @@ import Link from "next/link";
 import { Calculator, ChevronLeft } from "lucide-react";
 import SiteNav from "@/components/SiteNav";
 import SmoothScroll from "@/components/motion/SmoothScroll";
-import HeroAurora from "@/components/motion/HeroAurora";
+import Image from "next/image";
+import HeroStage from "@/components/motion/HeroStage";
 import { Reveal, Words } from "@/components/motion/Reveal";
 import SiteFooter from "@/components/SiteFooter";
 import { T } from "@/lib/kitchen-shared";
@@ -74,26 +75,34 @@ export default async function PricingPage() {
       <SmoothScroll />
       <SiteNav />
 
-      <section className="relative overflow-hidden" style={{ background: BRAND.forest }}>
-        <HeroAurora />
-        <div className="relative max-w-3xl mx-auto px-5 sm:px-6 py-14 text-center">
-          <span
-            className="inline-block rounded-full px-3 py-1 text-[10px] font-bold mb-5"
-            style={{ border: `1px solid ${BRAND.lime}55`, color: BRAND.lime }}
-          >
-            الأسعار
-          </span>
-          <h1 className="text-3xl sm:text-4xl font-extrabold leading-tight mb-4">
-            <Words as="span" className="block" style={{ color: "#FFFFFF" }}>سعر محسوب..</Words>
-            <Words as="span" className="block" style={{ color: BRAND.lime }} delay={0.12}>مو مُقدّر.</Words>
-          </h1>
-          <p className="text-sm leading-relaxed max-w-lg mx-auto" style={{ color: BRAND.mist }}>
-            سعر كل صنف يطلع من تكلفة وصفته الفعلية — المكوّنات بأسعارها، والهدر،
-            والتغليف، والعمالة — مضروبة في نسبة التكلفة المستهدفة لقسمه. ما فيه رقم
-            مكتوب باليد في أي مكان.
-          </p>
-        </div>
-      </section>
+      <HeroStage
+        image={
+          <Image
+            src="/brand/hero-salmon-garden.jpg"
+            alt="طبق سلمون مشوي مع الكينوا والخضار"
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover [object-position:62%_50%]"
+          />
+        }
+      >
+        <span
+          className="inline-block rounded-full px-3 py-1 text-[10px] font-bold mb-5"
+          style={{ border: `1px solid ${BRAND.lime}55`, color: BRAND.lime }}
+        >
+          الأسعار
+        </span>
+        <h1 className="text-[2.2rem] sm:text-5xl font-extrabold leading-[1.2] mb-4">
+          <Words as="span" className="block" style={{ color: "#FFFFFF" }}>سعر محسوب..</Words>
+          <Words as="span" className="block" style={{ color: BRAND.lime }} delay={0.12}>مو مُقدّر.</Words>
+        </h1>
+        <p className="text-sm leading-relaxed max-w-md" style={{ color: "#FFFFFFA6" }}>
+          سعر كل صنف يطلع من تكلفة وصفته الفعلية — المكوّنات بأسعارها، والهدر،
+          والتغليف، والعمالة — مضروبة في نسبة التكلفة المستهدفة لقسمه. ما فيه رقم
+          مكتوب باليد في أي مكان.
+        </p>
+      </HeroStage>
 
       <div className="max-w-3xl mx-auto px-5 sm:px-6 py-14">
         {p ? (

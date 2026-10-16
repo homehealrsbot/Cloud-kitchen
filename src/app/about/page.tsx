@@ -2,9 +2,11 @@ import Image from "next/image";
 import { Target, ShieldCheck, Users, Sparkles } from "lucide-react";
 import SiteNav from "@/components/SiteNav";
 import SmoothScroll from "@/components/motion/SmoothScroll";
+import HeroStage from "@/components/motion/HeroStage";
 import { Reveal, Words } from "@/components/motion/Reveal";
 import SiteFooter from "@/components/SiteFooter";
 import { T } from "@/lib/kitchen-shared";
+import { BRAND } from "@/lib/brand";
 
 const VALUES = [
   { icon: ShieldCheck, title: "شفافية كاملة", desc: "القيم الغذائية المكتوبة نفسها الموجودة بالوجبة — نوثّق كل دفعة قبل ما تطلع من المطبخ." },
@@ -19,17 +21,33 @@ export default function AboutPage() {
       <SmoothScroll />
       <SiteNav />
 
-      <div className="max-w-3xl mx-auto px-6 py-16 text-center">
-        <Image src="/brand/logo-symbol.png" alt="Macro Meals" width={64} height={64} className="rounded-2xl mx-auto mb-5" />
-        <Words as="h1" className="text-2xl md:text-3xl font-extrabold mb-4" style={{ color: T.brand }}>
+      <HeroStage
+        image={
+          <Image
+            src="/brand/hero-salmon-tray.jpg"
+            alt="صينية سلمون مع الكينوا والخضار المشوية"
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover scale-x-[-1] [object-position:45%_55%]"
+          />
+        }
+      >
+        <span
+          className="inline-block rounded-full px-3 py-1 text-[10px] font-bold mb-5"
+          style={{ border: `1px solid ${BRAND.lime}55`, color: BRAND.lime }}
+        >
+          كيف نشتغل
+        </span>
+        <Words as="h1" className="text-[2.2rem] sm:text-5xl font-extrabold leading-[1.2] mb-4" style={{ color: "#FFFFFF" }}>
           من نحن
         </Words>
-        <p className="text-sm leading-relaxed" style={{ color: T.inkSoft }}>
-          Macro Meals مطبخ سحابي متخصص باشتراكات الوجبات الصحية اليومية. ما نقدم قائمة عامة واحدة للجميع —
-          نبني خطتك من هدفك الصحي الفعلي، ونجهزها طازجة كل يوم، ونوثّق كل خطوة من التحضير للتوصيل بأنظمة مؤتمتة
-          مبنية خصيصاً لعملياتنا.
+        <p className="text-sm leading-relaxed max-w-md" style={{ color: "#FFFFFFA6" }}>
+          مطبخ سحابي متخصص باشتراكات الوجبات الصحية اليومية. ما نقدم قائمة عامة
+          واحدة للجميع — نبني خطتك من هدفك الصحي الفعلي، ونجهزها طازجة كل يوم،
+          ونوثّق كل خطوة من التحضير للتوصيل.
         </p>
-      </div>
+      </HeroStage>
 
       <div className="max-w-5xl mx-auto px-6 pb-20">
         <Reveal className="grid grid-cols-1 md:grid-cols-2 gap-5">
