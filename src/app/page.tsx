@@ -3,7 +3,7 @@ import Image from "next/image";
 import { Leaf, Scale, Target, ArrowLeft } from "lucide-react";
 import SiteNav from "@/components/SiteNav";
 import SmoothScroll from "@/components/motion/SmoothScroll";
-import HeroAurora from "@/components/motion/HeroAurora";
+import HeroStage from "@/components/motion/HeroStage";
 import MacroChip from "@/components/motion/MacroChip";
 import { Parallax, Reveal, Words } from "@/components/motion/Reveal";
 import SiteFooter from "@/components/SiteFooter";
@@ -24,84 +24,90 @@ export default function Home() {
       <SiteNav />
 
       {/* ---------- البنر الرئيسي ---------- */}
-      <section className="relative overflow-hidden" style={{ background: BRAND.forest }}>
-        <HeroAurora />
-        <div className="relative max-w-6xl mx-auto px-5 sm:px-6 grid grid-cols-1 lg:grid-cols-2 items-center gap-10 lg:gap-6 py-12 lg:py-0">
-          {/* النص — يمين في RTL */}
-          <div className="lg:py-20 order-2 lg:order-1">
-            <span
-              className="inline-block rounded-full px-3.5 py-1.5 text-[11px] font-bold mb-6"
-              style={{ border: `1px solid ${BRAND.lime}55`, color: BRAND.lime }}
-            >
-              يطبخها شيف · ماكروز محسوبة · طازجة يومياً
-            </span>
-
-            <h1 className="text-4xl sm:text-5xl lg:text-[3.4rem] font-extrabold leading-[1.15] mb-5">
-              <Words as="span" className="block" style={{ color: "#FFFFFF" }}>
-                {ESSENCE.ar.line1}
-              </Words>
-              <Words as="span" className="block" style={{ color: BRAND.lime }} delay={0.12}>
-                {ESSENCE.ar.line2}
-              </Words>
-            </h1>
-
-            <p className="text-sm sm:text-base leading-relaxed mb-8 max-w-md" style={{ color: BRAND.mist }}>
-              وجبات يطبخها شيفاتنا، البروتين والكارب والدهون محسوبة على هدفك،
-              وتوصلك طازجة لباب بيتك.
-            </p>
-
-            <div className="flex items-center gap-3 flex-wrap">
-              <Link
-                href="/order-app/onboarding"
-                className="rounded-full px-7 py-3.5 text-sm font-extrabold"
-                style={{ background: BRAND.lime, color: BRAND.ink }}
-              >
-                ابنِ خطتك
-              </Link>
-              <Link
-                href="/menu"
-                className="rounded-full px-7 py-3.5 text-sm font-extrabold"
-                style={{ border: "1.5px solid #FFFFFF59", color: "#FFFFFF" }}
-              >
-                شوف المنيو
-              </Link>
+      <HeroStage
+        image={
+          <Image
+            src="/brand/hero-bowl.jpg"
+            alt="بول الدجاج المشوي مع الخضار والحبوب"
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover [object-position:56%_40%] lg:[object-position:58%_30%]"
+          />
+        }
+        aside={
+          <div
+            className="rounded-2xl px-4 py-3.5"
+            style={{
+              background: "#0B1410A6",
+              border: "1px solid #FFFFFF1F",
+              backdropFilter: "blur(14px)",
+              WebkitBackdropFilter: "blur(14px)",
+            }}
+          >
+            <div className="text-[11px] font-extrabold mb-2.5" style={{ color: "#FFFFFFD9" }}>
+              بول الدجاج المشوي
             </div>
-
-            <div className="flex items-center gap-5 sm:gap-7 mt-9 flex-wrap text-[11px] font-bold" style={{ color: BRAND.sage }}>
-              <span className="flex items-center gap-1.5"><Target size={13} style={{ color: BRAND.lime }} /> بروتين عالي</span>
-              <span className="flex items-center gap-1.5"><Leaf size={13} style={{ color: BRAND.lime }} /> مكونات طازجة</span>
-              <span className="flex items-center gap-1.5"><Scale size={13} style={{ color: BRAND.lime }} /> ماكروز متوازنة</span>
+            <div className="flex gap-1.5">
+              <MacroChip macro="protein" value={42} />
+              <MacroChip macro="carbs" value={18} />
+              <MacroChip macro="fat" value={12} />
             </div>
           </div>
-
-          {/* الصورة — يسار في RTL، تنزف خارج الحاوية على الشاشات الكبيرة */}
-          <div className="order-1 lg:order-2 relative lg:h-[520px]">
-            <div className="relative h-56 sm:h-80 lg:h-full lg:-mx-16">
-              <Image
-                src="/brand/hero-bowl.jpg"
-                alt="بول الدجاج المشوي مع الخضار والحبوب"
-                fill
-                priority
-                sizes="(max-width: 1024px) 100vw, 50vw"
-                className="object-cover lg:object-contain object-center"
-              />
-            </div>
-
-            {/* شارة الماكروز — نفس كود الألوان في كل مكان */}
-            <div
-              className="absolute bottom-0 right-0 lg:right-4 rounded-2xl px-3.5 py-3 shadow-lg"
-              style={{ background: BRAND.cream }}
-            >
-              <div className="text-[11px] font-extrabold mb-2">بول الدجاج المشوي</div>
-              <div className="flex gap-1.5">
-                <MacroChip macro="protein" value={42} />
-                <MacroChip macro="carbs" value={18} />
-                <MacroChip macro="fat" value={12} />
-              </div>
-            </div>
-          </div>
+        }
+      >
+        {/* السطر العلوي: لاتيني متباعد، وعربي بلا تباعد — التباعد يفكّ وصل العربي */}
+        <div className="flex items-center gap-2.5 mb-7 text-[10px] sm:text-[11px] font-bold">
+          <span className="num tracking-[0.3em]" style={{ color: BRAND.lime }}>
+            No.01
+          </span>
+          <span style={{ color: "#FFFFFF38" }}>{"//"}</span>
+          <span style={{ color: "#FFFFFF8A" }}>يطبخها شيف · طازجة يومياً</span>
         </div>
-      </section>
+
+        <h1 className="text-[2.6rem] sm:text-6xl lg:text-[4.6rem] font-extrabold leading-[1.05] mb-6">
+          <Words as="span" className="block" style={{ color: "#FFFFFF" }}>
+            {ESSENCE.ar.line1}
+          </Words>
+          <Words as="span" className="block" style={{ color: BRAND.lime }} delay={0.12}>
+            {ESSENCE.ar.line2}
+          </Words>
+        </h1>
+
+        <p
+          className="text-sm sm:text-base leading-relaxed mb-9 max-w-sm"
+          style={{ color: "#FFFFFFA6" }}
+        >
+          وجبات يطبخها شيفاتنا، البروتين والكارب والدهون محسوبة على هدفك،
+          وتوصلك طازجة لباب بيتك.
+        </p>
+
+        <div className="flex items-center gap-3 flex-wrap">
+          <Link
+            href="/order-app/onboarding"
+            className="rounded-full px-7 py-3.5 text-sm font-extrabold transition-transform hover:scale-[1.03]"
+            style={{ background: BRAND.lime, color: BRAND.ink }}
+          >
+            ابنِ خطتك
+          </Link>
+          <Link
+            href="/menu"
+            className="rounded-full px-7 py-3.5 text-sm font-extrabold transition-colors"
+            style={{ border: "1.5px solid #FFFFFF4D", color: "#FFFFFF" }}
+          >
+            شوف المنيو
+          </Link>
+        </div>
+
+        <div
+          className="flex items-center gap-5 sm:gap-7 mt-9 flex-wrap text-[11px] font-bold"
+          style={{ color: "#FFFFFF73" }}
+        >
+          <span className="flex items-center gap-1.5"><Target size={13} style={{ color: BRAND.lime }} /> بروتين عالي</span>
+          <span className="flex items-center gap-1.5"><Leaf size={13} style={{ color: BRAND.lime }} /> مكونات طازجة</span>
+          <span className="flex items-center gap-1.5"><Scale size={13} style={{ color: BRAND.lime }} /> ماكروز متوازنة</span>
+        </div>
+      </HeroStage>
 
       {/* ---------- الركائز ---------- */}
       <section className="max-w-6xl mx-auto px-5 sm:px-6 py-16 sm:py-20">
