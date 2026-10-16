@@ -1,6 +1,8 @@
 import Image from "next/image";
 import { Target, ShieldCheck, Users, Sparkles } from "lucide-react";
 import SiteNav from "@/components/SiteNav";
+import SmoothScroll from "@/components/motion/SmoothScroll";
+import { Reveal, Words } from "@/components/motion/Reveal";
 import SiteFooter from "@/components/SiteFooter";
 import { T } from "@/lib/kitchen-shared";
 
@@ -14,11 +16,14 @@ const VALUES = [
 export default function AboutPage() {
   return (
     <div style={{ background: T.bg, color: T.ink }} className="min-h-screen w-full">
+      <SmoothScroll />
       <SiteNav />
 
       <div className="max-w-3xl mx-auto px-6 py-16 text-center">
         <Image src="/brand/logo-symbol.png" alt="Macro Meals" width={64} height={64} className="rounded-2xl mx-auto mb-5" />
-        <h1 className="text-2xl md:text-3xl font-extrabold mb-4" style={{ color: T.brand }}>من نحن</h1>
+        <Words as="h1" className="text-2xl md:text-3xl font-extrabold mb-4" style={{ color: T.brand }}>
+          من نحن
+        </Words>
         <p className="text-sm leading-relaxed" style={{ color: T.inkSoft }}>
           Macro Meals مطبخ سحابي متخصص باشتراكات الوجبات الصحية اليومية. ما نقدم قائمة عامة واحدة للجميع —
           نبني خطتك من هدفك الصحي الفعلي، ونجهزها طازجة كل يوم، ونوثّق كل خطوة من التحضير للتوصيل بأنظمة مؤتمتة
@@ -27,7 +32,7 @@ export default function AboutPage() {
       </div>
 
       <div className="max-w-5xl mx-auto px-6 pb-20">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <Reveal className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {VALUES.map((v) => (
             <div key={v.title} className="rounded-2xl p-5 flex items-start gap-3.5" style={{ background: "white", border: `1px solid ${T.border}` }}>
               <div className="rounded-full flex items-center justify-center shrink-0" style={{ width: 44, height: 44, background: T.brandTint, color: T.brand }}>
@@ -39,7 +44,7 @@ export default function AboutPage() {
               </div>
             </div>
           ))}
-        </div>
+        </Reveal>
       </div>
 
       <SiteFooter />

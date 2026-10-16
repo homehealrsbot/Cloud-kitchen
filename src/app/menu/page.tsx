@@ -5,6 +5,9 @@
 import Link from "next/link";
 import { Flame, UtensilsCrossed } from "lucide-react";
 import SiteNav from "@/components/SiteNav";
+import SmoothScroll from "@/components/motion/SmoothScroll";
+import HeroAurora from "@/components/motion/HeroAurora";
+import { Reveal, Words } from "@/components/motion/Reveal";
 import SiteFooter from "@/components/SiteFooter";
 import Image from "next/image";
 import { T } from "@/lib/kitchen-shared";
@@ -55,11 +58,13 @@ export default async function MenuPage() {
 
   return (
     <div style={{ background: T.bg, color: T.ink }} className="min-h-screen w-full">
+      <SmoothScroll />
       <SiteNav />
 
       {/* بنر المنيو — نفس بنية بنر الهوية: نص يمين وصورة يسار */}
-      <section style={{ background: BRAND.forest }}>
-        <div className="max-w-6xl mx-auto px-5 sm:px-6 grid grid-cols-1 lg:grid-cols-2 items-center gap-8 py-10 lg:py-0">
+      <section className="relative overflow-hidden" style={{ background: BRAND.forest }}>
+        <HeroAurora />
+        <div className="relative max-w-6xl mx-auto px-5 sm:px-6 grid grid-cols-1 lg:grid-cols-2 items-center gap-8 py-10 lg:py-0">
           <div className="lg:py-16 order-2 lg:order-1">
             <span
               className="inline-block rounded-full px-3 py-1 text-[10px] font-bold mb-5"
@@ -68,9 +73,8 @@ export default async function MenuPage() {
               منيو الأسبوع
             </span>
             <h1 className="text-3xl sm:text-4xl font-extrabold leading-tight mb-4">
-              <span style={{ color: "#FFFFFF" }}>منيو جديد..</span>
-              <br />
-              <span style={{ color: BRAND.lime }}>كل أسبوع.</span>
+              <Words as="span" className="block" style={{ color: "#FFFFFF" }}>منيو جديد..</Words>
+              <Words as="span" className="block" style={{ color: BRAND.lime }} delay={0.12}>كل أسبوع.</Words>
             </h1>
             <p className="text-sm leading-relaxed max-w-md" style={{ color: BRAND.mist }}>
               {meals.length > 0
@@ -101,7 +105,7 @@ export default async function MenuPage() {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          <Reveal className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5" stagger={0.06}>
             {meals.map((m) => (
               <div
                 key={m.item.id}
@@ -158,7 +162,7 @@ export default async function MenuPage() {
                 </div>
               </div>
             ))}
-          </div>
+          </Reveal>
         )}
       </div>
 

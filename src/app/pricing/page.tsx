@@ -10,6 +10,9 @@
 import Link from "next/link";
 import { Calculator, ChevronLeft } from "lucide-react";
 import SiteNav from "@/components/SiteNav";
+import SmoothScroll from "@/components/motion/SmoothScroll";
+import HeroAurora from "@/components/motion/HeroAurora";
+import { Reveal, Words } from "@/components/motion/Reveal";
 import SiteFooter from "@/components/SiteFooter";
 import { T } from "@/lib/kitchen-shared";
 import { BRAND } from "@/lib/brand";
@@ -68,10 +71,12 @@ export default async function PricingPage() {
 
   return (
     <div style={{ background: T.bg, color: T.ink }} className="min-h-screen w-full">
+      <SmoothScroll />
       <SiteNav />
 
-      <section style={{ background: BRAND.forest }}>
-        <div className="max-w-3xl mx-auto px-5 sm:px-6 py-14 text-center">
+      <section className="relative overflow-hidden" style={{ background: BRAND.forest }}>
+        <HeroAurora />
+        <div className="relative max-w-3xl mx-auto px-5 sm:px-6 py-14 text-center">
           <span
             className="inline-block rounded-full px-3 py-1 text-[10px] font-bold mb-5"
             style={{ border: `1px solid ${BRAND.lime}55`, color: BRAND.lime }}
@@ -79,9 +84,8 @@ export default async function PricingPage() {
             الأسعار
           </span>
           <h1 className="text-3xl sm:text-4xl font-extrabold leading-tight mb-4">
-            <span style={{ color: "#FFFFFF" }}>سعر محسوب..</span>
-            <br />
-            <span style={{ color: BRAND.lime }}>مو مُقدّر.</span>
+            <Words as="span" className="block" style={{ color: "#FFFFFF" }}>سعر محسوب..</Words>
+            <Words as="span" className="block" style={{ color: BRAND.lime }} delay={0.12}>مو مُقدّر.</Words>
           </h1>
           <p className="text-sm leading-relaxed max-w-lg mx-auto" style={{ color: BRAND.mist }}>
             سعر كل صنف يطلع من تكلفة وصفته الفعلية — المكوّنات بأسعارها، والهدر،
@@ -94,7 +98,7 @@ export default async function PricingPage() {
       <div className="max-w-3xl mx-auto px-5 sm:px-6 py-14">
         {p ? (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
+            <Reveal className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
               <Stat label="أصناف معتمدة" value={num(p.count)} hint={p.sections.join(" · ")} />
               <Stat label="نطاق السعر" value={`${num(p.min)} – ${num(p.max)} ﷼`} hint="لكل حصة، شامل التغليف" />
               <Stat
@@ -102,7 +106,7 @@ export default async function PricingPage() {
                 value={p.mainAvg !== null ? `${num(p.mainAvg)} ﷼` : "—"}
                 hint={p.mainAvg !== null ? "محسوب من الأصناف المعتمدة" : "ما فيه رئيسي معتمد بعد"}
               />
-            </div>
+            </Reveal>
 
             <div className="rounded-3xl p-6 sm:p-8 mb-6" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
               <div className="flex items-center gap-2 mb-3">

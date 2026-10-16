@@ -4,6 +4,8 @@ import { useState } from "react";
 import { Mail, MessageCircle, Phone, Send } from "lucide-react";
 import { T } from "@/lib/kitchen-shared";
 import SiteNav from "@/components/SiteNav";
+import SmoothScroll from "@/components/motion/SmoothScroll";
+import { Reveal, Words } from "@/components/motion/Reveal";
 import SiteFooter from "@/components/SiteFooter";
 
 // بيانات التواصل من متغيرات البيئة — بدل نصوص placeholder ظاهرة للعميل
@@ -27,14 +29,17 @@ export default function ContactPage() {
 
   return (
     <div style={{ background: T.bg, color: T.ink }} className="min-h-screen w-full">
+      <SmoothScroll />
       <SiteNav />
 
       <div className="max-w-3xl mx-auto px-6 py-14 text-center">
-        <h1 className="text-2xl md:text-3xl font-extrabold mb-3" style={{ color: T.brand }}>تواصل معنا</h1>
+        <Words as="h1" className="text-2xl md:text-3xl font-extrabold mb-3" style={{ color: T.brand }}>
+          تواصل معنا
+        </Words>
         <p className="text-sm" style={{ color: T.inkSoft }}>عندك سؤال أو استفسار؟ راسلنا وبنرد عليك بأسرع وقت</p>
       </div>
 
-      <div className="max-w-3xl mx-auto px-6 pb-20 grid grid-cols-1 md:grid-cols-2 gap-6">
+      <Reveal className="max-w-3xl mx-auto px-6 pb-20 grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* معلومات التواصل */}
         <div className="space-y-3">
           <div className="rounded-2xl p-4 flex items-center gap-3" style={{ background: T.surface, border: `1px solid ${T.border}` }}>
@@ -112,7 +117,7 @@ export default function ContactPage() {
             </button>
           )}
         </div>
-      </div>
+      </Reveal>
 
       <SiteFooter />
     </div>

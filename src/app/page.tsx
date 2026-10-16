@@ -2,8 +2,12 @@ import Link from "next/link";
 import Image from "next/image";
 import { Leaf, Scale, Target, ArrowLeft } from "lucide-react";
 import SiteNav from "@/components/SiteNav";
+import SmoothScroll from "@/components/motion/SmoothScroll";
+import HeroAurora from "@/components/motion/HeroAurora";
+import MacroChip from "@/components/motion/MacroChip";
+import { Parallax, Reveal, Words } from "@/components/motion/Reveal";
 import SiteFooter from "@/components/SiteFooter";
-import { BRAND, ESSENCE, MACRO, PILLARS, STEPS } from "@/lib/brand";
+import { BRAND, ESSENCE, PILLARS, STEPS } from "@/lib/brand";
 
 export const metadata = {
   title: "Macro Meals — أكل حقيقي.. ماكروز محسوبة",
@@ -16,11 +20,13 @@ const PILLAR_ICONS = [Leaf, Scale, Target];
 export default function Home() {
   return (
     <div className="min-h-screen w-full" style={{ background: BRAND.cream, color: BRAND.ink }}>
+      <SmoothScroll />
       <SiteNav />
 
       {/* ---------- البنر الرئيسي ---------- */}
-      <section style={{ background: BRAND.forest }}>
-        <div className="max-w-6xl mx-auto px-5 sm:px-6 grid grid-cols-1 lg:grid-cols-2 items-center gap-10 lg:gap-6 py-12 lg:py-0">
+      <section className="relative overflow-hidden" style={{ background: BRAND.forest }}>
+        <HeroAurora />
+        <div className="relative max-w-6xl mx-auto px-5 sm:px-6 grid grid-cols-1 lg:grid-cols-2 items-center gap-10 lg:gap-6 py-12 lg:py-0">
           {/* النص — يمين في RTL */}
           <div className="lg:py-20 order-2 lg:order-1">
             <span
@@ -31,9 +37,12 @@ export default function Home() {
             </span>
 
             <h1 className="text-4xl sm:text-5xl lg:text-[3.4rem] font-extrabold leading-[1.15] mb-5">
-              <span style={{ color: "#FFFFFF" }}>{ESSENCE.ar.line1}</span>
-              <br />
-              <span style={{ color: BRAND.lime }}>{ESSENCE.ar.line2}</span>
+              <Words as="span" className="block" style={{ color: "#FFFFFF" }}>
+                {ESSENCE.ar.line1}
+              </Words>
+              <Words as="span" className="block" style={{ color: BRAND.lime }} delay={0.12}>
+                {ESSENCE.ar.line2}
+              </Words>
             </h1>
 
             <p className="text-sm sm:text-base leading-relaxed mb-8 max-w-md" style={{ color: BRAND.mist }}>
@@ -96,10 +105,12 @@ export default function Home() {
 
       {/* ---------- الركائز ---------- */}
       <section className="max-w-6xl mx-auto px-5 sm:px-6 py-16 sm:py-20">
-        <h2 className="text-2xl sm:text-3xl font-extrabold mb-2">ليش ماكرو ميلز</h2>
-        <p className="text-sm mb-10" style={{ color: "#5C6B62" }}>ثلاث ركائز نبني عليها كل طبق.</p>
+        <Words className="text-2xl sm:text-3xl font-extrabold mb-2">ليش ماكرو ميلز</Words>
+        <Words as="p" className="text-sm mb-10" style={{ color: "#5C6B62" }} delay={0.1}>
+          ثلاث ركائز نبني عليها كل طبق.
+        </Words>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <Reveal className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {PILLARS.map((p, i) => {
             const Icon = PILLAR_ICONS[i];
             return (
@@ -120,20 +131,20 @@ export default function Home() {
               </div>
             );
           })}
-        </div>
+        </Reveal>
       </section>
 
       {/* ---------- ثلاث خطوات ---------- */}
       <section style={{ background: BRAND.forest }}>
         <div className="max-w-6xl mx-auto px-5 sm:px-6 py-16 sm:py-20">
-          <h2 className="text-2xl sm:text-3xl font-extrabold mb-1" style={{ color: "#FFFFFF" }}>
+          <Words className="text-2xl sm:text-3xl font-extrabold mb-1" style={{ color: "#FFFFFF" }}>
             ثلاث خطوات..
-          </h2>
-          <h2 className="text-2xl sm:text-3xl font-extrabold mb-10" style={{ color: BRAND.lime }}>
+          </Words>
+          <Words className="text-2xl sm:text-3xl font-extrabold mb-10" style={{ color: BRAND.lime }} delay={0.12}>
             لين هدفك.
-          </h2>
+          </Words>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Reveal className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {STEPS.map((s) => (
               <div
                 key={s.n}
@@ -150,11 +161,11 @@ export default function Home() {
                 <p className="text-sm" style={{ color: BRAND.sage }}>{s.body}</p>
               </div>
             ))}
-          </div>
+          </Reveal>
 
           <Link
             href="/order-app/onboarding"
-            className="inline-flex items-center gap-2 rounded-full px-7 py-3.5 text-sm font-extrabold mt-10"
+            className="inline-flex items-center gap-2 rounded-full px-7 py-3.5 text-sm font-extrabold mt-10 transition-transform hover:scale-[1.03]"
             style={{ background: BRAND.lime, color: BRAND.ink }}
           >
             ابدأ من هنا <ArrowLeft size={16} />
@@ -165,7 +176,7 @@ export default function Home() {
       {/* ---------- المنيو ---------- */}
       <section className="max-w-6xl mx-auto px-5 sm:px-6 py-16 sm:py-20">
         <div className="rounded-[2rem] overflow-hidden grid grid-cols-1 lg:grid-cols-2" style={{ background: BRAND.forest }}>
-          <div className="relative h-60 lg:h-auto lg:min-h-[320px] order-1 lg:order-2">
+          <Parallax className="relative h-60 lg:h-auto lg:min-h-[320px] order-1 lg:order-2" amount={6}>
             <Image
               src="/brand/menu-bowl.jpg"
               alt="أطباق المنيو"
@@ -173,8 +184,8 @@ export default function Home() {
               sizes="(max-width: 1024px) 100vw, 50vw"
               className="object-cover"
             />
-          </div>
-          <div className="p-8 sm:p-12 order-2 lg:order-1">
+          </Parallax>
+          <Reveal className="p-8 sm:p-12 order-2 lg:order-1">
             <span
               className="inline-block rounded-full px-3 py-1 text-[10px] font-bold mb-5"
               style={{ border: `1px solid ${BRAND.lime}55`, color: BRAND.lime }}
@@ -196,7 +207,7 @@ export default function Home() {
             >
               شوف المنيو
             </Link>
-          </div>
+          </Reveal>
         </div>
       </section>
 
@@ -205,16 +216,3 @@ export default function Home() {
   );
 }
 
-/** شارة ماكرو — نفس كود الألوان في الموقع والتطبيق والملصق. */
-function MacroChip({ macro, value }: { macro: keyof typeof MACRO; value: number }) {
-  const m = MACRO[macro];
-  return (
-    <span
-      className="rounded-lg px-2.5 py-1.5 text-center leading-none"
-      style={{ background: m.bg, color: m.fg, border: macro === "fat" ? "1px solid #E4DCCB" : undefined }}
-    >
-      <span className="num block text-sm font-extrabold">{value}g</span>
-      <span className="block text-[9px] font-bold mt-0.5">{m.label}</span>
-    </span>
-  );
-}
