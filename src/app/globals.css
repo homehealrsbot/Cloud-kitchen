@@ -35,9 +35,10 @@
   --color-brand-tint: var(--brand-tint);
   --color-border: var(--border);
 
-  /* Tajawal للعربي، و Poppins احتياطي للأرقام والكلمات اللاتينية */
-  --font-sans: var(--font-tajawal), var(--font-poppins), system-ui, sans-serif;
-  --font-display: var(--font-poppins), var(--font-tajawal), system-ui, sans-serif;
+  /* IBM Plex Sans Arabic للعربي، واللاتيني من نفس العائلة للأرقام والكلمات
+     الإنجليزية — فالخطان وجهان لخط واحد لا خطان مختلفان التقيا. */
+  --font-sans: var(--font-arabic), var(--font-latin), system-ui, sans-serif;
+  --font-display: var(--font-latin), var(--font-arabic), system-ui, sans-serif;
 }
 
 body {
@@ -45,9 +46,10 @@ body {
   color: var(--foreground);
 }
 
-/* الأرقام اللاتينية بخط Poppins حتى داخل نص عربي — أوضح في الماكروز والأسعار */
+/* الأرقام باللاتيني حتى داخل نص عربي، و tnum يحجز لكل رقم عرضاً ثابتاً —
+   فما يرتجف عرض الشارة وهي تعدّ، ولا يتزحزح عمود السعر في الجدول. */
 .num {
-  font-family: var(--font-poppins), var(--font-tajawal), system-ui, sans-serif;
+  font-family: var(--font-latin), var(--font-arabic), system-ui, sans-serif;
   font-feature-settings: "tnum" 1;
 }
 

@@ -3,27 +3,40 @@ import localFont from "next/font/local";
 import "./globals.css";
 import { BRAND } from "@/lib/brand";
 
-// خطوط الهوية: Tajawal للعربي و Poppins للإنجليزي (كلاهما من Google Fonts).
-// مُستضافة محلياً بدل الجلب وقت التشغيل — أسرع، ويشتغل البناء بلا اتصال خارجي،
-// وما يسرّب زيارات المستخدمين لنطاق ثالث.
-const tajawal = localFont({
+// خطوط الهوية: IBM Plex Sans Arabic للعربي، و IBM Plex Sans للاتيني والأرقام.
+// عائلة واحدة بوجهين، فـ«Macro Meals» و«42g» و«أكل حقيقي» تُقرأ كخط واحد لا
+// كثلاثة خطوط اجتمعت. ومهم لنا تحديداً: أرقامها tabular حقيقية، والملصق
+// الغذائي والماكروز تُقرأ بلمحة ولا يرتجف عرض الشارة وهي تتغيّر.
+//
+// مُستضافة محلياً بدل الجلب وقت التشغيل — أسرع، ويشتغل البناء بلا اتصال
+// خارجي، وما يسرّب زيارات المستخدمين لنطاق ثالث. الملفات منسوخة من حزمتَي
+// @fontsource/ibm-plex-sans-arabic و @fontsource/ibm-plex-sans (نسخة woff2،
+// أخفّ من ttf بنحو الثلثين) والحزمتان غير مثبّتتين: ما يستوردهما شيء.
+//
+// الوزن 800 مربوط بملف 700 بقصد: العائلة ما فيها 800، وبلا هذا الربط يصطنع
+// المتصفح عرضاً زائداً للعناوين (font-extrabold مستعمل في كل الصفحات) فتطلع
+// ثقيلة مشوّهة بدل ثقيلة نظيفة.
+const plexArabic = localFont({
   src: [
-    { path: "../fonts/Tajawal-Regular.ttf", weight: "400", style: "normal" },
-    { path: "../fonts/Tajawal-Medium.ttf", weight: "500", style: "normal" },
-    { path: "../fonts/Tajawal-Bold.ttf", weight: "700", style: "normal" },
-    { path: "../fonts/Tajawal-ExtraBold.ttf", weight: "800", style: "normal" },
+    { path: "../fonts/IBMPlexSansArabic-400.woff2", weight: "400", style: "normal" },
+    { path: "../fonts/IBMPlexSansArabic-500.woff2", weight: "500", style: "normal" },
+    { path: "../fonts/IBMPlexSansArabic-600.woff2", weight: "600", style: "normal" },
+    { path: "../fonts/IBMPlexSansArabic-700.woff2", weight: "700", style: "normal" },
+    { path: "../fonts/IBMPlexSansArabic-700.woff2", weight: "800", style: "normal" },
   ],
-  variable: "--font-tajawal",
+  variable: "--font-arabic",
   display: "swap",
 });
 
-const poppins = localFont({
+const plexLatin = localFont({
   src: [
-    { path: "../fonts/Poppins-Regular.ttf", weight: "400", style: "normal" },
-    { path: "../fonts/Poppins-SemiBold.ttf", weight: "600", style: "normal" },
-    { path: "../fonts/Poppins-Bold.ttf", weight: "700", style: "normal" },
+    { path: "../fonts/IBMPlexSans-400.woff2", weight: "400", style: "normal" },
+    { path: "../fonts/IBMPlexSans-500.woff2", weight: "500", style: "normal" },
+    { path: "../fonts/IBMPlexSans-600.woff2", weight: "600", style: "normal" },
+    { path: "../fonts/IBMPlexSans-700.woff2", weight: "700", style: "normal" },
+    { path: "../fonts/IBMPlexSans-700.woff2", weight: "800", style: "normal" },
   ],
-  variable: "--font-poppins",
+  variable: "--font-latin",
   display: "swap",
 });
 
@@ -47,7 +60,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="ar" dir="rtl">
       <body
-        className={`${tajawal.variable} ${poppins.variable} font-sans antialiased`}
+        className={`${plexArabic.variable} ${plexLatin.variable} font-sans antialiased`}
         style={{ background: BRAND.cream, color: BRAND.ink }}
       >
         {children}
